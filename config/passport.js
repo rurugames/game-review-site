@@ -1,12 +1,6 @@
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
 
-// 許可されたメールアドレスのリスト
-const ALLOWED_EMAILS = [
-  'hiderance1919@gmail.com', // あなたのメールアドレス
-  // 他のユーザーを追加する場合はここに追加
-];
-
 module.exports = function(passport) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
@@ -17,10 +11,8 @@ module.exports = function(passport) {
     try {
       const email = profile.emails[0].value;
       
-      // メールアドレスが許可リストに含まれているか確認
-      if (!ALLOWED_EMAILS.includes(email)) {
-        return done(null, false, { message: 'このメールアドレスではログインできません。' });
-      }
+      // すべてのGoogleユーザーがログイン可能
+      // 管理者権限は別途チェック（hiderance1919@gmail.com）
       
       // ユーザーが既に存在するか確認
       let user = await User.findOne({ googleId: profile.id });

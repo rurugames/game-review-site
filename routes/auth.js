@@ -14,11 +14,12 @@ router.get('/google/callback',
     failureFlash: false 
   }),
   (req, res) => {
-    if (!req.user) {
-      // 認証失敗時（許可されていないユーザー）
-      return res.redirect('/?error=unauthorized');
+    // 管理者はダッシュボードへ、一般ユーザーはトップページへ
+    if (req.user.email === 'hiderance1919@gmail.com') {
+      res.redirect('/dashboard');
+    } else {
+      res.redirect('/');
     }
-    res.redirect('/dashboard');
   }
 );
 

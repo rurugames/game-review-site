@@ -10,14 +10,7 @@ router.get('/', async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(20);
     
-    // URLパラメータからエラーメッセージを取得
-    const error = req.query.error;
-    let errorMessage = null;
-    if (error === 'unauthorized') {
-      errorMessage = 'このメールアドレスではログインできません。管理者にお問い合わせください。';
-    }
-    
-    res.render('index', { articles, errorMessage });
+    res.render('index', { articles });
   } catch (err) {
     console.error(err);
     res.status(500).send('サーバーエラーが発生しました');

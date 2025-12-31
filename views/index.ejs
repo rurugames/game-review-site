@@ -3,12 +3,6 @@
   <p>最新の同人PCゲーム情報・攻略・レビューをチェック！モダンなデザインでお届けします</p>
 </div>
 
-<% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
-  <div class="error-message">
-    <p>⚠️ <%= errorMessage %></p>
-  </div>
-<% } %>
-
 <div class="articles-grid">
   <% if (articles.length > 0) { %>
     <% articles.forEach(article => { %>

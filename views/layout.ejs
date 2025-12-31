@@ -15,8 +15,10 @@
       <a href="/" class="logo">🎮 PCゲームレビュー</a>
       <div class="nav-links">
         <% if (user) { %>
-          <a href="/dashboard">ダッシュボード</a>
-          <a href="/articles/new" class="btn-primary">新規記事作成</a>
+          <% if (user.email === 'hiderance1919@gmail.com') { %>
+            <a href="/dashboard">ダッシュボード</a>
+            <a href="/articles/new" class="btn-primary">新規記事作成</a>
+          <% } %>
           <span class="user-info">
             <img src="<%= user.image %>" alt="<%= user.displayName %>" class="user-avatar">
             <%= user.displayName %>
