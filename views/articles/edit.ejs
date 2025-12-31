@@ -1,0 +1,83 @@
+<div class="form-container">
+  <h1>記事編集</h1>
+  
+  <form action="/articles/<%= article._id %>?_method=PUT" method="POST" class="article-form">
+    <div class="form-group">
+      <label for="title">記事タイトル *</label>
+      <input type="text" id="title" name="title" required value="<%= article.title %>">
+    </div>
+
+    <div class="form-group">
+      <label for="gameTitle">ゲームタイトル *</label>
+      <input type="text" id="gameTitle" name="gameTitle" required value="<%= article.gameTitle %>">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="genre">ジャンル</label>
+        <input type="text" id="genre" name="genre" value="<%= article.genre || '' %>">
+      </div>
+
+      <div class="form-group">
+        <label for="platform">プラットフォーム</label>
+        <input type="text" id="platform" name="platform" value="<%= article.platform %>">
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label for="developer">開発元</label>
+        <input type="text" id="developer" name="developer" value="<%= article.developer || '' %>">
+      </div>
+
+      <div class="form-group">
+        <label for="releaseDate">発売日</label>
+        <input type="date" id="releaseDate" name="releaseDate" 
+               value="<%= article.releaseDate ? new Date(article.releaseDate).toISOString().split('T')[0] : '' %>">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="rating">評価（1-5）</label>
+      <input type="number" id="rating" name="rating" min="1" max="5" step="0.5" value="<%= article.rating || '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="imageUrl">画像URL</label>
+      <input type="url" id="imageUrl" name="imageUrl" value="<%= article.imageUrl || '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="description">概要 *</label>
+      <textarea id="description" name="description" rows="3" required><%= article.description %></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="content">本文 *</label>
+      <textarea id="content" name="content" rows="15" required><%= article.content %></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="tags">タグ（カンマ区切り）</label>
+      <input type="text" id="tags" name="tags" value="<%= article.tags ? article.tags.join(', ') : '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="affiliateLink">アフィリエイトリンク</label>
+      <input type="url" id="affiliateLink" name="affiliateLink" value="<%= article.affiliateLink || '' %>">
+    </div>
+
+    <div class="form-group">
+      <label for="status">ステータス</label>
+      <select id="status" name="status">
+        <option value="published" <%= article.status === 'published' ? 'selected' : '' %>>公開</option>
+        <option value="draft" <%= article.status === 'draft' ? 'selected' : '' %>>下書き</option>
+      </select>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">更新</button>
+      <a href="/articles/<%= article._id %>" class="btn-secondary">キャンセル</a>
+    </div>
+  </form>
+</div>

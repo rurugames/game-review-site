@@ -1,0 +1,48 @@
+<div class="dashboard">
+  <h1>ダッシュボード</h1>
+  <div class="dashboard-header">
+    <h2>あなたの記事</h2>
+    <a href="/articles/new" class="btn-primary">新規記事作成</a>
+  </div>
+
+  <% if (articles.length > 0) { %>
+    <table class="articles-table">
+      <thead>
+        <tr>
+          <th>タイトル</th>
+          <th>ゲームタイトル</th>
+          <th>ステータス</th>
+          <th>閲覧数</th>
+          <th>作成日</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% articles.forEach(article => { %>
+          <tr>
+            <td><a href="/articles/<%= article._id %>"><%= article.title %></a></td>
+            <td><%= article.gameTitle %></td>
+            <td>
+              <span class="status-badge status-<%= article.status %>">
+                <%= article.status === 'published' ? '公開中' : '下書き' %>
+              </span>
+            </td>
+            <td><%= article.views %></td>
+            <td><%= new Date(article.createdAt).toLocaleDateString('ja-JP') %></td>
+            <td class="actions">
+              <a href="/articles/<%= article._id %>/edit" class="btn-edit">編集</a>
+              <form action="/articles/<%= article._id %>?_method=DELETE" method="POST" style="display:inline;">
+                <button type="submit" class="btn-delete" onclick="return confirm('本当に削除しますか？')">削除</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } else { %>
+    <div class="no-articles">
+      <p>まだ記事がありません。</p>
+      <a href="/articles/new" class="btn-primary">最初の記事を作成する</a>
+    </div>
+  <% } %>
+</div>

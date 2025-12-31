@@ -1,0 +1,98 @@
+<article class="article-detail">
+  <div class="article-header">
+    <div class="breadcrumb">
+      <a href="/">ホーム</a> / <span><%= article.gameTitle %></span>
+    </div>
+    
+    <% if (article.imageUrl) { %>
+      <div class="featured-image">
+        <img src="<%= article.imageUrl %>" alt="<%= article.gameTitle %>">
+      </div>
+    <% } %>
+
+    <div class="article-meta-header">
+      <span class="genre"><%= article.genre || 'ゲーム' %></span>
+      <% if (article.rating) { %>
+        <span class="rating-large">⭐ <%= article.rating %>/5</span>
+      <% } %>
+    </div>
+
+    <h1><%= article.title %></h1>
+    <h2 class="game-title-large"><%= article.gameTitle %></h2>
+
+    <div class="game-info">
+      <% if (article.developer) { %>
+        <div class="info-item">
+          <strong>開発元:</strong> <%= article.developer %>
+        </div>
+      <% } %>
+      <% if (article.platform) { %>
+        <div class="info-item">
+          <strong>プラットフォーム:</strong> <%= article.platform %>
+        </div>
+      <% } %>
+      <% if (article.releaseDate) { %>
+        <div class="info-item">
+          <strong>発売日:</strong> <%= new Date(article.releaseDate).toLocaleDateString('ja-JP') %>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="author-date">
+      <div class="author-info">
+        <img src="<%= article.author.image %>" alt="<%= article.author.displayName %>" class="author-avatar">
+        <div>
+          <div class="author-name"><%= article.author.displayName %></div>
+          <div class="article-date">
+            投稿: <%= new Date(article.createdAt).toLocaleDateString('ja-JP') %>
+            <% if (article.createdAt.getTime() !== article.updatedAt.getTime()) { %>
+              | 更新: <%= new Date(article.updatedAt).toLocaleDateString('ja-JP') %>
+            <% } %>
+          </div>
+        </div>
+      </div>
+      <div class="views-count">👁️ <%= article.views %> 閲覧</div>
+    </div>
+
+    <% if (user && article.author._id.toString() === user.id) { %>
+      <div class="article-actions">
+        <a href="/articles/<%= article._id %>/edit" class="btn-edit">編集</a>
+        <form action="/articles/<%= article._id %>?_method=DELETE" method="POST" style="display:inline;">
+          <button type="submit" class="btn-delete" onclick="return confirm('本当に削除しますか？')">削除</button>
+        </form>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="article-body">
+    <div class="description">
+      <p><%= article.description %></p>
+    </div>
+
+    <div class="content">
+      <%- article.content.replace(/\n/g, '<br>') %>
+    </div>
+
+    <% if (article.tags && article.tags.length > 0) { %>
+      <div class="tags">
+        <strong>タグ:</strong>
+        <% article.tags.forEach(tag => { %>
+          <span class="tag">#<%= tag %></span>
+        <% }); %>
+      </div>
+    <% } %>
+
+    <% if (article.affiliateLink) { %>
+      <div class="affiliate-section">
+        <h3>このゲームを購入</h3>
+        <a href="<%= article.affiliateLink %>" target="_blank" rel="noopener noreferrer" class="btn-affiliate">
+          🛒 購入ページへ
+        </a>
+      </div>
+    <% } %>
+  </div>
+
+  <div class="article-footer-nav">
+    <a href="/" class="btn-back">← 記事一覧に戻る</a>
+  </div>
+</article>

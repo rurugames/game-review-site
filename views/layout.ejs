@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title + ' - ' : '' %>PCゲームレビュー</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container">
+      <a href="/" class="logo">🎮 PCゲームレビュー</a>
+      <div class="nav-links">
+        <% if (user) { %>
+          <a href="/dashboard">ダッシュボード</a>
+          <a href="/articles/new" class="btn-primary">新規記事作成</a>
+          <span class="user-info">
+            <img src="<%= user.image %>" alt="<%= user.displayName %>" class="user-avatar">
+            <%= user.displayName %>
+          </span>
+          <a href="/auth/logout" class="btn-secondary">ログアウト</a>
+        <% } else { %>
+          <a href="/auth/google" class="btn-primary">Googleでログイン</a>
+        <% } %>
+      </div>
+    </div>
+  </nav>
+  
+  <main class="container">
+    <%- body %>
+  </main>
+  
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; 2025 PCゲームレビュー. All rights reserved.</p>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<div class="hero">
+  <h1>PCゲームレビュー & 情報サイト</h1>
+  <p>最新のPCゲーム情報とレビューをチェック</p>
+</div>
+
+<div class="articles-grid">
+  <% if (articles.length > 0) { %>
+    <% articles.forEach(article => { %>
+      <article class="article-card">
+        <% if (article.imageUrl) { %>
+          <div class="article-image">
+            <img src="<%= article.imageUrl %>" alt="<%= article.gameTitle %>">
+          </div>
+        <% } %>
+        <div class="article-content">
+          <div class="article-meta">
+            <span class="genre"><%= article.genre || 'ゲーム' %></span>
+            <% if (article.rating) { %>
+              <span class="rating">⭐ <%= article.rating %>/5</span>
+            <% } %>
+          </div>
+          <h2><%= article.title %></h2>
+          <h3 class="game-title"><%= article.gameTitle %></h3>
+          <p class="description"><%= article.description.substring(0, 150) %>...</p>
+          <div class="article-footer">
+            <div class="author-info">
+              <img src="<%= article.author.image %>" alt="<%= article.author.displayName %>" class="author-avatar">
+              <span><%= article.author.displayName %></span>
+            </div>
+            <span class="date"><%= new Date(article.createdAt).toLocaleDateString('ja-JP') %></span>
+          </div>
+          <a href="/articles/<%= article._id %>" class="btn-read-more">続きを読む</a>
+        </div>
+      </article>
+    <% }); %>
+  <% } else { %>
+    <div class="no-articles">
+      <p>まだ記事がありません。</p>
+      <% if (user) { %>
+        <a href="/articles/new" class="btn-primary">最初の記事を作成する</a>
+      <% } else { %>
+        <a href="/auth/google" class="btn-primary">ログインして記事を作成</a>
+      <% } %>
+    </div>
+  <% } %>
+</div>
