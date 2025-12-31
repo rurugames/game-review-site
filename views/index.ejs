@@ -1,7 +1,13 @@
 <div class="hero">
   <h1>🎮 PCゲームレビュー & 情報サイト 🎮</h1>
   <p>最新のPCゲーム情報とレビューをチェック！デプロイテスト成功</p>
+</div>
 
+<% if (typeof errorMessage !== 'undefined' && errorMessage) { %>
+  <div class="error-message">
+    <p>⚠️ <%= errorMessage %></p>
+  </div>
+<% } %>
 
 <div class="articles-grid">
   <% if (articles.length > 0) { %>

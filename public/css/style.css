@@ -584,6 +584,23 @@ body {
   font-size: 1.1rem;
 }
 
+/* エラーメッセージ */
+.error-message {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 2rem auto;
+  max-width: 600px;
+  text-align: center;
+  color: #c33;
+}
+
+.error-message p {
+  margin: 0;
+  font-weight: 500;
+}
+
 .footer {
   background-color: var(--card-background);
   padding: 2rem 0;

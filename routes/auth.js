@@ -9,8 +9,15 @@ router.get('/google',
 
 // Googleコールバック
 router.get('/google/callback',
-  passport.authenticate('google', { failureRedirect: '/' }),
+  passport.authenticate('google', { 
+    failureRedirect: '/',
+    failureFlash: false 
+  }),
   (req, res) => {
+    if (!req.user) {
+      // 認証失敗時（許可されていないユーザー）
+      return res.redirect('/?error=unauthorized');
+    }
     res.redirect('/dashboard');
   }
 );
