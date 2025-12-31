@@ -54,7 +54,7 @@
       <div class="views-count">👁️ <%= article.views %> 閲覧</div>
     </div>
 
-    <% if (user && article.author._id.toString() === user.id) { %>
+    <% if (user && user.email === 'hiderance1919@gmail.com') { %>
       <div class="article-actions">
         <a href="/articles/<%= article._id %>/edit" class="btn-edit">編集</a>
         <form action="/articles/<%= article._id %>?_method=DELETE" method="POST" style="display:inline;">
@@ -96,3 +96,54 @@
     <a href="/" class="btn-back">← 記事一覧に戻る</a>
   </div>
 </article>
+
+<!-- コメントセクション -->
+<section class="comments-section">
+  <h2 class="comments-title">💬 コメント (<%= comments.length %>)</h2>
+
+  <% if (user) { %>
+    <!-- コメント投稿フォーム -->
+    <div class="comment-form-container">
+      <h3>コメントを投稿</h3>
+      <form action="/comments/<%= article._id %>" method="POST" class="comment-form">
+        <div class="form-group">
+          <textarea name="content" rows="4" placeholder="コメントを入力してください..." required></textarea>
+        </div>
+        <button type="submit" class="btn-primary">コメントを投稿</button>
+      </form>
+    </div>
+  <% } else { %>
+    <div class="comment-login-prompt">
+      <p>コメントを投稿するには<a href="/auth/google">ログイン</a>してください</p>
+    </div>
+  <% } %>
+
+  <!-- コメント一覧 -->
+  <div class="comments-list">
+    <% if (comments.length > 0) { %>
+      <% comments.forEach(comment => { %>
+        <div class="comment-item">
+          <div class="comment-header">
+            <img src="<%= comment.author.image %>" alt="<%= comment.author.displayName %>" class="comment-avatar">
+            <div class="comment-meta">
+              <span class="comment-author"><%= comment.author.displayName %></span>
+              <span class="comment-date"><%= new Date(comment.createdAt).toLocaleDateString('ja-JP') %> <%= new Date(comment.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) %></span>
+            </div>
+            <% if (user && (comment.author._id.toString() === user.id || user.email === 'hiderance1919@gmail.com')) { %>
+              <form action="/comments/<%= comment._id %>?_method=DELETE" method="POST" class="comment-delete-form">
+                <button type="submit" class="btn-comment-delete" onclick="return confirm('コメントを削除しますか？')">🗑️</button>
+              </form>
+            <% } %>
+          </div>
+          <div class="comment-content">
+            <%= comment.content %>
+          </div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="no-comments">
+        <p>まだコメントがありません。最初のコメントを投稿してみましょう！</p>
+      </div>
+    <% } %>
+  </div>
+</section>

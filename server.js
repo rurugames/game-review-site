@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const expressLayouts = require('express-ejs-layouts');
 const session = require('express-session');
 const passport = require('passport');
 const mongoose = require('mongoose');
@@ -20,6 +21,8 @@ require('./config/passport')(passport);
 // ミドルウェア設定
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+app.use(expressLayouts);
+app.set('layout', 'layout');
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -47,6 +50,7 @@ app.use((req, res, next) => {
 app.use('/', require('./routes/index'));
 app.use('/auth', require('./routes/auth'));
 app.use('/articles', require('./routes/articles'));
+app.use('/comments', require('./routes/comments'));
 
 // サーバー起動
 app.listen(PORT, () => {

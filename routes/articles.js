@@ -1,22 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const Article = require('../models/Article');
+const Comment = require('../models/Comment');
+const { ensureAuth, ensureAdmin } = require('../middleware/auth');
 
-// 認証チェックミドルウェア
-function ensureAuth(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect('/');
-}
-
-// 新規記事作成フォーム
-router.get('/new', ensureAuth, (req, res) => {
+// 新規記事作成フォーム（管理者のみ）
+router.get('/new', ensureAdmin, (req, res) => {
   res.render('articles/new');
 });
 
-// 記事作成
-router.post('/', ensureAuth, async (req, res) => {
+// 記事作成（管理者のみ）
+router.post('/', ensureAdmin, async (req, res) => {
   try {
     const articleData = {
       ...req.body,
@@ -46,24 +40,26 @@ router.get('/:id', async (req, res) => {
       return res.status(404).send('記事が見つかりません');
     }
     
+    // コメントを取得
+    const comments = await Comment.find({ article: req.params.id })
+      .populate('author')
+      .sort({ createdAt: -1 });
+    
     // 閲覧数を増加
     article.views += 1;
     await article.save();
     
-    res.render('articles/show', { article });
+    res.render('articles/show', { article, comments });
   } catch (err) {
     console.error(err);
     res.status(500).send('サーバーエラーが発生しました');
   }
 });
 
-// 記事編集フォーム
-router.get('/:id/edit', ensureAuth, async (req, res) => {
+// 記事編集フォーム（管理者のみ）
+router.get('/:id/edit', ensureAdmin, async (req, res) => {
   try {
-    const article = await Article.findOne({
-      _id: req.params.id,
-      author: req.user.id
-    });
+    const article = await Article.findById(req.params.id);
     
     if (!article) {
       return res.status(404).send('記事が見つかりません');
@@ -76,13 +72,10 @@ router.get('/:id/edit', ensureAuth, async (req, res) => {
   }
 });
 
-// 記事更新
-router.put('/:id', ensureAuth, async (req, res) => {
+// 記事更新（管理者のみ）
+router.put('/:id', ensureAdmin, async (req, res) => {
   try {
-    let article = await Article.findOne({
-      _id: req.params.id,
-      author: req.user.id
-    });
+    const article = await Article.findById(req.params.id);
     
     if (!article) {
       return res.status(404).send('記事が見つかりません');
@@ -95,31 +88,31 @@ router.put('/:id', ensureAuth, async (req, res) => {
       updateData.tags = req.body.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
     }
     
-    article = await Article.findByIdAndUpdate(req.params.id, updateData, {
+    await Article.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true
     });
     
-    res.redirect(`/articles/${article._id}`);
+    res.redirect(`/articles/${req.params.id}`);
   } catch (err) {
     console.error(err);
     res.status(500).send('記事の更新に失敗しました');
   }
 });
 
-// 記事削除
-router.delete('/:id', ensureAuth, async (req, res) => {
+// 記事削除（管理者のみ）
+router.delete('/:id', ensureAdmin, async (req, res) => {
   try {
-    const article = await Article.findOne({
-      _id: req.params.id,
-      author: req.user.id
-    });
+    const article = await Article.findById(req.params.id);
     
     if (!article) {
       return res.status(404).send('記事が見つかりません');
     }
     
+    // 記事に関連するコメントも削除
+    await Comment.deleteMany({ article: req.params.id });
     await Article.findByIdAndDelete(req.params.id);
+    
     res.redirect('/dashboard');
   } catch (err) {
     console.error(err);
