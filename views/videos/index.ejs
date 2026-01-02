@@ -1,7 +1,20 @@
 <section class="articles-section page-section">
   <div class="page-header">
-    <h1 class="section-title">動画</h1>
-    <p class="section-lead">YouTube【ruruGamesJPチャンネル】の新着動画・おすすめ動画を一覧表示します。</p>
+    <div class="channel-header">
+      <div class="channel-brand">
+        <img src="/images/ruruGames.png" alt="ruruGames" class="channel-icon" loading="lazy">
+        <div>
+          <h1 class="section-title" style="margin-bottom: 0.1rem;">動画</h1>
+          <p class="section-lead" style="margin: 0;">
+            YouTube【ruruGamesJPチャンネル】の新着動画・おすすめ動画を一覧表示します。
+          </p>
+        </div>
+      </div>
+
+      <% if (youtubeChannelId) { %>
+        <a class="btn-secondary" href="https://www.youtube.com/channel/<%= youtubeChannelId %>" target="_blank" rel="noopener">チャンネルを見る</a>
+      <% } %>
+    </div>
   </div>
 
   <% if ((!latestVideos || latestVideos.length === 0) && (!recommendedVideos || recommendedVideos.length === 0)) { %>
@@ -85,10 +98,5 @@
       <% }); %>
     </div>
 
-    <% if (youtubeChannelId) { %>
-      <div style="margin-top: 0.5rem;">
-        <a class="btn-secondary" href="https://www.youtube.com/channel/<%= youtubeChannelId %>" target="_blank" rel="noopener">チャンネルを見る</a>
-      </div>
-    <% } %>
   <% } %>
 </section>
