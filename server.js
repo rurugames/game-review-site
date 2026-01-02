@@ -112,6 +112,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check (for keep-alive pings)
+app.get('/healthz', (req, res) => {
+  res.status(200).type('text/plain').send('ok');
+});
+
 // ルート
 app.use('/', require('./routes/index'));
 app.use('/auth', require('./routes/auth'));
