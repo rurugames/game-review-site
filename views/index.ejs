@@ -1,46 +1,184 @@
-<div class="hero">
-  <h1>✨ PCゲームレビュー & 攻略サイト ✨</h1>
-  <p>最新の同人PCゲーム情報・攻略・レビューをチェック！モダンなデザインでお届けします</p>
-</div>
-
-<div class="articles-grid">
-  <% if (articles.length > 0) { %>
-    <% articles.forEach(article => { %>
-      <article class="article-card">
-        <% if (article.imageUrl) { %>
-          <div class="article-image">
-            <img src="<%= article.imageUrl %>" alt="<%= article.gameTitle %>">
+    <% if (ranking && ranking.length > 0) { %>
+    <div id="ranking-container">
+    <section id="ranking" class="ranking-section">
+    <h2 class="ranking-title">🏆 DLsite 人気ランキング TOP10 🏆</h2>
+    <% if (typeof rankingStatusFormatted !== 'undefined' && (rankingStatusFormatted.lastUpdatedStr || rankingStatusFormatted.nextUpdateStr)) { %>
+      <div class="ranking-meta small muted">最終取得: <%= rankingStatusFormatted.lastUpdatedStr || '—' %> ／ 次回更新: <%= rankingStatusFormatted.nextUpdateStr || '—' %></div>
+    <% } %>
+    <div class="ranking-wrap">
+      <button class="ranking-nav prev" aria-label="前へ">‹</button>
+      <button class="ranking-toggle" title="ナビ表示切替">◎</button>
+      <div class="ranking-grid">
+      <% ranking.forEach((game, index) => { %>
+        <div class="ranking-item" data-rank="<%= game.rank %>">
+          <div class="rank-badge rank-<%= game.rank %>"><%= game.rank %></div>
+          <% if (game.imageUrl) { %>
+            <div class="ranking-image">
+              <img src="<%= game.imageUrl %>" alt="<%= game.title %>" loading="lazy">
+            </div>
+          <% } %>
+          <div class="ranking-content">
+            <h3 class="ranking-game-title"><%= game.title %></h3>
+            <p class="ranking-circle"><%= game.circle %></p>
+            <div class="ranking-footer">
+              <a href="<%= game.dlsiteUrl %>" target="_blank" rel="noopener" class="btn-dlsite-small">DLsite</a>
+            </div>
           </div>
-        <% } %>
-        <div class="article-content">
-          <div class="article-meta">
-            <span class="genre"><%= article.genre || 'ゲーム' %></span>
-            <% if (article.rating) { %>
-              <span class="rating">⭐ <%= article.rating %>/5</span>
+        </div>
+      <% }); %>
+      </div>
+      <button class="ranking-nav next" aria-label="次へ">›</button>
+      <div class="ranking-dots" aria-hidden="false"></div>
+    </div>
+    </section>
+    </div>
+    <% } %>
+
+<script>
+  (function(){
+    try {
+      const wrap = document.querySelector('.ranking-wrap');
+      if (!wrap) return;
+      const grid = wrap.querySelector('.ranking-grid');
+      const prev = wrap.querySelector('.ranking-nav.prev');
+      const next = wrap.querySelector('.ranking-nav.next');
+      const toggle = wrap.querySelector('.ranking-toggle');
+      const dotsContainer = wrap.querySelector('.ranking-dots');
+
+      const scrollAmount = () => Math.round(grid.clientWidth * 0.9);
+
+      function updateButtons(){
+        prev.style.opacity = grid.scrollLeft > 10 ? '1' : '0.3';
+        next.style.opacity = (grid.scrollLeft + grid.clientWidth) < (grid.scrollWidth - 10) ? '1' : '0.3';
+        updateDots();
+      }
+
+      // ページ計算（ページ幅 = 表示領域幅）
+      function calcPages(){
+        const pageWidth = grid.clientWidth || 1;
+        return Math.max(1, Math.ceil(grid.scrollWidth / pageWidth));
+      }
+
+      function buildDots(){
+        if (!dotsContainer) return;
+        dotsContainer.innerHTML = '';
+        const pages = calcPages();
+        for (let i=0;i<pages;i++){
+          const b = document.createElement('button');
+          b.className = 'ranking-dot';
+          b.dataset.index = i;
+          b.addEventListener('click', () => {
+            grid.scrollTo({ left: i * grid.clientWidth, behavior: 'smooth' });
+            setTimeout(updateButtons, 300);
+          });
+          dotsContainer.appendChild(b);
+        }
+      }
+
+      function updateDots(){
+        if (!dotsContainer) return;
+        const idx = Math.round(grid.scrollLeft / (grid.clientWidth || 1));
+        const buttons = Array.from(dotsContainer.children);
+        buttons.forEach((btn, i) => btn.classList.toggle('active', i === idx));
+      }
+
+      // クリックでページ送り
+      prev.addEventListener('click', () => { grid.scrollBy({ left: -grid.clientWidth, behavior: 'smooth' }); setTimeout(updateButtons, 400); });
+      next.addEventListener('click', () => { grid.scrollBy({ left: grid.clientWidth, behavior: 'smooth' }); setTimeout(updateButtons, 400); });
+
+      // 長押しで連続スクロール
+      let holdInterval = null;
+      function startHold(direction){ stopHold(); holdInterval = setInterval(()=>{ grid.scrollBy({ left: direction * 40 }); updateButtons(); }, 60); }
+      function stopHold(){ if (holdInterval) { clearInterval(holdInterval); holdInterval = null; } }
+      [[prev,-1],[next,1]].forEach(([el,dir])=>{
+        el.addEventListener('mousedown', ()=> startHold(dir));
+        el.addEventListener('touchstart', ()=> startHold(dir), {passive:true});
+        el.addEventListener('mouseup', stopHold);
+        el.addEventListener('mouseleave', stopHold);
+        el.addEventListener('touchend', stopHold);
+      });
+
+      // キーボード操作
+      window.addEventListener('keydown', (e)=>{
+        if (['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
+        if (e.key === 'ArrowLeft') { prev.click(); }
+        if (e.key === 'ArrowRight') { next.click(); }
+      });
+
+      // ナビ表示切替（compact / normal）
+      function applyNavMode(mode){ if (mode === 'compact') wrap.classList.add('nav-compact'); else wrap.classList.remove('nav-compact'); localStorage.setItem('rankingNavMode', mode); }
+      if (toggle){ toggle.addEventListener('click', ()=>{ const mode = wrap.classList.contains('nav-compact') ? 'normal' : 'compact'; applyNavMode(mode); }); const saved = localStorage.getItem('rankingNavMode') || 'normal'; applyNavMode(saved); }
+
+      // 初期ドット構築
+      buildDots();
+
+      grid.addEventListener('scroll', updateButtons);
+      window.addEventListener('resize', ()=>{ buildDots(); updateButtons(); });
+      updateButtons();
+    } catch (e) {
+      console.warn('ランキングナビ初期化エラー', e);
+    }
+  })();
+</script>
+
+<section class="articles-section page-section">
+  <div class="page-header">
+    <h2 class="section-title">最新記事</h2>
+    <p class="section-lead">レビュー・記事をパネル形式で一覧表示します。気になる記事をクリックして詳細を確認してください。</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-body">
+      <div class="articles-grid">
+        <% if (articles.length > 0) { %>
+          <% articles.forEach(article => { %>
+            <article class="article-card">
+              <% if (article.imageUrl) { %>
+                <div class="article-image">
+                  <img src="<%= article.imageUrl %>" alt="<%= article.gameTitle %>">
+                </div>
+              <% } %>
+              <div class="article-content">
+                <div class="article-meta">
+                  <span class="genre"><%= article.genre || 'ゲーム' %></span>
+                  <% if (article.rating) { %>
+                    <span class="rating"><%= '★'.repeat(article.rating) + '☆'.repeat(10 - article.rating) %></span>
+                  <% } %>
+                </div>
+                <h2><%= article.title %></h2>
+                <h3 class="game-title"><%= article.gameTitle %></h3>
+                <p class="description"><%= article.description.substring(0, 150) %>...</p>
+                <% if (article.tags && article.tags.length > 0) { %>
+                  <div class="article-tags">
+                    <% article.tags.slice(0, 3).forEach(tag => { %>
+                      <span class="tag-small">#<%= tag %></span>
+                    <% }); %>
+                  </div>
+                <% } %>
+                <div class="article-footer">
+                  <div class="author-info">
+                    <img src="<%= article.author.image %>" alt="<%= article.author.email === 'hiderance1919@gmail.com' ? '管理者' : article.author.displayName %>" class="author-avatar">
+                    <span><%= article.author.email === 'hiderance1919@gmail.com' ? '管理者' : article.author.displayName %></span>
+                  </div>
+                  <span class="date"><%= new Date(article.createdAt).toLocaleDateString('ja-JP') %></span>
+                </div>
+                <a href="/articles/<%= article._id %>" class="btn-read-more">続きを読む</a>
+              </div>
+            </article>
+          <% }); %>
+        <% } else { %>
+          <div class="no-articles">
+            <p>まだ記事がありません。</p>
+            <% if (user) { %>
+              <a href="/articles/new" class="btn-primary">最初の記事を作成する</a>
+            <% } else { %>
+              <a href="/auth/google" class="btn-primary">ログインして記事を作成</a>
             <% } %>
           </div>
-          <h2><%= article.title %></h2>
-          <h3 class="game-title"><%= article.gameTitle %></h3>
-          <p class="description"><%= article.description.substring(0, 150) %>...</p>
-          <div class="article-footer">
-            <div class="author-info">
-              <img src="<%= article.author.image %>" alt="<%= article.author.displayName %>" class="author-avatar">
-              <span><%= article.author.displayName %></span>
-            </div>
-            <span class="date"><%= new Date(article.createdAt).toLocaleDateString('ja-JP') %></span>
-          </div>
-          <a href="/articles/<%= article._id %>" class="btn-read-more">続きを読む</a>
-        </div>
-      </article>
-    <% }); %>
-  <% } else { %>
-    <div class="no-articles">
-      <p>まだ記事がありません。</p>
-      <% if (user) { %>
-        <a href="/articles/new" class="btn-primary">最初の記事を作成する</a>
-      <% } else { %>
-        <a href="/auth/google" class="btn-primary">ログインして記事を作成</a>
-      <% } %>
+        <% } %>
+      </div>
     </div>
-  <% } %>
-</div>
+  </div>
+</section>
+
+<!-- content wrapper is provided by layout.ejs -->

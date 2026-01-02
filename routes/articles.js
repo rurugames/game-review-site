@@ -3,6 +3,13 @@ const router = express.Router();
 const Article = require('../models/Article');
 const Comment = require('../models/Comment');
 const { ensureAuth, ensureAdmin } = require('../middleware/auth');
+const { marked } = require('marked');
+
+// Markedの設定
+marked.setOptions({
+  breaks: true,
+  gfm: true
+});
 
 // 新規記事作成フォーム（管理者のみ）
 router.get('/new', ensureAdmin, (req, res) => {
@@ -49,10 +56,55 @@ router.get('/:id', async (req, res) => {
     article.views += 1;
     await article.save();
     
-    res.render('articles/show', { article, comments });
+    // MarkdownをHTMLに変換（既にHTMLの場合はそのまま使用）
+    const articleWithHtml = article.toObject();
+    
+    if (article.content && article.content.includes('<')) {
+      // すでにHTMLの場合はそのまま使用
+      articleWithHtml.contentHtml = article.content;
+    } else {
+      // Markdownの場合は変換
+      articleWithHtml.contentHtml = marked.parse(article.content || '');
+    }
+    
+    res.render('articles/show', { article: articleWithHtml, comments });
   } catch (err) {
     console.error(err);
     res.status(500).send('サーバーエラーが発生しました');
+  }
+});
+
+// 記事一覧（公開済み）
+router.get('/', async (req, res) => {
+  try {
+    // 表示件数制御 + ページネーション: デフォルト10件、オプション: 10,30,50,100
+    const allowed = [10, 30, 50, 100];
+    let per = parseInt(req.query.per, 10) || 10;
+    if (!allowed.includes(per)) per = 10;
+    let page = parseInt(req.query.page, 10) || 1;
+    if (page < 1) page = 1;
+
+    const totalCount = await Article.countDocuments({ status: 'published' });
+    const totalPages = Math.max(1, Math.ceil(totalCount / per));
+    if (page > totalPages) page = totalPages;
+
+    const articles = await Article.find({ status: 'published' })
+      .populate('author')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * per)
+      .limit(per);
+
+    const heroHtml = `
+      <div class="hero">
+        <h1>記事一覧</h1>
+        <p>公開された記事を新しい順に表示します。</p>
+      </div>
+    `;
+
+    res.render('articles/index', { articles, heroHtml, per, totalCount, page, totalPages, query: req.query });
+  } catch (err) {
+    console.error('記事一覧取得エラー:', err);
+    res.status(500).send('記事一覧の表示に失敗しました');
   }
 });
 
@@ -117,6 +169,88 @@ router.delete('/:id', ensureAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).send('記事の削除に失敗しました');
+  }
+});
+
+// 複数記事の一括削除（管理者のみ）
+router.post('/bulk-delete', ensureAdmin, async (req, res) => {
+  try {
+    const { articleIds } = req.body;
+    
+    if (!articleIds || !Array.isArray(articleIds) || articleIds.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '削除する記事を選択してください' 
+      });
+    }
+    
+    // 各記事のコメントを削除
+    for (const articleId of articleIds) {
+      await Comment.deleteMany({ article: articleId });
+    }
+    
+    // 記事を一括削除
+    const result = await Article.deleteMany({ 
+      _id: { $in: articleIds },
+      author: req.user.id // 自分の記事のみ削除可能
+    });
+    
+    res.json({ 
+      success: true, 
+      deletedCount: result.deletedCount 
+    });
+  } catch (err) {
+    console.error('一括削除エラー:', err);
+    res.status(500).json({ 
+      success: false, 
+      error: '記事の削除に失敗しました' 
+    });
+  }
+});
+
+// 複数記事のステータス一括更新（管理者のみ）
+router.post('/bulk-update-status', ensureAdmin, async (req, res) => {
+  try {
+    const { articleIds, status } = req.body;
+    
+    if (!articleIds || !Array.isArray(articleIds) || articleIds.length === 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '更新する記事を選択してください' 
+      });
+    }
+    
+    if (!status || !['published', 'draft'].includes(status)) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '無効なステータスです' 
+      });
+    }
+    
+    // 記事のステータスを一括更新
+    const result = await Article.updateMany(
+      { 
+        _id: { $in: articleIds },
+        author: req.user.id // 自分の記事のみ更新可能
+      },
+      { 
+        $set: { 
+          status: status,
+          updatedAt: Date.now()
+        } 
+      }
+    );
+    
+    res.json({ 
+      success: true, 
+      updatedCount: result.modifiedCount 
+    });
+  } catch (err) {
+    console.error('一括ステータス更新エラー:', err);
+    res.status(500).json({ 
+      success: false, 
+      error: 'ステータスの更新に失敗しました' 
+    });
   }
 });
 

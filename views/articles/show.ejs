@@ -13,7 +13,7 @@
     <div class="article-meta-header">
       <span class="genre"><%= article.genre || 'ゲーム' %></span>
       <% if (article.rating) { %>
-        <span class="rating-large">⭐ <%= article.rating %>/5</span>
+        <span class="rating-large"><%= '★'.repeat(article.rating) + '☆'.repeat(10 - article.rating) %></span>
       <% } %>
     </div>
 
@@ -40,9 +40,9 @@
 
     <div class="author-date">
       <div class="author-info">
-        <img src="<%= article.author.image %>" alt="<%= article.author.displayName %>" class="author-avatar">
+        <img src="<%= article.author.image %>" alt="<%= article.author.email === 'hiderance1919@gmail.com' ? '管理者' : article.author.displayName %>" class="author-avatar">
         <div>
-          <div class="author-name"><%= article.author.displayName %></div>
+          <div class="author-name"><%= article.author.email === 'hiderance1919@gmail.com' ? '管理者' : article.author.displayName %></div>
           <div class="article-date">
             投稿: <%= new Date(article.createdAt).toLocaleDateString('ja-JP') %>
             <% if (article.createdAt.getTime() !== article.updatedAt.getTime()) { %>
@@ -70,7 +70,7 @@
     </div>
 
     <div class="content">
-      <%- article.content.replace(/\n/g, '<br>') %>
+      <%- article.contentHtml %>
     </div>
 
     <% if (article.tags && article.tags.length > 0) { %>
@@ -90,6 +90,12 @@
         </a>
       </div>
     <% } %>
+
+    <div class="banner-article">
+      <a rel="noopener" href="https://www.dlsite.com/maniax/?utm_medium=affiliate&utm_campaign=bnlink&utm_content=bn_sp_300_250_dojin_01.gif" target="_blank">
+        <img src="https://www.dlsite.com/img/male/dojin/bn_sp_300_250_dojin_01.gif" alt="同人誌、同人ゲーム、同人ソフトのダウンロードショップ - DLsite" width="300" height="250" border="0" />
+      </a>
+    </div>
   </div>
 
   <div class="article-footer-nav">
@@ -124,9 +130,9 @@
       <% comments.forEach(comment => { %>
         <div class="comment-item">
           <div class="comment-header">
-            <img src="<%= comment.author.image %>" alt="<%= comment.author.displayName %>" class="comment-avatar">
+            <img src="<%= comment.author.image %>" alt="<%= comment.author.email === 'hiderance1919@gmail.com' ? '管理者' : comment.author.displayName %>" class="comment-avatar">
             <div class="comment-meta">
-              <span class="comment-author"><%= comment.author.displayName %></span>
+              <span class="comment-author"><%= comment.author.email === 'hiderance1919@gmail.com' ? '管理者' : comment.author.displayName %></span>
               <span class="comment-date"><%= new Date(comment.createdAt).toLocaleDateString('ja-JP') %> <%= new Date(comment.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) %></span>
             </div>
             <% if (user && (comment.author._id.toString() === user.id || user.email === 'hiderance1919@gmail.com')) { %>

@@ -1,0 +1,56 @@
+<section class="admin-section page-section">
+  <div class="page-header">
+    <h1 class="section-title">システム設定</h1>
+    <p class="section-lead">DLsite 取得の並列数と永続キャッシュの TTL を設定できます（ミリ秒単位）。</p>
+  </div>
+
+  <form id="settings-form">
+    <div class="form-row">
+      <label>並列数 (concurrency)</label>
+      <input type="number" name="concurrency" id="concurrency" value="<%= settings.concurrency %>" min="1" step="1">
+    </div>
+
+    <div class="form-row">
+      <label>キャッシュ TTL (分)</label>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input type="number" name="detailsCacheTTL" id="detailsCacheTTL" value="<%= Math.max(1, Math.round(settings.detailsCacheTTL / 60000)) %>" min="1" step="1">
+        <div class="ttl-presets">
+          <button type="button" class="preset-btn" data-min="15">15分</button>
+          <button type="button" class="preset-btn" data-min="30">30分</button>
+          <button type="button" class="preset-btn" data-min="60">60分</button>
+          <button type="button" class="preset-btn" data-min="120">120分</button>
+        </div>
+      </div>
+      <small>例: 60 = 1時間（分単位で入力）</small>
+    </div>
+
+    <div class="form-row">
+      <button type="submit" class="btn-primary">保存</button>
+      <span id="save-result" style="margin-left:12px"></span>
+    </div>
+  </form>
+  <div style="margin-top:1.25rem;">
+    <h3 class="section-sub">最近のキャッシュGC</h3>
+    <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+      <button id="run-gc-now" class="btn-primary">今すぐGC実行</button>
+      <div id="run-gc-result" style="color:var(--text-secondary);"></div>
+    </div>
+    <% if (Array.isArray(recentGC) && recentGC.length > 0) { %>
+      <table class="gc-log-table">
+        <thead><tr><th>実行時刻</th><th>削除件数</th></tr></thead>
+        <tbody>
+          <% recentGC.forEach(function(g){ %>
+            <tr>
+              <td><%= new Date(g.ts).toLocaleString('ja-JP') %></td>
+              <td><%= g.deletedCount %></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } else { %>
+      <div class="no-data">GCログがありません</div>
+    <% } %>
+  </div>
+
+  <script src="/js/adminSettings.js"></script>
+</section>

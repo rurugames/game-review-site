@@ -1,0 +1,110 @@
+<section class="ranking-section page-section">
+  <div class="page-header">
+    <h1 class="section-title">人気ランキング</h1>
+    <p class="section-lead">DLsite の人気作品をビジュアルに並べて比較できます。画像をクリックすると販売ページへ移動します。</p>
+  </div>
+
+  <div class="per-toggle" aria-label="表示件数切替">
+    <span class="per-label">表示件数:</span>
+    <% const options = [10,30,50,100]; %>
+    <% options.forEach(function(opt){ %>
+      <a class="per-button <%= (typeof per !== 'undefined' && per === opt) ? 'active' : '' %>" href="?per=<%= opt %>"><%= opt %></a>
+    <% }); %>
+    <% if (typeof totalCount !== 'undefined') { %>
+      <span class="per-total">（全 <%= totalCount %> 件中）</span>
+    <% } %>
+  </div>
+
+  <% if (typeof rankingStatusFormatted !== 'undefined' && (rankingStatusFormatted.lastUpdatedStr || rankingStatusFormatted.nextUpdateStr)) { %>
+    <div class="ranking-meta small muted">最終取得: <%= rankingStatusFormatted.lastUpdatedStr || '—' %> ／ 次回更新: <%= rankingStatusFormatted.nextUpdateStr || '—' %></div>
+  <% } %>
+  <% if (ranking && ranking.length > 0) { %>
+    <div id="ranking-container">
+      <div class="ranking-grid modern-grid">
+            <% ranking.forEach(function(game){ %>
+              <article class="ranking-card">
+          <% const _rankClass = (game && game.rank && game.rank <= 3) ? ('rank-top rank-' + game.rank) : ''; %>
+          <a class="cover-link" href="<%= game.dlsiteUrl %>" target="_blank" rel="noopener">
+            <div class="cover">
+              <% if (game.imageUrl) { %>
+                <img src="<%= game.imageUrl %>" alt="<%= game.title %>">
+              <% } else { %>
+                <img src="/images/siteicon.png" alt="cover">
+              <% } %>
+            </div>
+          </a>
+          <% if (game && game.rank) { %>
+            <span class="rank-badge rank-<%= game.rank %>">#<%= game.rank %></span>
+          <% } %>
+
+          <div class="card-body">
+            <div class="meta-row">
+              <span class="badge genre"><%= game.genre || 'ジャンル不明' %></span>
+            </div>
+            <h3 class="card-title"><a href="<%= game.dlsiteUrl %>" target="_blank" rel="noopener"><%= game.title %></a></h3>
+            <% if (game.circle) { %><div class="card-sub">サークル: <%= game.circle %></div><% } %>
+            <p class="card-excerpt"><%= (game.description || '').replace(/<[^>]*>/g, '').slice(0,140) %><%= (game.description || '').length > 140 ? '…' : '' %></p>
+            <div class="card-actions">
+              <a class="btn-dlsite" href="<%= game.dlsiteUrl %>" target="_blank" rel="noopener">DLsiteで見る</a>
+            </div>
+          </div>
+        </article>
+      <% }); %>
+          </div>
+        </div>
+    <% /* pagination controls */ %>
+    <% if (typeof totalCount !== 'undefined' && totalCount > per) { %>
+      <% function buildQs(overrides) {
+           const q = Object.assign({}, query || {});
+           for (const k in overrides) q[k] = overrides[k];
+           const parts = [];
+           for (const k in q) {
+             if (q[k] === undefined || q[k] === null || q[k] === '') continue;
+             parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(q[k]));
+           }
+           return parts.length ? ('?' + parts.join('&')) : '';
+         }
+      %>
+      <nav class="pagination" aria-label="ページネーション">
+        <% if (page > 1) { %>
+          <a class="page-btn prev" href="<%= buildQs({ per: per, page: page - 1 }) %>">« 前へ</a>
+        <% } else { %>
+          <span class="page-btn disabled">« 前へ</span>
+        <% } %>
+
+        <% for (let p = 1; p <= totalPages; p++) { %>
+          <% if (Math.abs(p - page) <= 2 || p === 1 || p === totalPages) { %>
+            <a class="page-btn <%= p === page ? 'active' : '' %>" href="<%= buildQs({ per: per, page: p }) %>"><%= p %></a>
+          <% } else if (p === 2 && page > 4) { %>
+            <span class="ellipsis">…</span>
+          <% } else if (p === totalPages - 1 && page < totalPages - 3) { %>
+            <span class="ellipsis">…</span>
+          <% } %>
+        <% } %>
+
+        <% if (page < totalPages) { %>
+          <a class="page-btn next" href="<%= buildQs({ per: per, page: page + 1 }) %>">次へ »</a>
+        <% } else { %>
+          <span class="page-btn disabled">次へ »</span>
+        <% } %>
+      </nav>
+    <% } %>
+  <% } else { %>
+    <% if (typeof isLoading !== 'undefined' && isLoading) { %>
+      <div class="loading-screen">
+        <div class="loading-inner">
+          <div class="spinner" aria-hidden="true"></div>
+          <div class="loading-text">ランキングを取得中です。少々お待ちください…</div>
+          <% if (typeof rankingStatus !== 'undefined' && rankingStatus && rankingStatus.progress) { %>
+            <div class="loading-progress">
+              <div class="progress-bar"><div class="progress-inner" style="width:<%= rankingStatus.progress.target ? Math.round((rankingStatus.progress.fetched / rankingStatus.progress.target) * 100) : 0 %>%"></div></div>
+              <div class="progress-label"><%= rankingStatus.progress.fetched %> / <%= rankingStatus.progress.target %></div>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="no-data">現在ランキングを取得できませんでした。時間をおいて再度お試しください。</div>
+    <% } %>
+  <% } %>
+</section>

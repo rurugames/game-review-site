@@ -1,0 +1,89 @@
+<section class="articles-section page-section">
+  <div class="page-header">
+    <h1 class="section-title">記事一覧</h1>
+    <p class="section-lead">レビューや攻略、特集記事を一覧で表示します。気になる記事を見つけて深掘りしましょう。</p>
+  </div>
+
+  <div class="per-toggle" aria-label="表示件数切替">
+    <span class="per-label">表示件数:</span>
+    <% const options = [10,30,50,100]; %>
+    <% options.forEach(function(opt){ %>
+      <a class="per-button <%= (typeof per !== 'undefined' && per === opt) ? 'active' : '' %>" href="?per=<%= opt %>"><%= opt %></a>
+    <% }); %>
+  </div>
+
+  <% if (articles && articles.length > 0) { %>
+    <div class="articles-grid modern-grid">
+      <% articles.forEach(function(article){ %>
+        <div class="panel">
+          <div class="panel-body">
+            <article class="post-card">
+          <a class="post-cover" href="/articles/<%= article._id %>">
+            <% if (article.imageUrl) { %>
+              <img src="<%= article.imageUrl %>" alt="<%= article.gameTitle %>">
+            <% } else { %>
+              <img src="/images/siteicon.png" alt="thumb">
+            <% } %>
+          </a>
+          <div class="post-body">
+            <div class="meta-row">
+              <span class="tag genre"><%= article.genre || 'ゲーム' %></span>
+              <% if (article.tags && article.tags.length) { %>
+                <span class="tag">#<%= article.tags[0] %></span>
+              <% } %>
+            </div>
+            <h3 class="post-title"><a href="/articles/<%= article._id %>"><%= article.title %></a></h3>
+            <div class="post-sub"> <%= article.gameTitle %> • <span class="date"><%= new Date(article.createdAt).toLocaleDateString('ja-JP') %></span></div>
+            <p class="post-excerpt"><%= (article.description || '').replace(/<[^>]*>/g, '').slice(0,160) %><%= (article.description || '').length > 160 ? '…' : '' %></p>
+            <div class="post-actions">
+              <a class="btn-read-more" href="/articles/<%= article._id %>">続きを読む</a>
+            </div>
+          </div>
+            </article>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+    <% /* pagination controls for articles list */ %>
+    <% if (typeof totalCount !== 'undefined' && totalCount > per) { %>
+      <% function buildQs(overrides) {
+           const q = Object.assign({}, query || {});
+           for (const k in overrides) q[k] = overrides[k];
+           const parts = [];
+           for (const k in q) {
+             if (q[k] === undefined || q[k] === null || q[k] === '') continue;
+             parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(q[k]));
+           }
+           return parts.length ? ('?' + parts.join('&')) : '';
+         }
+      %>
+      <nav class="pagination" aria-label="ページネーション">
+        <% if (page > 1) { %>
+          <a class="page-btn prev" href="<%= buildQs({ per: per, page: page - 1 }) %>">« 前へ</a>
+        <% } else { %>
+          <span class="page-btn disabled">« 前へ</span>
+        <% } %>
+
+        <% for (let p = 1; p <= totalPages; p++) { %>
+          <% if (Math.abs(p - page) <= 2 || p === 1 || p === totalPages) { %>
+            <a class="page-btn <%= p === page ? 'active' : '' %>" href="<%= buildQs({ per: per, page: p }) %>"><%= p %></a>
+          <% } else if (p === 2 && page > 4) { %>
+            <span class="ellipsis">…</span>
+          <% } else if (p === totalPages - 1 && page < totalPages - 3) { %>
+            <span class="ellipsis">…</span>
+          <% } %>
+        <% } %>
+
+        <% if (page < totalPages) { %>
+          <a class="page-btn next" href="<%= buildQs({ per: per, page: page + 1 }) %>">次へ »</a>
+        <% } else { %>
+          <span class="page-btn disabled">次へ »</span>
+        <% } %>
+      </nav>
+    <% } %>
+  <% } else { %>
+    <div class="no-articles">
+      <p>まだ公開された記事がありません。</p>
+    </div>
+  <% } %>
+</section>

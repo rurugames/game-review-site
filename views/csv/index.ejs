@@ -1,0 +1,379 @@
+<div class="csv-container">
+  <div class="csv-header">
+    <h1>📊 CSV インポート/エクスポート</h1>
+    <p>記事をCSVファイルとしてエクスポート、またはCSVファイルから記事をインポートできます</p>
+  </div>
+
+  <div class="csv-sections">
+    <!-- エクスポートセクション -->
+    <div class="csv-section">
+      <h2>📤 エクスポート</h2>
+      <p>現在の記事をCSVファイルとしてダウンロードします</p>
+      <button id="exportBtn" class="btn-primary">
+        <span class="btn-icon">⬇️</span>
+        記事をエクスポート
+      </button>
+    </div>
+
+    <!-- インポートセクション -->
+    <div class="csv-section">
+      <h2>📥 インポート</h2>
+      <p>CSVファイルから記事を一括インポートします</p>
+      
+      <form id="importForm" enctype="multipart/form-data">
+        <div class="file-input-wrapper">
+          <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
+          <label for="csvFile" class="file-label">
+            <span class="file-icon">📁</span>
+            <span id="fileName">CSVファイルを選択</span>
+          </label>
+        </div>
+        <button type="submit" class="btn-primary">
+          <span class="btn-icon">⬆️</span>
+          インポート実行
+        </button>
+      </form>
+
+      <div id="importResult" class="result-message" style="display: none;"></div>
+    </div>
+
+    <!-- CSV形式説明 -->
+    <div class="csv-section csv-format">
+      <h2>📋 CSV形式</h2>
+      <p>CSVファイルは以下の形式で作成してください（UTF-8エンコーディング）:</p>
+      <div class="format-table">
+        <table>
+          <thead>
+            <tr>
+              <th>列名</th>
+              <th>説明</th>
+              <th>必須</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>title</code></td>
+              <td>記事タイトル</td>
+              <td>✅</td>
+            </tr>
+            <tr>
+              <td><code>gameTitle</code></td>
+              <td>ゲームタイトル</td>
+              <td>✅</td>
+            </tr>
+            <tr>
+              <td><code>content</code></td>
+              <td>記事本文（Markdown対応）</td>
+              <td>✅</td>
+            </tr>
+            <tr>
+              <td><code>description</code></td>
+              <td>記事の説明</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><code>genre</code></td>
+              <td>ジャンル</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><code>rating</code></td>
+              <td>評価（1-5）</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><code>imageUrl</code></td>
+              <td>画像URL</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><code>status</code></td>
+              <td>ステータス（draft/published）</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.csv-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.csv-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.csv-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.csv-header p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.csv-sections {
+  display: grid;
+  gap: 2rem;
+}
+
+.csv-section {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.csv-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+}
+
+.csv-section p {
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+}
+
+.btn-primary {
+  padding: 0.75rem 1.5rem;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-icon {
+  font-size: 1.2rem;
+}
+
+.file-input-wrapper {
+  margin-bottom: 1rem;
+}
+
+.file-input-wrapper input[type="file"] {
+  display: none;
+}
+
+.file-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--background);
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.file-label:hover {
+  border-color: var(--primary-color);
+  background: var(--card-background);
+}
+
+.file-icon {
+  font-size: 1.5rem;
+}
+
+#importForm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.result-message {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 8px;
+  animation: fadeIn 0.3s ease;
+}
+
+.result-message.success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid #10b981;
+  color: #10b981;
+}
+
+.result-message.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  color: #ef4444;
+}
+
+.csv-format {
+  background: var(--background);
+}
+
+.format-table {
+  overflow-x: auto;
+}
+
+.format-table table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.format-table th,
+.format-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.format-table th {
+  background: var(--card-background);
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.format-table code {
+  background: var(--card-background);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  color: var(--accent-color);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const exportBtn = document.getElementById('exportBtn');
+  const importForm = document.getElementById('importForm');
+  const csvFileInput = document.getElementById('csvFile');
+  const fileName = document.getElementById('fileName');
+  const importResult = document.getElementById('importResult');
+
+  // ファイル選択時
+  csvFileInput.addEventListener('change', function() {
+    if (this.files && this.files[0]) {
+      fileName.textContent = this.files[0].name;
+    } else {
+      fileName.textContent = 'CSVファイルを選択';
+    }
+  });
+
+  // エクスポート
+  exportBtn.addEventListener('click', async function() {
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = '<span class="btn-icon">⏳</span> エクスポート中...';
+
+    try {
+      const response = await fetch('/csv/export');
+      
+      if (!response.ok) {
+        throw new Error('エクスポートに失敗しました');
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `articles_export_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+
+      alert('✅ エクスポートが完了しました');
+    } catch (error) {
+      console.error('エクスポートエラー:', error);
+      alert('❌ エクスポートに失敗しました: ' + error.message);
+    } finally {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '<span class="btn-icon">⬇️</span> 記事をエクスポート';
+    }
+  });
+
+  // インポート
+  importForm.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    if (!csvFileInput.files || !csvFileInput.files[0]) {
+      alert('CSVファイルを選択してください');
+      return;
+    }
+
+    const submitBtn = importForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="btn-icon">⏳</span> インポート中...';
+    importResult.style.display = 'none';
+
+    try {
+      const formData = new FormData();
+      formData.append('csvFile', csvFileInput.files[0]);
+
+      const response = await fetch('/csv/import', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        importResult.className = 'result-message success';
+        importResult.innerHTML = `
+          <strong>✅ インポート完了</strong><br>
+          ${data.importCount}件の記事をインポートしました<br>
+          ${data.errorCount > 0 ? `エラー: ${data.errorCount}件<br>` : ''}
+          ${data.errors && data.errors.length > 0 ? `<br><small>${data.errors.join('<br>')}</small>` : ''}
+        `;
+        importResult.style.display = 'block';
+
+        // フォームリセット
+        importForm.reset();
+        fileName.textContent = 'CSVファイルを選択';
+      } else {
+        throw new Error(data.error || 'インポートに失敗しました');
+      }
+    } catch (error) {
+      console.error('インポートエラー:', error);
+      importResult.className = 'result-message error';
+      importResult.innerHTML = `<strong>❌ インポートエラー</strong><br>${error.message}`;
+      importResult.style.display = 'block';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = '<span class="btn-icon">⬆️</span> インポート実行';
+    }
+  });
+});
+</script>

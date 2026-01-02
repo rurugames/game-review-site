@@ -2,13 +2,23 @@
   <h1>ダッシュボード</h1>
   <div class="dashboard-header">
     <h2>あなたの記事</h2>
-    <a href="/articles/new" class="btn-primary">新規記事作成</a>
+    <div class="header-actions">
+      <a href="/articles/new" class="btn-primary">新規記事作成</a>
+    </div>
   </div>
 
   <% if (articles.length > 0) { %>
+    <div class="bulk-actions">
+      <button id="selectAllArticles" class="btn-secondary">全選択</button>
+      <button id="deselectAllArticles" class="btn-secondary">全解除</button>
+      <button id="publishSelectedArticles" class="btn-primary" style="display: none;">選択した記事を公開</button>
+      <button id="unpublishSelectedArticles" class="btn-secondary" style="display: none;">選択した記事を下書きに</button>
+      <button id="deleteSelectedArticles" class="btn-delete" style="display: none;">選択した記事を削除</button>
+    </div>
     <table class="articles-table">
       <thead>
         <tr>
+          <th><input type="checkbox" id="selectAllCheckbox"></th>
           <th>タイトル</th>
           <th>ゲームタイトル</th>
           <th>ステータス</th>
@@ -20,6 +30,7 @@
       <tbody>
         <% articles.forEach(article => { %>
           <tr>
+            <td><input type="checkbox" class="article-checkbox" value="<%= article._id %>"></td>
             <td><a href="/articles/<%= article._id %>"><%= article.title %></a></td>
             <td><%= article.gameTitle %></td>
             <td>
@@ -46,3 +57,207 @@
     </div>
   <% } %>
 </div>
+
+<style>
+.bulk-actions {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.articles-table th:first-child,
+.articles-table td:first-child {
+  width: 40px;
+  text-align: center;
+}
+
+.articles-table input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+  const selectAllBtn = document.getElementById('selectAllArticles');
+  const deselectAllBtn = document.getElementById('deselectAllArticles');
+  const publishSelectedBtn = document.getElementById('publishSelectedArticles');
+  const unpublishSelectedBtn = document.getElementById('unpublishSelectedArticles');
+  const deleteSelectedBtn = document.getElementById('deleteSelectedArticles');
+  const articleCheckboxes = document.querySelectorAll('.article-checkbox');
+
+  // チェックボックスの状態変化を監視
+  function updateActionButtons() {
+    const checkedCount = document.querySelectorAll('.article-checkbox:checked').length;
+    if (checkedCount > 0) {
+      publishSelectedBtn.style.display = 'block';
+      publishSelectedBtn.textContent = `選択した記事を公開 (${checkedCount}件)`;
+      unpublishSelectedBtn.style.display = 'block';
+      unpublishSelectedBtn.textContent = `選択した記事を下書きに (${checkedCount}件)`;
+      deleteSelectedBtn.style.display = 'block';
+      deleteSelectedBtn.textContent = `選択した記事を削除 (${checkedCount}件)`;
+    } else {
+      publishSelectedBtn.style.display = 'none';
+      unpublishSelectedBtn.style.display = 'none';
+      deleteSelectedBtn.style.display = 'none';
+    }
+  }
+
+  // 各チェックボックスにイベントリスナーを追加
+  articleCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', updateActionButtons);
+  });
+
+  // ヘッダーのチェックボックスで全選択/全解除
+  if (selectAllCheckbox) {
+    selectAllCheckbox.addEventListener('change', function() {
+      articleCheckboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+      });
+      updateDeleteButton();
+    });
+  }
+
+  // 全選択ボタン
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener('click', function() {
+      articleCheckboxes.forEach(checkbox => {
+        checkbox.checked = true;
+      });
+      if (selectAllCheckbox) selectAllCheckbox.checked = true;
+      updateActionButtons();
+    });
+  }
+
+  // 全解除ボタン
+  if (deselectAllBtn) {
+    deselectAllBtn.addEventListener('click', function() {
+      articleCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      if (selectAllCheckbox) selectAllCheckbox.checked = false;
+      updateActionButtons();
+    });
+  }
+
+  // 選択した記事を公開
+  if (publishSelectedBtn) {
+    publishSelectedBtn.addEventListener('click', async function() {
+      const selectedIds = Array.from(document.querySelectorAll('.article-checkbox:checked'))
+        .map(checkbox => checkbox.value);
+
+      if (selectedIds.length === 0) {
+        alert('公開する記事を選択してください。');
+        return;
+      }
+
+      if (!confirm(`${selectedIds.length}件の記事を公開しますか？`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/articles/bulk-update-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ articleIds: selectedIds, status: 'published' })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert(`${data.updatedCount}件の記事を公開しました。`);
+          location.reload();
+        } else {
+          alert('更新に失敗しました: ' + (data.error || '不明なエラー'));
+        }
+      } catch (error) {
+        console.error('エラー:', error);
+        alert('更新に失敗しました。');
+      }
+    });
+  }
+
+  // 選択した記事を下書きに
+  if (unpublishSelectedBtn) {
+    unpublishSelectedBtn.addEventListener('click', async function() {
+      const selectedIds = Array.from(document.querySelectorAll('.article-checkbox:checked'))
+        .map(checkbox => checkbox.value);
+
+      if (selectedIds.length === 0) {
+        alert('下書きにする記事を選択してください。');
+        return;
+      }
+
+      if (!confirm(`${selectedIds.length}件の記事を下書きに変更しますか？`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/articles/bulk-update-status', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ articleIds: selectedIds, status: 'draft' })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert(`${data.updatedCount}件の記事を下書きに変更しました。`);
+          location.reload();
+        } else {
+          alert('更新に失敗しました: ' + (data.error || '不明なエラー'));
+        }
+      } catch (error) {
+        console.error('エラー:', error);
+        alert('更新に失敗しました。');
+      }
+    });
+  }
+
+  // 選択した記事を削除
+  if (deleteSelectedBtn) {
+    deleteSelectedBtn.addEventListener('click', async function() {
+      const selectedIds = Array.from(document.querySelectorAll('.article-checkbox:checked'))
+        .map(checkbox => checkbox.value);
+
+      if (selectedIds.length === 0) {
+        alert('削除する記事を選択してください。');
+        return;
+      }
+
+      if (!confirm(`${selectedIds.length}件の記事を削除しますか？この操作は取り消せません。`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/articles/bulk-delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ articleIds: selectedIds })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          alert(`${data.deletedCount}件の記事を削除しました。`);
+          location.reload();
+        } else {
+          alert('削除に失敗しました: ' + (data.error || '不明なエラー'));
+        }
+      } catch (error) {
+        console.error('エラー:', error);
+        alert('削除に失敗しました。');
+      }
+    });
+  }
+});
+</script>

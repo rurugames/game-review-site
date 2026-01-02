@@ -1,0 +1,438 @@
+<div class="generator-container">
+  <div class="generator-header">
+    <h1>📝 記事自動生成</h1>
+    <p>年月を指定してR18 PC同人ゲームの攻略・レビュー記事を自動生成します</p>
+  </div>
+
+  <div class="generator-form">
+    <div class="form-section">
+      <h2>1. 年月を選択</h2>
+      <div class="date-selector">
+        <div class="form-group">
+          <label for="year">年</label>
+          <select id="year" name="year">
+            <option value="2025" selected>2025年</option>
+            <option value="2024">2024年</option>
+            <option value="2023">2023年</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="month">月</label>
+          <select id="month" name="month">
+            <option value="1">1月</option>
+            <option value="2">2月</option>
+            <option value="3">3月</option>
+            <option value="4">4月</option>
+            <option value="5">5月</option>
+            <option value="6">6月</option>
+            <option value="7">7月</option>
+            <option value="8">8月</option>
+            <option value="9">9月</option>
+            <option value="10">10月</option>
+            <option value="11">11月</option>
+            <option value="12" selected>12月</option>
+          </select>
+        </div>
+        <button id="fetchGamesBtn" class="btn-primary">ゲームを取得</button>
+      </div>
+    </div>
+
+    <div id="gamesSection" class="form-section" style="display: none;">
+      <h2>2. 生成するゲームを選択</h2>
+      <div id="gamesLoading" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <p>ゲーム情報を取得中...</p>
+      </div>
+      <div id="gamesCount" class="games-count" style="display: none;"></div>
+      <div id="checkboxControls" class="checkbox-controls" style="display: none;">
+        <button id="selectAllBtn" class="btn-secondary">全選択</button>
+        <button id="deselectAllBtn" class="btn-secondary">全解除</button>
+      </div>
+      <div id="gamesList" class="games-list"></div>
+      <button id="generateBtn" class="btn-primary" style="display: none;">選択したゲームの記事を生成</button>
+    </div>
+
+    <div id="resultsSection" class="form-section" style="display: none;">
+      <h2>3. 生成結果</h2>
+      <div id="generateLoading" class="loading" style="display: none;">
+        <div class="spinner"></div>
+        <p>記事を生成中... (数分かかる場合があります)</p>
+      </div>
+      <div id="resultsList" class="results-list"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+.generator-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.generator-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.generator-header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.generator-header p {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+}
+
+.form-section {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.form-section h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--primary-color);
+}
+
+.date-selector {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-end;
+}
+
+.form-group {
+  flex: 1;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--text-primary);
+  font-size: 1rem;
+}
+
+.games-list {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.game-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.game-item:hover {
+  border-color: var(--primary-color);
+  transform: translateX(5px);
+}
+
+.game-item input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+}
+
+.game-info {
+  flex: 1;
+}
+
+.game-info h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.game-info p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.games-count {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--background);
+  border-left: 4px solid var(--primary-color);
+  border-radius: 4px;
+}
+
+.games-count p {
+  margin: 0.25rem 0;
+  font-size: 0.95rem;
+}
+
+.games-count .highlight {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.games-count .filtered {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.checkbox-controls {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.loading {
+  text-align: center;
+  padding: 3rem;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid var(--border-color);
+  border-top: 4px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.results-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.result-item {
+  padding: 1rem;
+  background: var(--background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.result-item.success {
+  border-color: #10b981;
+}
+
+.result-item.error {
+  border-color: #ef4444;
+}
+
+.result-info h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.25rem;
+}
+
+.result-info p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.btn-primary {
+  padding: 0.75rem 1.5rem;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fetchGamesBtn = document.getElementById('fetchGamesBtn');
+  const generateBtn = document.getElementById('generateBtn');
+  const gamesSection = document.getElementById('gamesSection');
+  const gamesLoading = document.getElementById('gamesLoading');
+  const gamesList = document.getElementById('gamesList');
+  const resultsSection = document.getElementById('resultsSection');
+  const generateLoading = document.getElementById('generateLoading');
+  const resultsList = document.getElementById('resultsList');
+
+  // ゲーム取得
+  fetchGamesBtn.addEventListener('click', async function() {
+    const year = document.getElementById('year').value;
+    const month = document.getElementById('month').value;
+
+    fetchGamesBtn.disabled = true;
+    gamesSection.style.display = 'block';
+    gamesLoading.style.display = 'block';
+    gamesList.innerHTML = '';
+    generateBtn.style.display = 'none';
+
+    try {
+      const response = await fetch('/generator/fetch-games', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ year, month })
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.games.length > 0) {
+        // 件数情報を表示
+        const gamesCount = document.getElementById('gamesCount');
+        gamesCount.innerHTML = `
+          <p><span class="highlight">${data.totalCount}件</span>中<span class="highlight">${data.displayCount}件</span>を表示</p>
+          ${data.filteredCount > 0 ? `<p class="filtered">※ ${data.filteredCount}件は既に記事が存在するため除外されています</p>` : ''}
+        `;
+        gamesCount.style.display = 'block';
+        
+        gamesList.innerHTML = data.games.map((game, index) => `
+          <div class="game-item" data-game-index="${index}">
+            <input type="checkbox" class="game-checkbox" data-game-index="${index}" checked>
+            <div class="game-info">
+              <h3>${game.title}</h3>
+              <p>${game.circle || '制作サークル不明'} | ${game.releaseDate || ''}</p>
+            </div>
+          </div>
+        `).join('');
+        
+        // ゲームデータをグローバル変数に保存
+        window.gamesData = data.games;
+        
+        generateBtn.style.display = 'block';
+        document.getElementById('checkboxControls').style.display = 'flex';
+      } else if (data.success && data.games.length === 0) {
+        const gamesCount = document.getElementById('gamesCount');
+        if (data.totalCount > 0) {
+          gamesCount.innerHTML = `
+            <p><span class="highlight">${data.totalCount}件</span>中<span class="highlight">0件</span>を表示</p>
+            <p class="filtered">※ すべてのゲームは既に記事が存在します</p>
+          `;
+          gamesCount.style.display = 'block';
+        } else {
+          gamesCount.style.display = 'none';
+        }
+        gamesList.innerHTML = '<p>指定された年月のゲームが見つかりませんでした。</p>';
+        document.getElementById('checkboxControls').style.display = 'none';
+      } else {
+        document.getElementById('gamesCount').style.display = 'none';
+        gamesList.innerHTML = '<p>指定された年月のゲームが見つかりませんでした。</p>';
+        document.getElementById('checkboxControls').style.display = 'none';
+      }
+    } catch (error) {
+      console.error('エラー:', error);
+      document.getElementById('gamesCount').style.display = 'none';
+      gamesList.innerHTML = '<p style="color: #ef4444;">ゲーム情報の取得に失敗しました。</p>';
+      document.getElementById('checkboxControls').style.display = 'none';
+    } finally {
+      gamesLoading.style.display = 'none';
+      fetchGamesBtn.disabled = false;
+    }
+  });
+
+  // 記事生成
+  generateBtn.addEventListener('click', async function() {
+    console.log('🔘 記事生成ボタンがクリックされました');
+    
+    const checkboxes = document.querySelectorAll('.game-checkbox:checked');
+    console.log('✅ チェックされたゲーム数:', checkboxes.length);
+    
+    if (checkboxes.length === 0) {
+      alert('少なくとも1つのゲームを選択してください。');
+      return;
+    }
+
+    // data-game-indexを使ってゲームデータを取得
+    const games = Array.from(checkboxes).map(cb => {
+      const index = parseInt(cb.getAttribute('data-game-index'));
+      return window.gamesData[index];
+    });
+    console.log('📦 送信するゲームデータ:', games);
+
+    generateBtn.disabled = true;
+    resultsSection.style.display = 'block';
+    generateLoading.style.display = 'block';
+    resultsList.innerHTML = '';
+
+    try {
+      console.log('📤 /generator/generate にリクエスト送信中...');
+      const response = await fetch('/generator/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ games })
+      });
+
+      console.log('📥 レスポンス受信:', response.status);
+      const data = await response.json();
+      console.log('📋 レスポンスデータ:', data);
+
+      if (data.success) {
+        resultsList.innerHTML = data.articles.map(article => `
+          <div class="result-item success">
+            <div class="result-info">
+              <h3>✅ ${article.gameTitle}</h3>
+              <p>${article.title}</p>
+            </div>
+            <a href="/articles/${article.id}" class="btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;">記事を確認</a>
+          </div>
+        `).join('');
+        
+        if (data.count > 0) {
+          resultsList.innerHTML += `<p style="text-align: center; margin-top: 1rem; color: var(--primary-color); font-weight: 600;">${data.count}件の記事を生成しました(下書きとして保存)</p>`;
+        }
+      }
+    } catch (error) {
+      console.error('❌ エラー:', error);
+      resultsList.innerHTML = '<p style="color: #ef4444;">記事の生成に失敗しました。</p>';
+    } finally {
+      generateLoading.style.display = 'none';
+      generateBtn.disabled = false;
+    }
+  });
+
+  // 全選択ボタン
+  document.getElementById('selectAllBtn').addEventListener('click', function() {
+    document.querySelectorAll('.game-checkbox').forEach(checkbox => {
+      checkbox.checked = true;
+    });
+  });
+
+  // 全解除ボタン
+  document.getElementById('deselectAllBtn').addEventListener('click', function() {
+    document.querySelectorAll('.game-checkbox').forEach(checkbox => {
+      checkbox.checked = false;
+    });
+  });
+});
+</script>

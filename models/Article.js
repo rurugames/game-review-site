@@ -38,7 +38,7 @@ const ArticleSchema = new mongoose.Schema({
   rating: {
     type: Number,
     min: 1,
-    max: 5
+    max: 10
   },
   imageUrl: {
     type: String
@@ -78,6 +78,18 @@ const ArticleSchema = new mongoose.Schema({
 ArticleSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
+});
+
+// テキスト検索用のインデックスを作成
+ArticleSchema.index({
+  title: 'text',
+  gameTitle: 'text',
+  description: 'text',
+  content: 'text',
+  tags: 'text'
+}, {
+  name: 'ArticleTextIndex',
+  weights: { title: 10, gameTitle: 8, tags: 5, description: 3, content: 1 }
 });
 
 module.exports = mongoose.model('Article', ArticleSchema);

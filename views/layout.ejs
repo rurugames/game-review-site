@@ -3,42 +3,106 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= typeof title !== 'undefined' ? title + ' - ' : '' %>PCゲームレビュー</title>
+  <title><%= typeof title !== 'undefined' ? title + ' - ' : '' %>R18Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="/images/siteicon.png">
+  <link rel="apple-touch-icon" href="/images/siteicon.png">
   <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
 </head>
 <body>
-  <nav class="navbar">
-    <div class="container">
-      <a href="/" class="logo">🎮 PCゲームレビュー</a>
-      <div class="nav-links">
-        <% if (user) { %>
-          <% if (user.email === 'hiderance1919@gmail.com') { %>
-            <a href="/dashboard">ダッシュボード</a>
-            <a href="/articles/new" class="btn-primary">新規記事作成</a>
-          <% } %>
-          <span class="user-info">
-            <img src="<%= user.image %>" alt="<%= user.displayName %>" class="user-avatar">
-            <%= user.displayName %>
-          </span>
-          <a href="/auth/logout" class="btn-secondary">ログアウト</a>
-        <% } else { %>
-          <a href="/auth/google" class="btn-primary">Googleでログイン</a>
-        <% } %>
+  <div class="app-shell">
+    <aside class="left-rail">
+      <div class="site-title">
+        <a href="/">
+          <img src="/images/siteicon.png" alt="R18Hub" class="site-icon">
+          <span class="title-text">R18Hub</span>
+        </a>
       </div>
+      <nav class="left-nav">
+        <ul>
+          <li><a href="/">ホーム</a></li>
+          <li><a href="/ranking">人気ランキング</a></li>
+          <li><a href="/articles">記事一覧</a></li>
+          <% if (user && user.email === 'hiderance1919@gmail.com') { %>
+            <li><a href="/csv">CSV 管理</a></li>
+            <li><a href="/generator">記事自動生成</a></li>
+            <li><a href="/dashboard">ダッシュボード</a></li>
+            <li><a href="/admin/settings">設定</a></li>
+          <% } %>
+        </ul>
+      </nav>
+    </aside>
+
+    <div class="main-area">
+      <header class="topbar">
+        <div class="topbar-left"></div>
+        <div class="topbar-center">
+          <form action="/search" method="get" class="search-form">
+            <input type="search" name="q" placeholder="ゲームタイトル、サークル名、キーワードで検索" value="" aria-label="検索">
+            <button type="submit">検索</button>
+          </form>
+        </div>
+        <div class="topbar-right">
+          <a href="/help" class="help-icon" title="ヘルプ" aria-label="ヘルプページへ">
+            <span class="help-mark" aria-hidden="true">?</span>
+          </a>
+          <div id="ranking-progress" class="ranking-progress" style="display:none; align-items:center; gap:0.5rem; margin-right:0.75rem;">
+            <div class="rp-label" style="font-size:0.9rem; color:var(--text-secondary);">取得状況</div>
+            <div class="rp-bar" style="width:120px; height:8px; background:rgba(255,255,255,0.04); border-radius:6px; overflow:hidden;">
+              <div class="rp-bar-inner" style="width:0%; height:100%; background:linear-gradient(90deg,#a855f7,#ec4899);"></div>
+            </div>
+          </div>
+          <% if (user) { %>
+            <div class="user-info-top">
+              <img src="<%= user.image %>" alt="<%= displayName %>" class="user-avatar">
+              <span class="display-name"><%= displayName %></span>
+              <a href="/auth/logout" class="btn-secondary">ログアウト</a>
+            </div>
+          <% } else { %>
+            <a href="/auth/google" class="btn-primary">Googleでログイン</a>
+          <% } %>
+        </div>
+      </header>
+
+      <main class="content-area">
+        <div class="content-body container">
+          <%- body %>
+        </div>
+      </main>
     </div>
-  </nav>
-  
-  <main class="container">
-    <%- body %>
-  </main>
-  
+  </div>
+
   <footer class="footer">
     <div class="container">
-      <p>&copy; 2025 PCゲームレビュー. All rights reserved.</p>
+      <p>&copy; 2026 R18Hub. All rights reserved.</p>
     </div>
   </footer>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/rankingProgress.js"></script>
+  <script>
+    // 外部URLリンクは別タブで開く
+    document.addEventListener('DOMContentLoaded', () => {
+      const anchors = document.querySelectorAll('a[href]');
+      for (const a of anchors) {
+        const href = a.getAttribute('href');
+        if (!href) continue;
+        // mailto/tel などは対象外
+        if (href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('#')) continue;
+
+        let url;
+        try {
+          url = new URL(href, window.location.href);
+        } catch {
+          continue;
+        }
+        if (url.origin !== window.location.origin) {
+          a.setAttribute('target', '_blank');
+          a.setAttribute('rel', 'noopener noreferrer');
+        }
+      }
+    });
+  </script>
 </body>
 </html>
