@@ -1,4 +1,11 @@
 (() => {
+  try {
+    const isHome = location.pathname === '/' || location.pathname === '';
+    if (isHome && document.querySelector('[data-ranking-provider="dlsite-blogparts"]')) {
+      return;
+    }
+  } catch (e) {}
+
   const socket = io();
   function renderStatus(s) {
     const el = document.getElementById('ranking-progress');
