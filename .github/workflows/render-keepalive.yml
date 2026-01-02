@@ -1,9 +1,6 @@
-name: Render keep-alive
+name: Render keep-alive (disabled)
 
 on:
-  schedule:
-    # Every 10 minutes
-    - cron: '*/10 * * * *'
   workflow_dispatch: {}
 
 jobs:
