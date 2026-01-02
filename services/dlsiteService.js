@@ -676,7 +676,7 @@ class DLsiteService {
             try {
               puppeteer = require('puppeteer');
             } catch (reqErr) {
-              console.error('puppeteer が見つかりません。依存関係をインストールしてください:', reqErr.message || reqErr);
+              console.warn('puppeteer が見つかりません（任意機能のためスキップします）:', reqErr.message || reqErr);
               throw reqErr;
             }
           }
