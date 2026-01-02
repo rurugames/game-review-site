@@ -110,6 +110,37 @@ router.get('/', async (req, res) => {
       articlesQuery.tags = { $in: uniqueTags };
     }
 
+    // 評価フィルター（10段階）: ratings=1,2 / 互換: rating=1 (or rating=1&rating=2)
+    const selectedRatings = [];
+    const normalizeRating = (r) => {
+      const n = parseInt(String(r || '').trim(), 10);
+      if (!Number.isFinite(n)) return null;
+      if (n < 1 || n > 10) return null;
+      return n;
+    };
+
+    if (req.query.ratings) {
+      const raw = Array.isArray(req.query.ratings) ? req.query.ratings.join(',') : String(req.query.ratings);
+      raw
+        .split(',')
+        .map(normalizeRating)
+        .filter((n) => n !== null)
+        .forEach((n) => selectedRatings.push(n));
+    }
+
+    if (req.query.rating) {
+      const raw = Array.isArray(req.query.rating) ? req.query.rating : [req.query.rating];
+      raw
+        .map(normalizeRating)
+        .filter((n) => n !== null)
+        .forEach((n) => selectedRatings.push(n));
+    }
+
+    const uniqueRatings = Array.from(new Set(selectedRatings)).filter((n) => n >= 1 && n <= 10);
+    if (uniqueRatings.length) {
+      articlesQuery.rating = { $in: uniqueRatings };
+    }
+
     const recommendedTagsAgg = await Article.aggregate([
       { $match: { status: 'published' } },
       { $unwind: '$tags' },
@@ -155,7 +186,7 @@ router.get('/', async (req, res) => {
       </div>
     `;
 
-    res.render('articles/index', { articles, heroHtml, per, totalCount, page, totalPages, sortKey, recommendedTags, selectedTags: uniqueTags, query: req.query });
+    res.render('articles/index', { articles, heroHtml, per, totalCount, page, totalPages, sortKey, recommendedTags, selectedTags: uniqueTags, selectedRatings: uniqueRatings, query: req.query });
   } catch (err) {
     console.error('記事一覧取得エラー:', err);
     res.status(500).send('記事一覧の表示に失敗しました');

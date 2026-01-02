@@ -30,12 +30,35 @@
     </div>
   <% } %>
 
+  <% const selectedRatingsValue = (typeof selectedRatings !== 'undefined' && selectedRatings && selectedRatings.length)
+    ? selectedRatings
+    : ((query && query.ratings) ? String(query.ratings).split(',').map(r => parseInt(String(r || '').trim(), 10)).filter(n => n >= 1 && n <= 10) : []);
+  %>
+  <% const activeRatings = Array.from(new Set(selectedRatingsValue)).filter(n => n >= 1 && n <= 10).sort((a,b) => a-b); %>
+  <% if (activeRatings.length) { %>
+    <div class="per-toggle" aria-label="評価絞り込み">
+      <span class="per-label">評価:</span>
+      <% activeRatings.forEach(function(n){ %>
+        <span class="tag"><%= '★'.repeat(n) %></span>
+      <% }); %>
+    </div>
+  <% } %>
+
   <% function nextTagsForToggle(tag) {
        const current = activeTags.slice();
        const idx = current.indexOf(tag);
        if (idx >= 0) current.splice(idx, 1);
        else current.push(tag);
        return current.join(',');
+     }
+  %>
+
+  <% function nextRatingsForToggle(n) {
+       const current = activeRatings.slice();
+       const idx = current.indexOf(n);
+       if (idx >= 0) current.splice(idx, 1);
+       else current.push(n);
+       return current.sort((a,b) => a-b).join(',');
      }
   %>
 
@@ -47,6 +70,13 @@
       <% }); %>
     </div>
   <% } %>
+
+  <div class="per-toggle" aria-label="評価フィルター">
+    <span class="per-label">評価:</span>
+    <% for (let n = 1; n <= 10; n++) { %>
+      <a class="per-button <%= activeRatings.includes(n) ? 'active' : '' %>" href="<%= buildQs({ ratings: nextRatingsForToggle(n), rating: '', page: 1 }) %>" title="★<%= n %>"><%= '★'.repeat(n) %></a>
+    <% } %>
+  </div>
 
   <div class="per-toggle" aria-label="並び替え">
     <span class="per-label">並び替え:</span>
