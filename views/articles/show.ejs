@@ -40,9 +40,9 @@
 
     <div class="author-date">
       <div class="author-info">
-        <img src="<%= article.author.image %>" alt="<%= article.author.email === 'hiderance1919@gmail.com' ? '管理者' : article.author.displayName %>" class="author-avatar">
+        <img src="<%= article.author.image %>" alt="<%= (adminDisplayNames && adminDisplayNames[article.author.email]) ? adminDisplayNames[article.author.email] : article.author.displayName %>" class="author-avatar">
         <div>
-          <div class="author-name"><%= article.author.email === 'hiderance1919@gmail.com' ? '管理者' : article.author.displayName %></div>
+          <div class="author-name"><%= (adminDisplayNames && adminDisplayNames[article.author.email]) ? adminDisplayNames[article.author.email] : article.author.displayName %></div>
           <div class="article-date">
             投稿: <%= new Date(article.createdAt).toLocaleDateString('ja-JP') %>
             <% if (article.createdAt.getTime() !== article.updatedAt.getTime()) { %>
@@ -54,7 +54,7 @@
       <div class="views-count">👁️ <%= article.views %> 閲覧</div>
     </div>
 
-    <% if (user && user.email === 'hiderance1919@gmail.com') { %>
+    <% if (isAdmin) { %>
       <div class="article-actions">
         <a href="/articles/<%= article._id %>/edit" class="btn-edit">編集</a>
         <form action="/articles/<%= article._id %>?_method=DELETE" method="POST" style="display:inline;">
@@ -130,12 +130,12 @@
       <% comments.forEach(comment => { %>
         <div class="comment-item">
           <div class="comment-header">
-            <img src="<%= comment.author.image %>" alt="<%= comment.author.email === 'hiderance1919@gmail.com' ? '管理者' : comment.author.displayName %>" class="comment-avatar">
+            <img src="<%= comment.author.image %>" alt="<%= (adminDisplayNames && adminDisplayNames[comment.author.email]) ? adminDisplayNames[comment.author.email] : comment.author.displayName %>" class="comment-avatar">
             <div class="comment-meta">
-              <span class="comment-author"><%= comment.author.email === 'hiderance1919@gmail.com' ? '管理者' : comment.author.displayName %></span>
+              <span class="comment-author"><%= (adminDisplayNames && adminDisplayNames[comment.author.email]) ? adminDisplayNames[comment.author.email] : comment.author.displayName %></span>
               <span class="comment-date"><%= new Date(comment.createdAt).toLocaleDateString('ja-JP') %> <%= new Date(comment.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) %></span>
             </div>
-            <% if (user && (comment.author._id.toString() === user.id || user.email === 'hiderance1919@gmail.com')) { %>
+            <% if (user && (comment.author._id.toString() === user.id || isAdmin)) { %>
               <form action="/comments/<%= comment._id %>?_method=DELETE" method="POST" class="comment-delete-form">
                 <button type="submit" class="btn-comment-delete" onclick="return confirm('コメントを削除しますか？')">🗑️</button>
               </form>

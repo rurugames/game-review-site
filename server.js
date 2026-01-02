@@ -7,12 +7,26 @@ const mongoose = require('mongoose');
 const methodOverride = require('method-override');
 const path = require('path');
 
+// Debug helper: find unexpected process exits (set DEBUG_PROCESS_EXIT=1)
+if (process.env.DEBUG_PROCESS_EXIT === '1') {
+  const originalExit = process.exit.bind(process);
+  process.exit = (code) => {
+    try {
+      const err = new Error('process.exit called');
+      console.error('process.exit called with code=', code);
+      console.error(err && err.stack ? err.stack : err);
+    } catch (_) {}
+    return originalExit(code);
+  };
+}
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 const http = require('http');
 const server = http.createServer(app);
 const { Server } = require('socket.io');
 const socketLib = require('./lib/socket');
+const { ADMIN_DISPLAY_NAMES, getAdminDisplayNameByEmail, isAdminEmail } = require('./lib/admin');
 const Setting = require('./models/Setting');
 const dlsiteService = require('./services/dlsiteService');
 
@@ -103,11 +117,10 @@ app.use(passport.session());
 // グローバル変数設定
 app.use((req, res, next) => {
   res.locals.user = req.user || null;
-  // 管理者の表示名を「管理者」に変更
-  if (req.user && req.user.email === 'hiderance1919@gmail.com') {
-    res.locals.displayName = '管理者';
-  } else if (req.user) {
-    res.locals.displayName = req.user.displayName;
+  res.locals.adminDisplayNames = ADMIN_DISPLAY_NAMES;
+  res.locals.isAdmin = !!(req.user && isAdminEmail(req.user.email));
+  if (req.user) {
+    res.locals.displayName = getAdminDisplayNameByEmail(req.user.email) || req.user.displayName;
   }
   next();
 });
@@ -121,6 +134,7 @@ app.get('/healthz', (req, res) => {
 app.use('/', require('./routes/index'));
 app.use('/auth', require('./routes/auth'));
 app.use('/articles', require('./routes/articles'));
+app.use('/videos', require('./routes/videos'));
 app.use('/comments', require('./routes/comments'));
 app.use('/generator', require('./routes/generator'));
 app.use('/csv', require('./routes/csv'));

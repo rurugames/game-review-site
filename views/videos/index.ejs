@@ -1,0 +1,94 @@
+<section class="articles-section page-section">
+  <div class="page-header">
+    <h1 class="section-title">動画</h1>
+    <p class="section-lead">YouTube【ruruGamesJPチャンネル】の新着動画・おすすめ動画を一覧表示します。</p>
+  </div>
+
+  <% if ((!latestVideos || latestVideos.length === 0) && (!recommendedVideos || recommendedVideos.length === 0)) { %>
+    <div class="panel">
+      <div class="panel-body">
+        <p class="section-lead">表示できる動画がありません。YouTube API設定を確認してください。</p>
+      </div>
+    </div>
+  <% } %>
+
+  <% if (latestVideos && latestVideos.length > 0) { %>
+    <div class="page-header" style="margin-top: 1.25rem;">
+      <h2 class="section-title" style="font-size: 1.4rem;">新着動画</h2>
+      <p class="section-lead">最新アップロード（最大5件）</p>
+    </div>
+
+    <div class="articles-grid modern-grid">
+      <% latestVideos.slice(0, 5).forEach(function(v){ %>
+        <div class="panel">
+          <div class="panel-body">
+            <article class="post-card">
+              <a class="post-cover" href="<%= v.url %>" target="_blank" rel="noopener">
+                <% if (v.thumbnailUrl) { %>
+                  <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
+                <% } else { %>
+                  <img src="/images/siteicon.png" alt="thumb" loading="lazy">
+                <% } %>
+              </a>
+              <div class="post-body">
+                <div class="meta-row">
+                  <span class="tag genre">YouTube</span>
+                  <span class="tag">#新着</span>
+                </div>
+                <h3 class="post-title"><a href="<%= v.url %>" target="_blank" rel="noopener"><%= v.title %></a></h3>
+                <div class="post-sub"><span class="date"><%= v.publishedAtJp || '' %></span></div>
+                <p class="post-excerpt"><%= v.shortDescription || '' %></p>
+                <div class="post-actions">
+                  <a class="btn-read-more" href="<%= v.url %>" target="_blank" rel="noopener">YouTubeで見る</a>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+
+  <% if (recommendedVideos && recommendedVideos.length > 0) { %>
+    <div class="page-header" style="margin-top: 1.25rem;">
+      <h2 class="section-title" style="font-size: 1.4rem;">おすすめ動画</h2>
+      <p class="section-lead">ピックアップ（最大5件）</p>
+    </div>
+
+    <div class="articles-grid modern-grid">
+      <% recommendedVideos.slice(0, 5).forEach(function(v){ %>
+        <div class="panel">
+          <div class="panel-body">
+            <article class="post-card">
+              <a class="post-cover" href="<%= v.url %>" target="_blank" rel="noopener">
+                <% if (v.thumbnailUrl) { %>
+                  <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
+                <% } else { %>
+                  <img src="/images/siteicon.png" alt="thumb" loading="lazy">
+                <% } %>
+              </a>
+              <div class="post-body">
+                <div class="meta-row">
+                  <span class="tag genre">YouTube</span>
+                  <span class="tag">#おすすめ</span>
+                </div>
+                <h3 class="post-title"><a href="<%= v.url %>" target="_blank" rel="noopener"><%= v.title %></a></h3>
+                <div class="post-sub"><span class="date"><%= v.publishedAtJp || '' %></span></div>
+                <p class="post-excerpt"><%= v.shortDescription || '' %></p>
+                <div class="post-actions">
+                  <a class="btn-read-more" href="<%= v.url %>" target="_blank" rel="noopener">YouTubeで見る</a>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+
+    <% if (youtubeChannelId) { %>
+      <div style="margin-top: 0.5rem;">
+        <a class="btn-secondary" href="https://www.youtube.com/channel/<%= youtubeChannelId %>" target="_blank" rel="noopener">チャンネルを見る</a>
+      </div>
+    <% } %>
+  <% } %>
+</section>

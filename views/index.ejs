@@ -41,8 +41,8 @@
                 <% } %>
                 <div class="article-footer">
                   <div class="author-info">
-                    <img src="<%= article.author.image %>" alt="<%= article.author.email === 'hiderance1919@gmail.com' ? '管理者' : article.author.displayName %>" class="author-avatar">
-                    <span><%= article.author.email === 'hiderance1919@gmail.com' ? '管理者' : article.author.displayName %></span>
+                    <img src="<%= article.author.image %>" alt="<%= (adminDisplayNames && adminDisplayNames[article.author.email]) ? adminDisplayNames[article.author.email] : article.author.displayName %>" class="author-avatar">
+                    <span><%= (adminDisplayNames && adminDisplayNames[article.author.email]) ? adminDisplayNames[article.author.email] : article.author.displayName %></span>
                   </div>
                   <span class="date"><%= new Date(article.createdAt).toLocaleDateString('ja-JP') %></span>
                 </div>
@@ -64,5 +64,87 @@
     </div>
   </div>
 </section>
+
+<% if (latestVideos && latestVideos.length > 0) { %>
+<section class="articles-section page-section">
+  <div class="page-header">
+    <h2 class="section-title">新着動画</h2>
+    <p class="section-lead">YouTubeの最新アップロード</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-body">
+      <div class="articles-grid">
+        <% latestVideos.slice(0, 5).forEach(v => { %>
+          <article class="article-card">
+            <% if (v.thumbnailUrl) { %>
+              <div class="article-image">
+                <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
+              </div>
+            <% } %>
+            <div class="article-content">
+              <div class="article-meta">
+                <span class="genre">YouTube</span>
+              </div>
+              <h2><%= v.title %></h2>
+              <% if (v.shortDescription) { %>
+                <p class="description"><%= v.shortDescription %></p>
+              <% } %>
+              <div class="article-footer">
+                <span class="date"><%= v.publishedAtJp || '' %></span>
+              </div>
+              <a href="<%= v.url %>" target="_blank" rel="noopener" class="btn-read-more">YouTubeで見る</a>
+            </div>
+          </article>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+</section>
+<% } %>
+
+<% if (recommendedVideos && recommendedVideos.length > 0) { %>
+<section class="articles-section page-section">
+  <div class="page-header">
+    <h2 class="section-title">おすすめ動画</h2>
+    <p class="section-lead">ピックアップ</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-body">
+      <div class="articles-grid">
+        <% recommendedVideos.slice(0, 5).forEach(v => { %>
+          <article class="article-card">
+            <% if (v.thumbnailUrl) { %>
+              <div class="article-image">
+                <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
+              </div>
+            <% } %>
+            <div class="article-content">
+              <div class="article-meta">
+                <span class="genre">YouTube</span>
+              </div>
+              <h2><%= v.title %></h2>
+              <% if (v.shortDescription) { %>
+                <p class="description"><%= v.shortDescription %></p>
+              <% } %>
+              <div class="article-footer">
+                <span class="date"><%= v.publishedAtJp || '' %></span>
+              </div>
+              <a href="<%= v.url %>" target="_blank" rel="noopener" class="btn-read-more">YouTubeで見る</a>
+            </div>
+          </article>
+        <% }); %>
+      </div>
+    </div>
+  </div>
+
+  <% if (youtubeChannelId) { %>
+    <div style="margin-top: 0.5rem;">
+      <a class="btn-secondary" href="https://www.youtube.com/channel/<%= youtubeChannelId %>" target="_blank" rel="noopener">チャンネルを見る</a>
+    </div>
+  <% } %>
+</section>
+<% } %>
 
 <!-- content wrapper is provided by layout.ejs -->

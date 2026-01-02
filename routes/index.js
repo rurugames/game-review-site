@@ -8,6 +8,7 @@ const ejs = require('ejs');
 const mongoose = require('mongoose');
 const Setting = require('../models/Setting');
 const CacheGCLog = require('../models/CacheGCLog');
+const youtubeApi = require('../services/youtubeDataApiService');
 
 // キャッシュ設定
 let rankingCache = null;
@@ -90,6 +91,42 @@ router.get('/', async (req, res) => {
       .populate('author')
       .sort({ createdAt: -1 })
       .limit(10);
+
+    // YouTube Data API v3
+    const youtubeChannelId = process.env.YOUTUBE_CHANNEL_ID || '';
+    const youtubeRecommendedPlaylistId = process.env.YOUTUBE_RECOMMENDED_PLAYLIST_ID || '';
+    let latestVideos = [];
+    let recommendedVideos = [];
+
+    try {
+      // APIキーが無い場合はサービスが例外を投げるので握りつぶしてスキップ
+      if (youtubeChannelId) {
+        latestVideos = await youtubeApi.fetchLatestVideosByChannel(youtubeChannelId, { limit: 5 });
+      }
+      if (youtubeRecommendedPlaylistId) {
+        // 重複除外があるので少し多めに取得
+        recommendedVideos = await youtubeApi.fetchVideosByPlaylist(youtubeRecommendedPlaylistId, { limit: 25 });
+      } else {
+        // プレイリスト未指定時はチャンネル内の人気順をおすすめとして使う
+        recommendedVideos = youtubeChannelId
+          ? await youtubeApi.fetchPopularVideosByChannel(youtubeChannelId, { limit: 25 })
+          : [];
+      }
+
+      // 新着とおすすめの重複を除外
+      const latestIds = new Set((latestVideos || []).map((v) => v && v.id).filter(Boolean));
+      recommendedVideos = (recommendedVideos || []).filter((v) => v && v.id && !latestIds.has(v.id)).slice(0, 5);
+    } catch (e) {
+      latestVideos = [];
+      recommendedVideos = [];
+      try {
+        if (e && e.code === 'YOUTUBE_API_KEY_MISSING') {
+          console.warn('YouTube disabled: missing YOUTUBE_API_KEY');
+        } else {
+          console.warn('YouTube API fetch failed:', e && e.message ? e.message : e);
+        }
+      } catch (_) {}
+    }
     
     // ランキング取得（キャッシュ優先）。キャッシュ未取得時はバックグラウンドで取得を開始し即時レンダリングする。
     let ranking = [];
@@ -132,7 +169,16 @@ router.get('/', async (req, res) => {
       lastUpdatedStr: rankingStatus.cacheTime ? formatJp(rankingStatus.cacheTime) : null,
       nextUpdateStr: rankingStatus.nextUpdate ? formatJp(rankingStatus.nextUpdate) : null
     };
-    res.render('index', { articles, ranking: topRanking, heroHtml, rankingStatus, rankingStatusFormatted });
+    res.render('index', {
+      articles,
+      ranking: topRanking,
+      heroHtml,
+      rankingStatus,
+      rankingStatusFormatted,
+      latestVideos,
+      recommendedVideos,
+      youtubeChannelId,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send('サーバーエラーが発生しました');

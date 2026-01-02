@@ -15,7 +15,8 @@ router.get('/google/callback',
   }),
   (req, res) => {
     // 管理者はダッシュボードへ、一般ユーザーはトップページへ
-    if (req.user.email === 'hiderance1919@gmail.com') {
+    const { isAdminEmail } = require('../lib/admin');
+    if (req.user && isAdminEmail(req.user.email)) {
       res.redirect('/dashboard');
     } else {
       res.redirect('/');

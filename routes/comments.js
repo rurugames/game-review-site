@@ -38,7 +38,8 @@ router.delete('/:id', ensureAuth, async (req, res) => {
     }
 
     // 管理者または投稿者のみ削除可能
-    if (comment.author.toString() !== req.user.id && req.user.email !== 'hiderance1919@gmail.com') {
+    const { isAdminEmail } = require('../lib/admin');
+    if (comment.author.toString() !== req.user.id && !(req.user && isAdminEmail(req.user.email))) {
       return res.status(403).send('削除権限がありません');
     }
 
