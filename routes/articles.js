@@ -84,13 +84,67 @@ router.get('/', async (req, res) => {
     let page = parseInt(req.query.page, 10) || 1;
     if (page < 1) page = 1;
 
-    const totalCount = await Article.countDocuments({ status: 'published' });
+    const articlesQuery = { status: 'published' };
+
+    const normalizeTag = (t) => String(t || '').trim().replace(/^#/, '');
+    const selectedTags = [];
+
+    // Primary: tags=tag1,tag2
+    if (req.query.tags) {
+      const raw = Array.isArray(req.query.tags) ? req.query.tags.join(',') : String(req.query.tags);
+      raw
+        .split(',')
+        .map(normalizeTag)
+        .filter(Boolean)
+        .forEach((t) => selectedTags.push(t));
+    }
+
+    // Backward compatible: tag=tag1 (or tag=tag1&tag=tag2)
+    if (req.query.tag) {
+      const raw = Array.isArray(req.query.tag) ? req.query.tag : [req.query.tag];
+      raw.map(normalizeTag).filter(Boolean).forEach((t) => selectedTags.push(t));
+    }
+
+    const uniqueTags = Array.from(new Set(selectedTags)).slice(0, 10);
+    if (uniqueTags.length) {
+      articlesQuery.tags = { $in: uniqueTags };
+    }
+
+    const recommendedTagsAgg = await Article.aggregate([
+      { $match: { status: 'published' } },
+      { $unwind: '$tags' },
+      { $match: { tags: { $type: 'string', $ne: '' } } },
+      { $group: { _id: '$tags', count: { $sum: 1 } } },
+      { $sort: { count: -1, _id: 1 } },
+      { $limit: 12 }
+    ]);
+    const recommendedTags = (recommendedTagsAgg || []).map((x) => x._id).filter(Boolean);
+
+    // 並び替え（最小実装: 公開日時の新しい順/古い順）
+    const allowedSorts = ['new', 'old', 'release_new', 'release_old'];
+    let sortKey = (req.query.sort || 'new').toString();
+    if (!allowedSorts.includes(sortKey)) sortKey = 'new';
+    const sortSpec = (() => {
+      switch (sortKey) {
+        case 'old':
+          return { createdAt: 1, _id: 1 };
+        case 'release_new':
+          return { releaseDate: -1, createdAt: -1, _id: -1 };
+        case 'release_old':
+          return { releaseDate: 1, createdAt: -1, _id: -1 };
+        case 'new':
+        default:
+          return { createdAt: -1, _id: -1 };
+      }
+    })();
+
+    const totalCount = await Article.countDocuments(articlesQuery);
     const totalPages = Math.max(1, Math.ceil(totalCount / per));
     if (page > totalPages) page = totalPages;
 
-    const articles = await Article.find({ status: 'published' })
+    const articles = await Article.find(articlesQuery)
       .populate('author')
-      .sort({ createdAt: -1 })
+      .sort(sortSpec)
       .skip((page - 1) * per)
       .limit(per);
 
@@ -101,7 +155,7 @@ router.get('/', async (req, res) => {
       </div>
     `;
 
-    res.render('articles/index', { articles, heroHtml, per, totalCount, page, totalPages, query: req.query });
+    res.render('articles/index', { articles, heroHtml, per, totalCount, page, totalPages, sortKey, recommendedTags, selectedTags: uniqueTags, query: req.query });
   } catch (err) {
     console.error('記事一覧取得エラー:', err);
     res.status(500).send('記事一覧の表示に失敗しました');

@@ -19,7 +19,7 @@ let rankingFetchLastFinished = null;
 let rankingFetchProgress = 0;
 let rankingFetchTarget = 0;
 let rankingFetchPromise = null;
-const CACHE_DURATION = 60 * 60 * 1000; // 1時間
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 1日
 const { ensureAdmin } = require('../middleware/auth');
 
 /**
@@ -211,7 +211,6 @@ router.get('/ranking/partial', async (req, res) => {
     let page = parseInt(req.query.page, 10) || 1;
 
     const now = Date.now();
-    const CACHE_DURATION = 60 * 60 * 1000; // 1 hour (same as routes file scope)
     if (!(rankingCache && rankingCacheTime && (now - rankingCacheTime < CACHE_DURATION))) {
       // nothing cached yet
       return res.status(204).send();
