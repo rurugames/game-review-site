@@ -94,14 +94,50 @@ function assertApiKey() {
   return key;
 }
 
+function extractYoutubeApiErrorDetails(error) {
+  try {
+    const data = error && error.response && error.response.data;
+    const root = data && data.error;
+    const first = root && Array.isArray(root.errors) ? root.errors[0] : null;
+    const reason = first && first.reason ? safeText(first.reason) : '';
+    const message = root && root.message ? safeText(root.message) : '';
+    const status = root && root.status ? safeText(root.status) : '';
+    return {
+      httpStatus: error && error.response && error.response.status ? Number(error.response.status) : null,
+      reason: reason || null,
+      status: status || null,
+      message: message || null,
+    };
+  } catch {
+    return { httpStatus: null, reason: null, status: null, message: null };
+  }
+}
+
 async function youtubeGet(path, params, { timeoutMs = 8000 } = {}) {
   const key = assertApiKey();
   const url = `https://www.googleapis.com/youtube/v3/${path}`;
-  const resp = await axios.get(url, {
-    timeout: timeoutMs,
-    params: { ...params, key },
-  });
-  return resp.data;
+  try {
+    const resp = await axios.get(url, {
+      timeout: timeoutMs,
+      params: { ...params, key },
+    });
+    return resp.data;
+  } catch (err) {
+    const details = extractYoutubeApiErrorDetails(err);
+    const parts = [];
+    if (details.httpStatus) parts.push(`http=${details.httpStatus}`);
+    if (details.status) parts.push(`status=${details.status}`);
+    if (details.reason) parts.push(`reason=${details.reason}`);
+    if (details.message) parts.push(`message=${details.message}`);
+    const msg = parts.length ? `YouTube API request failed (${parts.join(', ')})` : 'YouTube API request failed';
+    const e = new Error(msg);
+    e.code = 'YOUTUBE_API_REQUEST_FAILED';
+    e.httpStatus = details.httpStatus;
+    e.youtubeStatus = details.status;
+    e.youtubeReason = details.reason;
+    e.youtubeMessage = details.message;
+    throw e;
+  }
 }
 
 async function fetchLatestVideosByChannel(channelId, { limit = 12, ttlMs = DEFAULT_TTL_MS } = {}) {

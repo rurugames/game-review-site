@@ -36,7 +36,13 @@ router.get('/', async (req, res) => {
       if (e && e.code === 'YOUTUBE_API_KEY_MISSING') {
         console.warn('YouTube disabled: missing YOUTUBE_API_KEY');
       } else {
-        console.warn('YouTube API fetch failed:', e && e.message ? e.message : e);
+        console.warn('YouTube API fetch failed:', {
+          message: e && e.message ? e.message : String(e),
+          code: e && e.code ? e.code : null,
+          httpStatus: e && e.httpStatus ? e.httpStatus : null,
+          youtubeStatus: e && e.youtubeStatus ? e.youtubeStatus : null,
+          youtubeReason: e && e.youtubeReason ? e.youtubeReason : null,
+        });
       }
     } catch (_) {}
   }
