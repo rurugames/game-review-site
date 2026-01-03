@@ -4,12 +4,65 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><%= typeof title !== 'undefined' ? title + ' - ' : '' %>R18Hub</title>
+  <% const _metaTitle = (typeof title !== 'undefined' ? (title + ' - ') : '') + 'R18Hub'; %>
+  <% const _metaDescription = (typeof metaDescription !== 'undefined' && metaDescription) ? metaDescription : (typeof locals !== 'undefined' && locals.metaDescription ? locals.metaDescription : ''); %>
+  <% const _canonicalUrl = (typeof canonicalUrl !== 'undefined' && canonicalUrl) ? canonicalUrl : (typeof locals !== 'undefined' && locals.canonicalUrl ? locals.canonicalUrl : ''); %>
+  <% const _metaRobots = (typeof metaRobots !== 'undefined' && metaRobots) ? metaRobots : (typeof locals !== 'undefined' && locals.metaRobots ? locals.metaRobots : 'index,follow'); %>
+  <% const _ogType = (typeof ogType !== 'undefined' && ogType) ? ogType : (typeof locals !== 'undefined' && locals.ogType ? locals.ogType : 'website'); %>
+  <% const _ogImage = (typeof ogImage !== 'undefined' && ogImage) ? ogImage : (typeof locals !== 'undefined' && locals.ogImage ? locals.ogImage : ''); %>
+  <% const _siteUrl = (typeof siteUrl !== 'undefined' && siteUrl) ? siteUrl : (typeof locals !== 'undefined' && locals.siteUrl ? locals.siteUrl : ''); %>
+  <% const _absOgImage = _ogImage && /^https?:\/\//i.test(_ogImage) ? _ogImage : (_siteUrl && _ogImage ? (_siteUrl + (_ogImage.startsWith('/') ? _ogImage : ('/' + _ogImage))) : _ogImage); %>
+  <% const _absCanonical = _canonicalUrl && /^https?:\/\//i.test(_canonicalUrl) ? _canonicalUrl : (_siteUrl && _canonicalUrl ? (_siteUrl + (_canonicalUrl.startsWith('/') ? _canonicalUrl : ('/' + _canonicalUrl))) : _canonicalUrl); %>
+  <% if (_metaDescription) { %>
+    <meta name="description" content="<%= _metaDescription %>">
+  <% } %>
+  <meta name="robots" content="<%= _metaRobots %>">
+  <% if (_absCanonical) { %>
+    <link rel="canonical" href="<%= _absCanonical %>">
+  <% } %>
+  <meta property="og:site_name" content="R18Hub">
+  <meta property="og:locale" content="ja_JP">
+  <meta property="og:title" content="<%= _metaTitle %>">
+  <% if (_metaDescription) { %>
+    <meta property="og:description" content="<%= _metaDescription %>">
+  <% } %>
+  <meta property="og:type" content="<%= _ogType %>">
+  <% if (_absCanonical) { %>
+    <meta property="og:url" content="<%= _absCanonical %>">
+  <% } %>
+  <% if (_absOgImage) { %>
+    <meta property="og:image" content="<%= _absOgImage %>">
+  <% } %>
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="<%= _metaTitle %>">
+  <% if (_metaDescription) { %>
+    <meta name="twitter:description" content="<%= _metaDescription %>">
+  <% } %>
+  <% if (_absOgImage) { %>
+    <meta name="twitter:image" content="<%= _absOgImage %>">
+  <% } %>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/images/siteicon.png">
   <link rel="apple-touch-icon" href="/images/siteicon.png">
   <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
+  <% if (_siteUrl) { %>
+    <script type="application/ld+json"><%- JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'R18Hub',
+      url: _siteUrl,
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: _siteUrl + '/search?q={search_term_string}',
+        'query-input': 'required name=search_term_string'
+      }
+    }) %></script>
+  <% } %>
+  <% if (typeof jsonLd !== 'undefined' && jsonLd) { %>
+    <script type="application/ld+json"><%- JSON.stringify(jsonLd) %></script>
+  <% } %>
 </head>
 <body>
   <div class="app-shell">

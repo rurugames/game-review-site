@@ -89,6 +89,9 @@ SESSION_SECRET=ランダムな長い文字列
 PORT=3000
 NODE_ENV=development
 
+# 公開URL（SEO: canonical / sitemap 用。Render本番では設定推奨）
+SITE_URL=
+
 # お問い合わせフォーム（メール送信）
 CONTACT_TO_EMAIL=管理用の送信先メール（公開しない）
 CONTACT_FROM_EMAIL=

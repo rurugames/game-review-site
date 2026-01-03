@@ -6,6 +6,7 @@ const passport = require('passport');
 const mongoose = require('mongoose');
 const methodOverride = require('method-override');
 const path = require('path');
+const Article = require('./models/Article');
 
 // Debug helper: find unexpected process exits (set DEBUG_PROCESS_EXIT=1)
 if (process.env.DEBUG_PROCESS_EXIT === '1') {
@@ -122,7 +123,118 @@ app.use((req, res, next) => {
   if (req.user) {
     res.locals.displayName = getAdminDisplayNameByEmail(req.user.email) || req.user.displayName;
   }
+
+  // SEO helpers
+  const rawSiteUrl = String(process.env.SITE_URL || '').trim().replace(/\/+$/, '');
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim();
+  const host = forwardedHost || req.get('host') || '';
+  const proto = forwardedProto || req.protocol || 'http';
+  const computedSiteUrl = host ? `${proto}://${host}` : '';
+  const siteUrl = rawSiteUrl || computedSiteUrl;
+
+  res.locals.siteUrl = siteUrl;
+  res.locals.canonicalUrl = siteUrl ? `${siteUrl}${req.path}` : req.path;
+
+  // Default meta (can be overridden per render)
+  res.locals.metaDescription = 'R18Hubは成人向け同人PCゲームのレビュー/攻略/ランキングをまとめて探せるサイトです。';
+  res.locals.ogType = 'website';
+  res.locals.ogImage = siteUrl ? `${siteUrl}/images/siteicon.png` : '/images/siteicon.png';
+
+  // noindex for utility/admin pages
+  const p = req.path || '';
+  const isNoindex =
+    p.startsWith('/admin') ||
+    p.startsWith('/dashboard') ||
+    p.startsWith('/csv') ||
+    p.startsWith('/generator') ||
+    p.startsWith('/auth') ||
+    p.startsWith('/comments') ||
+    p.startsWith('/search') ||
+    /^\/articles\/.+\/edit$/.test(p) ||
+    p === '/articles/new';
+  res.locals.metaRobots = isNoindex ? 'noindex,nofollow' : 'index,follow';
+
   next();
+});
+
+// robots.txt
+app.get('/robots.txt', (req, res) => {
+  const rawSiteUrl = String(process.env.SITE_URL || '').trim().replace(/\/+$/, '');
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim();
+  const host = forwardedHost || req.get('host') || '';
+  const proto = forwardedProto || req.protocol || 'http';
+  const siteUrl = rawSiteUrl || (host ? `${proto}://${host}` : '');
+
+  res.type('text/plain; charset=utf-8');
+  res.send([
+    'User-agent: *',
+    'Allow: /',
+    siteUrl ? `Sitemap: ${siteUrl}/sitemap.xml` : null,
+    '',
+  ].filter(Boolean).join('\n'));
+});
+
+// sitemap.xml
+app.get('/sitemap.xml', async (req, res) => {
+  const rawSiteUrl = String(process.env.SITE_URL || '').trim().replace(/\/+$/, '');
+  const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
+  const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim();
+  const host = forwardedHost || req.get('host') || '';
+  const proto = forwardedProto || req.protocol || 'http';
+  const siteUrl = rawSiteUrl || (host ? `${proto}://${host}` : '');
+
+  if (!siteUrl) {
+    return res.status(500).type('text/plain').send('SITE_URL is not configured');
+  }
+
+  const escapeXml = (s) => String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+  try {
+    const staticPaths = ['/', '/ranking', '/videos', '/articles', '/help', '/contact'];
+    const urls = staticPaths.map((p) => ({ loc: `${siteUrl}${p}`, lastmod: null }));
+
+    const articles = await Article.find({ status: 'published' })
+      .select('_id updatedAt createdAt')
+      .sort({ updatedAt: -1 })
+      .limit(5000)
+      .lean();
+
+    for (const a of (articles || [])) {
+      const ts = a.updatedAt || a.createdAt;
+      urls.push({
+        loc: `${siteUrl}/articles/${a._id}`,
+        lastmod: ts ? new Date(ts).toISOString() : null,
+      });
+    }
+
+    const body = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+      ...urls.map((u) => {
+        const parts = [
+          '<url>',
+          `  <loc>${escapeXml(u.loc)}</loc>`,
+          u.lastmod ? `  <lastmod>${escapeXml(u.lastmod)}</lastmod>` : null,
+          '</url>'
+        ].filter(Boolean);
+        return parts.join('\n');
+      }),
+      '</urlset>',
+      ''
+    ].join('\n');
+
+    res.type('application/xml; charset=utf-8').send(body);
+  } catch (e) {
+    console.error('sitemap generation failed:', e);
+    res.status(500).type('text/plain').send('sitemap generation failed');
+  }
 });
 
 // Health check (for keep-alive pings)

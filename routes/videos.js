@@ -49,6 +49,7 @@ router.get('/', async (req, res) => {
 
   res.render('videos/index', {
     title: '動画',
+    metaDescription: 'YouTubeの新着動画・おすすめ動画を表示します。',
     latestVideos,
     recommendedVideos,
     youtubeChannelId,

@@ -66,8 +66,25 @@ router.get('/:id', async (req, res) => {
       // Markdownの場合は変換
       articleWithHtml.contentHtml = marked.parse(article.content || '');
     }
+
+    // SEO
+    const title = articleWithHtml.title || articleWithHtml.gameTitle || '記事';
+    const metaDescription = String(articleWithHtml.description || '').trim().slice(0, 160);
+    const ogImage = articleWithHtml.imageUrl || undefined;
+    const authorName = (articleWithHtml.author && articleWithHtml.author.displayName) ? articleWithHtml.author.displayName : 'R18Hub';
+    const jsonLd = {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: title,
+      description: metaDescription || undefined,
+      image: ogImage ? [ogImage] : undefined,
+      datePublished: articleWithHtml.createdAt ? new Date(articleWithHtml.createdAt).toISOString() : undefined,
+      dateModified: articleWithHtml.updatedAt ? new Date(articleWithHtml.updatedAt).toISOString() : undefined,
+      author: { '@type': 'Person', name: authorName },
+      mainEntityOfPage: { '@type': 'WebPage', '@id': (res.locals && res.locals.canonicalUrl) ? res.locals.canonicalUrl : undefined }
+    };
     
-    res.render('articles/show', { article: articleWithHtml, comments });
+    res.render('articles/show', { title, metaDescription, ogType: 'article', ogImage, jsonLd, article: articleWithHtml, comments });
   } catch (err) {
     console.error(err);
     res.status(500).send('サーバーエラーが発生しました');
@@ -202,7 +219,21 @@ router.get('/', async (req, res) => {
       </div>
     `;
 
-    res.render('articles/index', { articles, heroHtml, per, totalCount, page, totalPages, sortKey, recommendedTags, selectedTags: uniqueTags, selectedRatings: uniqueRatings, query: req.query });
+    res.render('articles/index', {
+      title: '記事一覧',
+      metaDescription: '公開された記事一覧です。タグやキーワードでレビュー/攻略記事を探せます。',
+      articles,
+      heroHtml,
+      per,
+      totalCount,
+      page,
+      totalPages,
+      sortKey,
+      recommendedTags,
+      selectedTags: uniqueTags,
+      selectedRatings: uniqueRatings,
+      query: req.query
+    });
   } catch (err) {
     console.error('記事一覧取得エラー:', err);
     res.status(500).send('記事一覧の表示に失敗しました');

@@ -298,6 +298,8 @@ router.get('/', async (req, res) => {
       nextUpdateStr: rankingStatus.nextUpdate ? formatJp(rankingStatus.nextUpdate) : null
     };
     res.render('index', {
+      title: 'トップ',
+      metaDescription: '成人向け同人PCゲームの最新記事・人気ランキング・おすすめ動画をまとめてチェックできます。',
       articles,
       ranking: topRanking,
       heroHtml,
@@ -511,7 +513,20 @@ router.get('/ranking', async (req, res) => {
       lastUpdatedStr: rankingStatus.cacheTime ? formatJp(rankingStatus.cacheTime) : null,
       nextUpdateStr: rankingStatus.nextUpdate ? formatJp(rankingStatus.nextUpdate) : null
     };
-    res.render('ranking', { ranking: limitedRanking, heroHtml, per, totalCount, page, totalPages, query: req.query, isLoading, rankingStatus, rankingStatusFormatted });
+    res.render('ranking', {
+      title: '人気ランキング',
+      metaDescription: 'DLsiteの人気ランキング上位を一覧で表示します。',
+      ranking: limitedRanking,
+      heroHtml,
+      per,
+      totalCount,
+      page,
+      totalPages,
+      query: req.query,
+      isLoading,
+      rankingStatus,
+      rankingStatusFormatted
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send('サーバーエラーが発生しました');
