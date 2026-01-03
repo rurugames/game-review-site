@@ -2112,9 +2112,9 @@ body {
 .text-truncate-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 
 /* 表示件数切替トグル */
-.per-toggle { display:flex; gap:0.5rem; align-items:center; margin: 0.75rem 0 1rem; }
+.per-toggle { display:flex; gap:0.5rem; align-items:center; flex-wrap: wrap; margin: 0.75rem 0 1rem; }
 .per-toggle .per-label { color: var(--text-secondary); font-size:0.95rem; margin-right:0.5rem; }
-.per-button { display:inline-block; padding:0.4rem 0.7rem; border-radius:0.6rem; background: rgba(255,255,255,0.02); color:var(--text-primary); text-decoration:none; border:1px solid rgba(255,255,255,0.02); font-weight:700; }
+.per-button { display:inline-block; padding:0.4rem 0.7rem; border-radius:0.6rem; background: rgba(255,255,255,0.02); color:var(--text-primary); text-decoration:none; border:1px solid rgba(255,255,255,0.02); font-weight:700; white-space: nowrap; }
 .per-button:hover { background: var(--card-hover); color:var(--primary-light); transform: translateY(-2px); }
 .per-button.active { background: linear-gradient(90deg, #a855f7, #ec4899); color:white; box-shadow: 0 8px 22px rgba(168,85,247,0.12); }
 .per-total { color: var(--text-secondary); font-size:0.95rem; margin-left:0.5rem; }
@@ -2129,7 +2129,8 @@ body {
 
 @media (max-width:700px) {
   .pagination { justify-content:flex-start; gap:0.4rem; }
-  .per-toggle { justify-content:flex-start; }
+  .per-toggle { justify-content:flex-start; align-items:flex-start; }
+  .per-toggle .per-label { flex: 0 0 100%; margin-right: 0; }
 }
 
 /* Rank overlay (used in ranking cards) */
