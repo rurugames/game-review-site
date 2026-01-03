@@ -193,6 +193,21 @@
       </div>
     </section>
 
+    <div class="article-footer-nav">
+      <a
+        href="<%= (article.tags && article.tags.length > 0) ? ('/articles?tags=' + encodeURIComponent(article.tags.slice(0, 3).join(','))) : '/articles' %>"
+        class="btn-back"
+      >
+        ← 同タグ一覧へ
+      </a>
+      <a
+        href="<%= (article.developer && String(article.developer).trim()) ? ('/articles?q=' + encodeURIComponent(String(article.developer).trim())) : '/articles' %>"
+        class="btn-back"
+      >
+        ← 同サークル一覧へ
+      </a>
+    </div>
+
     <div class="banner-article">
       <a rel="noopener" href="https://www.dlsite.com/maniax/?utm_medium=affiliate&utm_campaign=bnlink&utm_content=bn_sp_300_250_dojin_01.gif" target="_blank">
         <img src="https://www.dlsite.com/img/male/dojin/bn_sp_300_250_dojin_01.gif" alt="同人誌、同人ゲーム、同人ソフトのダウンロードショップ - DLsite" width="300" height="250" border="0" />

@@ -77,7 +77,7 @@ router.get('/:id', async (req, res) => {
       if (article.genre) {
         recommendedSameAttribute = await Article.find({ ...baseQuery, genre: article.genre })
           .populate('author')
-          .sort({ createdAt: -1 })
+          .sort({ rating: -1, createdAt: -1, _id: -1 })
           .limit(3)
           .lean();
       }
@@ -87,7 +87,7 @@ router.get('/:id', async (req, res) => {
         const excludeIds = [article._id, ...Array.from(already).filter(Boolean)];
         const more = await Article.find({ status: 'published', _id: { $nin: excludeIds }, tags: { $in: article.tags } })
           .populate('author')
-          .sort({ createdAt: -1 })
+          .sort({ rating: -1, createdAt: -1, _id: -1 })
           .limit(3 - recommendedSameAttribute.length)
           .lean();
         recommendedSameAttribute = recommendedSameAttribute.concat(more || []);
@@ -97,7 +97,7 @@ router.get('/:id', async (req, res) => {
       if (article.developer) {
         recommendedSameDeveloper = await Article.find({ ...baseQuery, developer: article.developer })
           .populate('author')
-          .sort({ createdAt: -1 })
+          .sort({ rating: -1, createdAt: -1, _id: -1 })
           .limit(3)
           .lean();
       }
