@@ -517,7 +517,23 @@ router.get('/search', async (req, res) => {
     if (q) {
       // $text 検索を利用
       articlesQuery.$text = { $search: q };
-      projection.score = { $meta: 'textScore' };
+      // NOTE: projection を指定すると指定フィールド以外が返らないため、表示/ハイライトに必要な項目も含める
+      projection = {
+        score: { $meta: 'textScore' },
+        title: 1,
+        gameTitle: 1,
+        imageUrl: 1,
+        featuredImage: 1,
+        description: 1,
+        excerpt: 1,
+        content: 1,
+        tags: 1,
+        genre: 1,
+        developer: 1,
+        platform: 1,
+        releaseDate: 1,
+        createdAt: 1,
+      };
       sort = { score: { $meta: 'textScore' }, createdAt: -1 };
     }
 
