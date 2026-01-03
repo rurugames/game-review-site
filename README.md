@@ -88,6 +88,18 @@ SESSION_SECRET=ランダムな長い文字列
 # サーバー設定
 PORT=3000
 NODE_ENV=development
+
+# お問い合わせフォーム（メール送信）
+CONTACT_TO_EMAIL=管理用の送信先メール（公開しない）
+CONTACT_FROM_EMAIL=
+
+# SMTP設定（どちらか片方）
+SMTP_URL=
+# SMTP_HOST=
+# SMTP_PORT=587
+# SMTP_SECURE=false
+# SMTP_USER=
+# SMTP_PASS=
 ```
 
 ### 6. アプリケーションの起動

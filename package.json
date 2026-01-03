@@ -33,6 +33,7 @@
     "method-override": "^3.0.0",
     "mongoose": "^8.0.3",
     "multer": "^2.0.2",
+    "nodemailer": "^6.10.1",
     "openai": "^6.15.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",

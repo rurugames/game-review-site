@@ -9,6 +9,7 @@ const mongoose = require('mongoose');
 const Setting = require('../models/Setting');
 const CacheGCLog = require('../models/CacheGCLog');
 const youtubeApi = require('../services/youtubeDataApiService');
+const nodemailer = require('nodemailer');
 
 // キャッシュ設定
 let rankingCache = null;
@@ -22,6 +23,71 @@ let rankingFetchTarget = 0;
 let rankingFetchPromise = null;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 1日
 const { ensureAdmin } = require('../middleware/auth');
+
+// Contact form (simple in-memory rate limit)
+const contactRate = new Map();
+const CONTACT_RATE_WINDOW_MS = 10 * 60 * 1000;
+const CONTACT_RATE_MAX = 5;
+
+function getClientIp(req) {
+  try {
+    const xf = req.headers['x-forwarded-for'];
+    if (xf && typeof xf === 'string') return xf.split(',')[0].trim();
+    if (Array.isArray(xf) && xf[0]) return String(xf[0]).trim();
+  } catch (_) {}
+  return (req.ip || req.connection?.remoteAddress || '').toString();
+}
+
+function isRateLimited(key, now = Date.now()) {
+  const rec = contactRate.get(key);
+  if (!rec) {
+    contactRate.set(key, { count: 1, start: now });
+    return false;
+  }
+  if (now - rec.start > CONTACT_RATE_WINDOW_MS) {
+    contactRate.set(key, { count: 1, start: now });
+    return false;
+  }
+  rec.count += 1;
+  contactRate.set(key, rec);
+  return rec.count > CONTACT_RATE_MAX;
+}
+
+function sanitizeSingleLine(value, maxLen) {
+  return String(value || '')
+    .replace(/[\r\n]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, maxLen);
+}
+
+function sanitizeMultiline(value, maxLen) {
+  return String(value || '')
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .trim()
+    .slice(0, maxLen);
+}
+
+function createMailTransport() {
+  const smtpUrl = (process.env.SMTP_URL || '').trim();
+  if (smtpUrl) {
+    return nodemailer.createTransport(smtpUrl);
+  }
+  const host = (process.env.SMTP_HOST || '').trim();
+  if (!host) return null;
+  const port = Number(process.env.SMTP_PORT || 587);
+  const secure = String(process.env.SMTP_SECURE || '').toLowerCase() === 'true' || port === 465;
+  const user = (process.env.SMTP_USER || '').trim();
+  const pass = (process.env.SMTP_PASS || '').trim();
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    auth: user && pass ? { user, pass } : undefined,
+  });
+}
 
 /**
  * Start or return existing ranking fetch promise.
@@ -194,6 +260,112 @@ router.get('/', async (req, res) => {
 // Help page
 router.get('/help', function(req, res, next) {
   res.render('help', { title: 'ヘルプ' });
+});
+
+// Contact page
+router.get('/contact', function(req, res) {
+  const sent = String(req.query.sent || '') === '1';
+  res.render('contact', {
+    title: 'お問い合わせ',
+    sent,
+    error: null,
+    form: null,
+  });
+});
+
+router.post('/contact', async function(req, res) {
+  const ip = getClientIp(req);
+
+  // spam対策: honeypot / レート制限
+  const company = String((req.body && req.body.company) || '').trim();
+  if (company) {
+    return res.redirect('/contact?sent=1');
+  }
+  if (isRateLimited(ip)) {
+    return res.status(429).render('contact', {
+      title: 'お問い合わせ',
+      sent: false,
+      error: '送信回数が多すぎます。時間をおいて再度お試しください。',
+      form: {
+        name: sanitizeSingleLine(req.body?.name, 80),
+        email: sanitizeSingleLine(req.body?.email, 120),
+        subject: sanitizeSingleLine(req.body?.subject, 120),
+        message: sanitizeMultiline(req.body?.message, 4000),
+      },
+    });
+  }
+
+  const name = sanitizeSingleLine(req.body?.name, 80);
+  const email = sanitizeSingleLine(req.body?.email, 120);
+  const subject = sanitizeSingleLine(req.body?.subject, 120);
+  const message = sanitizeMultiline(req.body?.message, 4000);
+
+  if (!name || !email || !subject || !message) {
+    return res.status(400).render('contact', {
+      title: 'お問い合わせ',
+      sent: false,
+      error: '必須項目を入力してください。',
+      form: { name, email, subject, message },
+    });
+  }
+
+  const to = sanitizeSingleLine(process.env.CONTACT_TO_EMAIL, 200);
+  const from = sanitizeSingleLine(process.env.CONTACT_FROM_EMAIL || process.env.SMTP_USER, 200);
+
+  if (!to) {
+    return res.status(500).render('contact', {
+      title: 'お問い合わせ',
+      sent: false,
+      error: '現在お問い合わせフォームは利用できません。時間をおいて再度お試しください。',
+      form: { name, email, subject, message },
+    });
+  }
+
+  const transporter = createMailTransport();
+  if (!transporter) {
+    return res.status(500).render('contact', {
+      title: 'お問い合わせ',
+      sent: false,
+      error: '現在お問い合わせフォームは利用できません。時間をおいて再度お試しください。',
+      form: { name, email, subject, message },
+    });
+  }
+
+  try {
+    const ua = sanitizeSingleLine(req.headers['user-agent'], 300);
+    const text = [
+      'お問い合わせフォームからの送信',
+      '',
+      `お名前: ${name}`,
+      `返信先: ${email}`,
+      `件名: ${subject}`,
+      '',
+      '内容:',
+      message,
+      '',
+      `IP: ${ip}`,
+      `UA: ${ua}`,
+      `Time: ${new Date().toISOString()}`,
+    ].join('\n');
+
+    await transporter.sendMail({
+      to,
+      from: from || to,
+      replyTo: email,
+      subject: `[Contact] ${subject}`,
+      text,
+    });
+
+    return res.redirect('/contact?sent=1');
+  } catch (e) {
+    console.error('Contact mail send failed:', e);
+    return res.status(500).render('contact', {
+      title: 'お問い合わせ',
+      sent: false,
+      error: '送信に失敗しました。時間をおいて再度お試しください。',
+      form: { name, email, subject, message },
+    });
+  }
 });
 
 // 人気ランキング専用ページ
