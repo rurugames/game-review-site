@@ -164,6 +164,29 @@ $head | Select-String -Pattern '<title>|rel="canonical"|meta name="robots"|meta 
 - Search Consoleの「HTML タグ」に表示される `content` 値を、Renderの環境変数 `GOOGLE_SITE_VERIFICATION` に設定
 - デプロイ後、トップページの`<head>`に `<meta name="google-site-verification" ...>` が出ることを確認して「確認」
 
+### 新規記事のインデックス促進（運用手順）
+
+新規記事を公開したら、以下を「毎回」実施してください。
+
+- 公開前チェック
+   - 記事の `status` が `published`
+   - `title` / `description` / `tags` / `genre` / `developer` が埋まっている（回遊ブロックの精度に直結）
+   - 画像（`imageUrl`）がある場合は表示できるURL
+- 公開後チェック（ブラウザ）
+   - 記事URL `https://<SITE_URL>/articles/<id>` が 200 で開ける
+   - `<link rel="canonical">` が記事URLを指している
+   - `<meta name="robots" content="index,follow">`（noindexになっていない）
+- サイトマップ反映
+   - `https://<SITE_URL>/sitemap.xml` に新規記事URLが含まれている
+- Search Consoleでの手動促進（最重要）
+   - Search Console → URL検査 → 記事URLを入力
+   - 公開URLをテスト → 問題がなければ インデックス登録をリクエスト
+   - 「選択したcanonical / Googleが選択したcanonical」が意図通りか確認
+
+補足:
+- 新規記事の初速（最初の数十本）は手動リクエストが効きやすいです。
+- 公開後に内容を大きく直した場合も、同じ手順で再リクエストしてください。
+
 ## 使い方
 
 ### 1. ログイン
