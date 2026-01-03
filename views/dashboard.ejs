@@ -1,4 +1,16 @@
 <div class="dashboard">
+  <% function buildQs(overrides) {
+       const q = Object.assign({}, query || {});
+       for (const k in overrides) q[k] = overrides[k];
+       const parts = [];
+       for (const k in q) {
+         if (q[k] === undefined || q[k] === null || q[k] === '') continue;
+         parts.push(encodeURIComponent(k) + '=' + encodeURIComponent(q[k]));
+       }
+       return parts.length ? ('?' + parts.join('&')) : '';
+     }
+  %>
+
   <h1>ダッシュボード</h1>
 
   <% if (typeof relatedClicksByBlock !== 'undefined' && relatedClicksByBlock && relatedClicksByBlock.length > 0) { %>
@@ -160,6 +172,32 @@
         <% }); %>
       </tbody>
     </table>
+
+    <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+      <nav class="pagination" aria-label="ページネーション">
+        <% if (page > 1) { %>
+          <a class="page-btn prev" href="<%= buildQs({ per: per, page: page - 1 }) %>">« 前へ</a>
+        <% } else { %>
+          <span class="page-btn disabled">« 前へ</span>
+        <% } %>
+
+        <% for (let p = 1; p <= totalPages; p++) { %>
+          <% if (Math.abs(p - page) <= 2 || p === 1 || p === totalPages) { %>
+            <a class="page-btn <%= p === page ? 'active' : '' %>" href="<%= buildQs({ per: per, page: p }) %>"><%= p %></a>
+          <% } else if (p === 2 && page > 4) { %>
+            <span class="ellipsis">…</span>
+          <% } else if (p === totalPages - 1 && page < totalPages - 3) { %>
+            <span class="ellipsis">…</span>
+          <% } %>
+        <% } %>
+
+        <% if (page < totalPages) { %>
+          <a class="page-btn next" href="<%= buildQs({ per: per, page: page + 1 }) %>">次へ »</a>
+        <% } else { %>
+          <span class="page-btn disabled">次へ »</span>
+        <% } %>
+      </nav>
+    <% } %>
   <% } else { %>
     <div class="no-articles">
       <p>まだ記事がありません。</p>

@@ -957,8 +957,21 @@ router.get('/search', async (req, res) => {
 // ダッシュボード（ログイン必須）
 router.get('/dashboard', ensureAuth, async (req, res) => {
   try {
-    const articles = await Article.find({ author: req.user.id })
-      .sort({ createdAt: -1 });
+    const allowedPer = [10, 20, 50, 100];
+    let per = parseInt(req.query.per, 10) || 20;
+    if (!allowedPer.includes(per)) per = 20;
+    let page = parseInt(req.query.page, 10) || 1;
+    if (page < 1) page = 1;
+
+    const articlesQuery = { author: req.user.id };
+    const totalCount = await Article.countDocuments(articlesQuery);
+    const totalPages = Math.max(1, Math.ceil(totalCount / per));
+    if (page > totalPages) page = totalPages;
+
+    const articles = await Article.find(articlesQuery)
+      .sort({ createdAt: -1, _id: -1 })
+      .skip((page - 1) * per)
+      .limit(per);
 
     let relatedClicks = [];
     let relatedClicksByBlock = [];
@@ -1007,7 +1020,17 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       ]);
     }
 
-    res.render('dashboard', { articles, relatedClicks, relatedClicksByBlock, relatedClicksTopDestinations });
+    res.render('dashboard', {
+      articles,
+      per,
+      totalCount,
+      page,
+      totalPages,
+      query: req.query,
+      relatedClicks,
+      relatedClicksByBlock,
+      relatedClicksTopDestinations,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send('サーバーエラーが発生しました');
