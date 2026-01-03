@@ -91,6 +91,108 @@
       </div>
     <% } %>
 
+    <section class="articles-section page-section" aria-label="同属性のおすすめ">
+      <div class="page-header">
+        <h2 class="section-title">同属性のおすすめ3本</h2>
+        <p class="section-lead"><%= (article.genre && String(article.genre).trim()) ? (String(article.genre).trim() + ' の記事') : '関連する記事' %>をピックアップしました。</p>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <% if (recommendedSameAttribute && recommendedSameAttribute.length > 0) { %>
+            <div class="articles-grid">
+              <% recommendedSameAttribute.slice(0, 3).forEach(function(a){ %>
+                <article class="article-card">
+                  <% if (a.imageUrl) { %>
+                    <div class="article-image">
+                      <img src="<%= a.imageUrl %>" alt="<%= a.gameTitle || a.title %>">
+                    </div>
+                  <% } %>
+                  <div class="article-content">
+                    <div class="article-meta">
+                      <span class="genre"><%= a.genre || 'ゲーム' %></span>
+                      <% if (a.rating) { %>
+                        <span class="rating"><%= '★'.repeat(a.rating) + '☆'.repeat(10 - a.rating) %></span>
+                      <% } %>
+                    </div>
+                    <h2><%= a.title %></h2>
+                    <h3 class="game-title"><%= a.gameTitle %></h3>
+                    <% if (a.description) { %>
+                      <p class="description"><%= String(a.description).substring(0, 150) %>...</p>
+                    <% } %>
+                    <div class="article-footer">
+                      <% if (a.author) { %>
+                        <div class="author-info">
+                          <img src="<%= a.author.image %>" alt="<%= (adminDisplayNames && adminDisplayNames[a.author.email]) ? adminDisplayNames[a.author.email] : a.author.displayName %>" class="author-avatar">
+                          <span><%= (adminDisplayNames && adminDisplayNames[a.author.email]) ? adminDisplayNames[a.author.email] : a.author.displayName %></span>
+                        </div>
+                      <% } %>
+                      <span class="date"><%= a.createdAt ? new Date(a.createdAt).toLocaleDateString('ja-JP') : '' %></span>
+                    </div>
+                    <a href="/articles/<%= a._id %>" class="btn-read-more">続きを読む</a>
+                  </div>
+                </article>
+              <% }); %>
+            </div>
+          <% } else { %>
+            <div class="no-articles">
+              <p>同属性のおすすめ記事がまだありません。</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </section>
+
+    <section class="articles-section page-section" aria-label="同サークルの他作">
+      <div class="page-header">
+        <h2 class="section-title">同サークルの他作3本</h2>
+        <p class="section-lead"><%= (article.developer && String(article.developer).trim()) ? (String(article.developer).trim() + ' の他の記事') : '同じ制作元の他の記事' %>をピックアップしました。</p>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <% if (recommendedSameDeveloper && recommendedSameDeveloper.length > 0) { %>
+            <div class="articles-grid">
+              <% recommendedSameDeveloper.slice(0, 3).forEach(function(a){ %>
+                <article class="article-card">
+                  <% if (a.imageUrl) { %>
+                    <div class="article-image">
+                      <img src="<%= a.imageUrl %>" alt="<%= a.gameTitle || a.title %>">
+                    </div>
+                  <% } %>
+                  <div class="article-content">
+                    <div class="article-meta">
+                      <span class="genre"><%= a.genre || 'ゲーム' %></span>
+                      <% if (a.rating) { %>
+                        <span class="rating"><%= '★'.repeat(a.rating) + '☆'.repeat(10 - a.rating) %></span>
+                      <% } %>
+                    </div>
+                    <h2><%= a.title %></h2>
+                    <h3 class="game-title"><%= a.gameTitle %></h3>
+                    <% if (a.description) { %>
+                      <p class="description"><%= String(a.description).substring(0, 150) %>...</p>
+                    <% } %>
+                    <div class="article-footer">
+                      <% if (a.author) { %>
+                        <div class="author-info">
+                          <img src="<%= a.author.image %>" alt="<%= (adminDisplayNames && adminDisplayNames[a.author.email]) ? adminDisplayNames[a.author.email] : a.author.displayName %>" class="author-avatar">
+                          <span><%= (adminDisplayNames && adminDisplayNames[a.author.email]) ? adminDisplayNames[a.author.email] : a.author.displayName %></span>
+                        </div>
+                      <% } %>
+                      <span class="date"><%= a.createdAt ? new Date(a.createdAt).toLocaleDateString('ja-JP') : '' %></span>
+                    </div>
+                    <a href="/articles/<%= a._id %>" class="btn-read-more">続きを読む</a>
+                  </div>
+                </article>
+              <% }); %>
+            </div>
+          <% } else { %>
+            <div class="no-articles">
+              <p>同サークルの他作記事がまだありません。</p>
+            </div>
+          <% } %>
+        </div>
+      </div>
+    </section>
+
     <div class="banner-article">
       <a rel="noopener" href="https://www.dlsite.com/maniax/?utm_medium=affiliate&utm_campaign=bnlink&utm_content=bn_sp_300_250_dojin_01.gif" target="_blank">
         <img src="https://www.dlsite.com/img/male/dojin/bn_sp_300_250_dojin_01.gif" alt="同人誌、同人ゲーム、同人ソフトのダウンロードショップ - DLsite" width="300" height="250" border="0" />

@@ -67,6 +67,49 @@ router.get('/:id', async (req, res) => {
       articleWithHtml.contentHtml = marked.parse(article.content || '');
     }
 
+    // 記事末尾の回遊導線: 同属性のおすすめ / 同サークル(開発元)の他作
+    const baseQuery = { status: 'published', _id: { $ne: article._id } };
+    let recommendedSameAttribute = [];
+    let recommendedSameDeveloper = [];
+
+    try {
+      // 同属性: genre優先、無ければタグ一致で補完
+      if (article.genre) {
+        recommendedSameAttribute = await Article.find({ ...baseQuery, genre: article.genre })
+          .populate('author')
+          .sort({ createdAt: -1 })
+          .limit(3)
+          .lean();
+      }
+
+      if (recommendedSameAttribute.length < 3 && article.tags && article.tags.length > 0) {
+        const already = new Set(recommendedSameAttribute.map((a) => String(a && a._id)));
+        const excludeIds = [article._id, ...Array.from(already).filter(Boolean)];
+        const more = await Article.find({ status: 'published', _id: { $nin: excludeIds }, tags: { $in: article.tags } })
+          .populate('author')
+          .sort({ createdAt: -1 })
+          .limit(3 - recommendedSameAttribute.length)
+          .lean();
+        recommendedSameAttribute = recommendedSameAttribute.concat(more || []);
+      }
+
+      // 同サークル(開発元): developer一致
+      if (article.developer) {
+        recommendedSameDeveloper = await Article.find({ ...baseQuery, developer: article.developer })
+          .populate('author')
+          .sort({ createdAt: -1 })
+          .limit(3)
+          .lean();
+      }
+    } catch (e) {
+      // 回遊導線の取得失敗で記事表示自体が落ちないようにする
+      recommendedSameAttribute = [];
+      recommendedSameDeveloper = [];
+      try {
+        console.warn('Related articles fetch failed:', e && e.message ? e.message : String(e));
+      } catch (_) {}
+    }
+
     // SEO
     const title = articleWithHtml.title || articleWithHtml.gameTitle || '記事';
     const metaDescription = String(articleWithHtml.description || '').trim().slice(0, 160);
@@ -84,7 +127,17 @@ router.get('/:id', async (req, res) => {
       mainEntityOfPage: { '@type': 'WebPage', '@id': (res.locals && res.locals.canonicalUrl) ? res.locals.canonicalUrl : undefined }
     };
     
-    res.render('articles/show', { title, metaDescription, ogType: 'article', ogImage, jsonLd, article: articleWithHtml, comments });
+    res.render('articles/show', {
+      title,
+      metaDescription,
+      ogType: 'article',
+      ogImage,
+      jsonLd,
+      article: articleWithHtml,
+      comments,
+      recommendedSameAttribute,
+      recommendedSameDeveloper,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).send('サーバーエラーが発生しました');
