@@ -158,6 +158,12 @@ app.use((req, res, next) => {
   next();
 });
 
+// Google Search Console verification (fallback if static file serving is unavailable)
+app.get('/googlee4cfbb7a627606e5.html', (req, res) => {
+  res.type('text/plain; charset=utf-8');
+  res.send('google-site-verification: googlee4cfbb7a627606e5.html');
+});
+
 // robots.txt
 app.get('/robots.txt', (req, res) => {
   const rawSiteUrl = String(process.env.SITE_URL || '').trim().replace(/\/+$/, '');
