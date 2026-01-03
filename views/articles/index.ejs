@@ -153,7 +153,10 @@
             <div class="meta-row">
               <span class="tag genre"><%= article.genre || 'ゲーム' %></span>
               <% if (article.tags && article.tags.length) { %>
-                <span class="tag">#<%= article.tags[0] %></span>
+                <a class="tag" href="/articles?tags=<%= encodeURIComponent(article.tags[0]) %>">#<%= article.tags[0] %></a>
+              <% } %>
+              <% if (article.developer) { %>
+                <a class="tag" href="/articles?q=<%= encodeURIComponent(article.developer) %>"><%= article.developer %></a>
               <% } %>
             </div>
             <h3 class="post-title"><a href="/articles/<%= article._id %>"><%= article.title %></a></h3>
