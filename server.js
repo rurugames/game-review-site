@@ -160,7 +160,8 @@ app.use((req, res, next) => {
 
 // Google Search Console verification (fallback if static file serving is unavailable)
 app.get('/googlee4cfbb7a627606e5.html', (req, res) => {
-  res.type('text/plain; charset=utf-8');
+  res.status(200);
+  res.set('Content-Type', 'text/plain; charset=utf-8');
   res.send('google-site-verification: googlee4cfbb7a627606e5.html');
 });
 
