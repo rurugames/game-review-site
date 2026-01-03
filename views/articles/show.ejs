@@ -1,4 +1,4 @@
-<article class="article-detail">
+<article class="article-detail" data-article-id="<%= article._id %>">
   <div class="article-header">
     <div class="breadcrumb">
       <a href="/">ホーム</a> / <span><%= article.gameTitle %></span>
@@ -100,7 +100,7 @@
         <div class="panel-body">
           <% if (recommendedSameAttribute && recommendedSameAttribute.length > 0) { %>
             <div class="articles-grid">
-              <% recommendedSameAttribute.slice(0, 3).forEach(function(a){ %>
+              <% recommendedSameAttribute.slice(0, 3).forEach(function(a, idx){ %>
                 <article class="article-card">
                   <% if (a.imageUrl) { %>
                     <div class="article-image">
@@ -128,7 +128,14 @@
                       <% } %>
                       <span class="date"><%= a.createdAt ? new Date(a.createdAt).toLocaleDateString('ja-JP') : '' %></span>
                     </div>
-                    <a href="/articles/<%= a._id %>" class="btn-read-more">続きを読む</a>
+                    <a
+                      href="/articles/<%= a._id %>"
+                      class="btn-read-more"
+                      data-related-click="1"
+                      data-related-block="same_attribute"
+                      data-related-position="<%= idx + 1 %>"
+                      data-to-article-id="<%= a._id %>"
+                    >続きを読む</a>
                   </div>
                 </article>
               <% }); %>
@@ -151,7 +158,7 @@
         <div class="panel-body">
           <% if (recommendedSameDeveloper && recommendedSameDeveloper.length > 0) { %>
             <div class="articles-grid">
-              <% recommendedSameDeveloper.slice(0, 3).forEach(function(a){ %>
+              <% recommendedSameDeveloper.slice(0, 3).forEach(function(a, idx){ %>
                 <article class="article-card">
                   <% if (a.imageUrl) { %>
                     <div class="article-image">
@@ -179,7 +186,14 @@
                       <% } %>
                       <span class="date"><%= a.createdAt ? new Date(a.createdAt).toLocaleDateString('ja-JP') : '' %></span>
                     </div>
-                    <a href="/articles/<%= a._id %>" class="btn-read-more">続きを読む</a>
+                    <a
+                      href="/articles/<%= a._id %>"
+                      class="btn-read-more"
+                      data-related-click="1"
+                      data-related-block="same_developer"
+                      data-related-position="<%= idx + 1 %>"
+                      data-to-article-id="<%= a._id %>"
+                    >続きを読む</a>
                   </div>
                 </article>
               <% }); %>
@@ -270,3 +284,5 @@
     <% } %>
   </div>
 </section>
+
+<script src="/js/relatedClickTracking.js"></script>

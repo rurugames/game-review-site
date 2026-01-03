@@ -104,6 +104,11 @@ app.use(express.json());
 app.use(methodOverride('_method'));
 
 // セッション設定
+if (!process.env.SESSION_SECRET && process.env.NODE_ENV !== 'production') {
+  process.env.SESSION_SECRET = 'dev-session-secret';
+  try { console.warn('SESSION_SECRET is not set. Using a dev default (NODE_ENV!=production).'); } catch (_) {}
+}
+
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -154,6 +159,7 @@ app.use((req, res, next) => {
     p.startsWith('/auth') ||
     p.startsWith('/comments') ||
     p.startsWith('/search') ||
+    p.startsWith('/events') ||
     /^\/articles\/.+\/edit$/.test(p) ||
     p === '/articles/new';
   res.locals.metaRobots = isNoindex ? 'noindex,nofollow' : 'index,follow';
@@ -258,6 +264,7 @@ app.use('/auth', require('./routes/auth'));
 app.use('/articles', require('./routes/articles'));
 app.use('/videos', require('./routes/videos'));
 app.use('/comments', require('./routes/comments'));
+app.use('/events', require('./routes/events'));
 app.use('/generator', require('./routes/generator'));
 app.use('/csv', require('./routes/csv'));
 

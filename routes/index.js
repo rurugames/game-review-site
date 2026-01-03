@@ -11,6 +11,8 @@ const CacheGCLog = require('../models/CacheGCLog');
 const youtubeApi = require('../services/youtubeDataApiService');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const RelatedClick = require('../models/RelatedClick');
+const { isAdminEmail } = require('../lib/admin');
 
 // キャッシュ設定
 let rankingCache = null;
@@ -957,8 +959,55 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
   try {
     const articles = await Article.find({ author: req.user.id })
       .sort({ createdAt: -1 });
-    
-    res.render('dashboard', { articles });
+
+    let relatedClicks = [];
+    let relatedClicksByBlock = [];
+    let relatedClicksTopDestinations = [];
+
+    const isAdmin = !!(req.user && isAdminEmail(req.user.email));
+    if (isAdmin) {
+      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+      relatedClicks = await RelatedClick.find({ ts: { $gte: since } })
+        .sort({ ts: -1 })
+        .limit(50)
+        .populate('fromArticle', 'title gameTitle')
+        .populate('toArticle', 'title gameTitle')
+        .lean();
+
+      relatedClicksByBlock = await RelatedClick.aggregate([
+        { $match: { ts: { $gte: since } } },
+        { $group: { _id: '$block', count: { $sum: 1 } } },
+        { $sort: { count: -1, _id: 1 } },
+      ]);
+
+      relatedClicksTopDestinations = await RelatedClick.aggregate([
+        { $match: { ts: { $gte: since } } },
+        { $group: { _id: { toArticle: '$toArticle', block: '$block' }, count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 20 },
+        {
+          $lookup: {
+            from: 'articles',
+            localField: '_id.toArticle',
+            foreignField: '_id',
+            as: 'toArticle',
+          },
+        },
+        { $unwind: { path: '$toArticle', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            count: 1,
+            block: '$_id.block',
+            toArticleId: '$_id.toArticle',
+            toTitle: '$toArticle.title',
+            toGameTitle: '$toArticle.gameTitle',
+          },
+        },
+      ]);
+    }
+
+    res.render('dashboard', { articles, relatedClicks, relatedClicksByBlock, relatedClicksTopDestinations });
   } catch (err) {
     console.error(err);
     res.status(500).send('サーバーエラーが発生しました');

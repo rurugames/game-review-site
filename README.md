@@ -85,6 +85,9 @@ MONGODB_URI=mongodb://localhost:27017/game-review-site
 # セッション設定
 SESSION_SECRET=ランダムな長い文字列
 
+# 計測（任意）: IPは生保存せず、設定時のみハッシュ化して保存
+ANALYTICS_SALT=
+
 # サーバー設定
 PORT=3000
 NODE_ENV=development

@@ -1,5 +1,115 @@
 <div class="dashboard">
   <h1>ダッシュボード</h1>
+
+  <% if (typeof relatedClicksByBlock !== 'undefined' && relatedClicksByBlock && relatedClicksByBlock.length > 0) { %>
+    <section class="page-section" aria-label="関連記事クリック集計">
+      <div class="page-header">
+        <h2 class="section-title">関連記事クリック（直近30日）</h2>
+        <p class="section-lead">記事末尾の「同属性/同サークル」からのクリック数です。</p>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <div class="articles-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+            <article class="article-card">
+              <div class="article-content">
+                <h3 style="margin:0 0 0.5rem;">ブロック別クリック数</h3>
+                <ul style="margin:0; padding-left: 1.25rem;">
+                  <% relatedClicksByBlock.forEach(row => { %>
+                    <li>
+                      <strong><%= row._id === 'same_attribute' ? '同属性' : (row._id === 'same_developer' ? '同サークル' : row._id) %></strong>
+                      : <%= row.count %>
+                    </li>
+                  <% }); %>
+                </ul>
+              </div>
+            </article>
+
+            <% if (typeof relatedClicksTopDestinations !== 'undefined' && relatedClicksTopDestinations && relatedClicksTopDestinations.length > 0) { %>
+              <article class="article-card" style="grid-column: 1 / -1;">
+                <div class="article-content">
+                  <h3 style="margin:0 0 0.5rem;">クリック上位（行き先）</h3>
+                  <table class="articles-table" style="margin-top:0.5rem;">
+                    <thead>
+                      <tr>
+                        <th>ブロック</th>
+                        <th>行き先</th>
+                        <th>クリック数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% relatedClicksTopDestinations.forEach(row => { %>
+                        <tr>
+                          <td>
+                            <%= row.block === 'same_attribute' ? '同属性' : (row.block === 'same_developer' ? '同サークル' : row.block) %>
+                          </td>
+                          <td>
+                            <% if (row.toArticleId) { %>
+                              <a href="/articles/<%= row.toArticleId %>">
+                                <%= row.toTitle || row.toGameTitle || String(row.toArticleId) %>
+                              </a>
+                            <% } else { %>
+                              (不明)
+                            <% } %>
+                          </td>
+                          <td><%= row.count %></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            <% } %>
+
+            <% if (typeof relatedClicks !== 'undefined' && relatedClicks && relatedClicks.length > 0) { %>
+              <article class="article-card" style="grid-column: 1 / -1;">
+                <div class="article-content">
+                  <h3 style="margin:0 0 0.5rem;">直近のクリック（50件）</h3>
+                  <table class="articles-table" style="margin-top:0.5rem;">
+                    <thead>
+                      <tr>
+                        <th>日時</th>
+                        <th>元記事</th>
+                        <th>ブロック</th>
+                        <th>先記事</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% relatedClicks.forEach(ev => { %>
+                        <tr>
+                          <td><%= ev.ts ? new Date(ev.ts).toLocaleString('ja-JP') : '' %></td>
+                          <td>
+                            <% if (ev.fromArticle && ev.fromArticle._id) { %>
+                              <a href="/articles/<%= ev.fromArticle._id %>"><%= ev.fromArticle.title || ev.fromArticle.gameTitle || '（無題）' %></a>
+                            <% } else { %>
+                              (不明)
+                            <% } %>
+                          </td>
+                          <td>
+                            <%= ev.block === 'same_attribute' ? '同属性' : (ev.block === 'same_developer' ? '同サークル' : ev.block) %>
+                            <% if (ev.position) { %>
+                              （<%= ev.position %>）
+                            <% } %>
+                          </td>
+                          <td>
+                            <% if (ev.toArticle && ev.toArticle._id) { %>
+                              <a href="/articles/<%= ev.toArticle._id %>"><%= ev.toArticle.title || ev.toArticle.gameTitle || '（無題）' %></a>
+                            <% } else { %>
+                              (不明)
+                            <% } %>
+                          </td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </section>
+  <% } %>
+
   <div class="dashboard-header">
     <h2>あなたの記事</h2>
     <div class="header-actions">
