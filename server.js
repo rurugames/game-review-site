@@ -124,6 +124,9 @@ app.use((req, res, next) => {
     res.locals.displayName = getAdminDisplayNameByEmail(req.user.email) || req.user.displayName;
   }
 
+  // Search Console verification (HTML tag method)
+  res.locals.googleSiteVerification = process.env.GOOGLE_SITE_VERIFICATION || '';
+
   // SEO helpers
   const rawSiteUrl = String(process.env.SITE_URL || '').trim().replace(/\/+$/, '');
   const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();

@@ -276,6 +276,11 @@ $head | Select-String -Pattern '<title>|rel="canonical"|meta name="robots"|meta 
 - サイトマップ送信: `https://game-review-site.onrender.com/sitemap.xml`
 - URL検査で、インデックス状況・選択されたcanonical等を確認
 
+所有権確認のHTMLファイル方式で失敗する場合は、HTMLタグ方式を使えます。
+
+- Search Consoleの「HTML タグ」に表示される meta の `content` 値を、Renderの環境変数 `GOOGLE_SITE_VERIFICATION` に設定
+- デプロイ後、トップページの`<head>`に `google-site-verification` のmetaが出ることを確認して「確認」
+
 ## 🎯 クイックリファレンス
 
 ### よく使うコマンド
