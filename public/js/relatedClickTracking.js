@@ -3,9 +3,10 @@
   const fromArticleId = root ? root.getAttribute('data-article-id') : '';
   if (!fromArticleId) return;
 
-  const endpoint = '/events/related-click';
+  const clickEndpoint = '/events/related-click';
+  const impressionEndpoint = '/events/related-impression';
 
-  const send = (payload) => {
+  const sendJson = (endpoint, payload) => {
     const body = JSON.stringify(payload);
 
     if (navigator.sendBeacon) {
@@ -31,6 +32,45 @@
     }
   };
 
+  const sendImpressionsOnce = () => {
+    const storageKey = `rc_imp_${fromArticleId}`;
+    try {
+      if (sessionStorage.getItem(storageKey) === '1') return;
+      sessionStorage.setItem(storageKey, '1');
+    } catch (_) {
+      // ignore (no storage)
+    }
+
+    const links = Array.from(document.querySelectorAll('a[data-related-click="1"][data-to-article-id][data-related-block]'));
+    if (!links.length) return;
+
+    const seen = new Set();
+    const items = [];
+    for (const a of links) {
+      const toArticleId = (a.getAttribute('data-to-article-id') || '').trim();
+      const block = (a.getAttribute('data-related-block') || '').trim();
+      const position = Number(a.getAttribute('data-related-position') || '');
+      if (!toArticleId || !block) continue;
+      const key = `${toArticleId}|${block}|${Number.isFinite(position) ? position : ''}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      items.push({
+        toArticleId,
+        block,
+        position: Number.isFinite(position) ? position : undefined,
+      });
+    }
+
+    if (!items.length) return;
+    sendJson(impressionEndpoint, { fromArticleId, items });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', sendImpressionsOnce, { once: true });
+  } else {
+    sendImpressionsOnce();
+  }
+
   document.addEventListener(
     'click',
     (e) => {
@@ -44,7 +84,7 @@
       if (!toArticleId) return;
       if (!block) return;
 
-      send({
+      sendJson(clickEndpoint, {
         fromArticleId,
         toArticleId,
         block,

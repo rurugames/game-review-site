@@ -12,6 +12,7 @@ const youtubeApi = require('../services/youtubeDataApiService');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const RelatedClick = require('../models/RelatedClick');
+const RelatedImpression = require('../models/RelatedImpression');
 const { isAdminEmail } = require('../lib/admin');
 
 // キャッシュ設定
@@ -975,7 +976,14 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
 
     let relatedClicks = [];
     let relatedClicksByBlock = [];
+    let relatedClicksByBlockPosition = [];
     let relatedClicksTopDestinations = [];
+
+    let relatedImpressionsByBlock = [];
+    let relatedImpressionsByBlockPosition = [];
+
+    let relatedCtrByBlock = [];
+    let relatedCtrByPosition = [];
 
     const isAdmin = !!(req.user && isAdminEmail(req.user.email));
     if (isAdmin) {
@@ -993,6 +1001,55 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
         { $group: { _id: '$block', count: { $sum: 1 } } },
         { $sort: { count: -1, _id: 1 } },
       ]);
+
+      relatedClicksByBlockPosition = await RelatedClick.aggregate([
+        { $match: { ts: { $gte: since } } },
+        { $group: { _id: { block: '$block', position: '$position' }, count: { $sum: 1 } } },
+        { $sort: { count: -1, '_id.block': 1, '_id.position': 1 } },
+      ]);
+
+      relatedImpressionsByBlock = await RelatedImpression.aggregate([
+        { $match: { ts: { $gte: since } } },
+        { $group: { _id: '$block', count: { $sum: 1 } } },
+        { $sort: { count: -1, _id: 1 } },
+      ]);
+
+      relatedImpressionsByBlockPosition = await RelatedImpression.aggregate([
+        { $match: { ts: { $gte: since } } },
+        { $group: { _id: { block: '$block', position: '$position' }, count: { $sum: 1 } } },
+        { $sort: { count: -1, '_id.block': 1, '_id.position': 1 } },
+      ]);
+
+      // CTR = clicks / impressions
+      const clickByBlock = new Map((relatedClicksByBlock || []).map((r) => [String(r._id), Number(r.count) || 0]));
+      const impByBlock = new Map((relatedImpressionsByBlock || []).map((r) => [String(r._id), Number(r.count) || 0]));
+      const blocks = Array.from(new Set([...clickByBlock.keys(), ...impByBlock.keys()]));
+      relatedCtrByBlock = blocks.map((block) => {
+        const clicks = clickByBlock.get(block) || 0;
+        const impressions = impByBlock.get(block) || 0;
+        const ctr = impressions > 0 ? clicks / impressions : null;
+        return { block, clicks, impressions, ctr };
+      }).sort((a, b) => (b.ctr || 0) - (a.ctr || 0));
+
+      const clickByPos = new Map((relatedClicksByBlockPosition || []).map((r) => {
+        const b = r && r._id ? String(r._id.block) : '';
+        const p = r && r._id ? (r._id.position == null ? '' : String(r._id.position)) : '';
+        return [`${b}|${p}`, Number(r.count) || 0];
+      }));
+      const impByPos = new Map((relatedImpressionsByBlockPosition || []).map((r) => {
+        const b = r && r._id ? String(r._id.block) : '';
+        const p = r && r._id ? (r._id.position == null ? '' : String(r._id.position)) : '';
+        return [`${b}|${p}`, Number(r.count) || 0];
+      }));
+      const posKeys = Array.from(new Set([...clickByPos.keys(), ...impByPos.keys()]));
+      relatedCtrByPosition = posKeys.map((key) => {
+        const [block, positionStr] = key.split('|');
+        const position = positionStr ? Number(positionStr) : null;
+        const clicks = clickByPos.get(key) || 0;
+        const impressions = impByPos.get(key) || 0;
+        const ctr = impressions > 0 ? clicks / impressions : null;
+        return { block, position, clicks, impressions, ctr };
+      }).sort((a, b) => (b.ctr || 0) - (a.ctr || 0));
 
       relatedClicksTopDestinations = await RelatedClick.aggregate([
         { $match: { ts: { $gte: since } } },
@@ -1029,7 +1086,12 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       query: req.query,
       relatedClicks,
       relatedClicksByBlock,
+      relatedClicksByBlockPosition,
       relatedClicksTopDestinations,
+      relatedImpressionsByBlock,
+      relatedImpressionsByBlockPosition,
+      relatedCtrByBlock,
+      relatedCtrByPosition,
     });
   } catch (err) {
     console.error(err);

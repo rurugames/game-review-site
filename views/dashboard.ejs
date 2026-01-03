@@ -13,11 +13,14 @@
 
   <h1>ダッシュボード</h1>
 
-  <% if (typeof relatedClicksByBlock !== 'undefined' && relatedClicksByBlock && relatedClicksByBlock.length > 0) { %>
+  <% if (
+    (typeof relatedClicksByBlock !== 'undefined' && relatedClicksByBlock && relatedClicksByBlock.length > 0) ||
+    (typeof relatedImpressionsByBlock !== 'undefined' && relatedImpressionsByBlock && relatedImpressionsByBlock.length > 0)
+  ) { %>
     <section class="page-section" aria-label="関連記事クリック集計">
       <div class="page-header">
         <h2 class="section-title">関連記事クリック（直近30日）</h2>
-        <p class="section-lead">記事末尾の「同属性/同サークル」からのクリック数です。</p>
+        <p class="section-lead">記事末尾の「同属性/同サークル」導線のクリック数とCTR（クリック/表示）です。</p>
       </div>
       <div class="panel">
         <div class="panel-body">
@@ -35,6 +38,51 @@
                 </ul>
               </div>
             </article>
+
+            <% if (typeof relatedCtrByBlock !== 'undefined' && relatedCtrByBlock && relatedCtrByBlock.length > 0) { %>
+              <article class="article-card">
+                <div class="article-content">
+                  <h3 style="margin:0 0 0.5rem;">ブロック別CTR</h3>
+                  <ul style="margin:0; padding-left: 1.25rem;">
+                    <% relatedCtrByBlock.forEach(row => { %>
+                      <li>
+                        <strong><%= row.block === 'same_attribute' ? '同属性' : (row.block === 'same_developer' ? '同サークル' : row.block) %></strong>
+                        : <%= row.ctr === null ? '-' : ((row.ctr * 100).toFixed(1) + '%') %>
+                        （<%= row.clicks %>/<%= row.impressions %>）
+                      </li>
+                    <% }); %>
+                  </ul>
+                </div>
+              </article>
+            <% } %>
+
+            <% if (typeof relatedCtrByPosition !== 'undefined' && relatedCtrByPosition && relatedCtrByPosition.length > 0) { %>
+              <article class="article-card" style="grid-column: 1 / -1;">
+                <div class="article-content">
+                  <h3 style="margin:0 0 0.5rem;">位置別CTR（上位）</h3>
+                  <table class="articles-table" style="margin-top:0.5rem;">
+                    <thead>
+                      <tr>
+                        <th>ブロック</th>
+                        <th>位置</th>
+                        <th>CTR</th>
+                        <th>クリック/表示</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% relatedCtrByPosition.slice(0, 10).forEach(row => { %>
+                        <tr>
+                          <td><%= row.block === 'same_attribute' ? '同属性' : (row.block === 'same_developer' ? '同サークル' : row.block) %></td>
+                          <td><%= row.position ? row.position : '-' %></td>
+                          <td><%= row.ctr === null ? '-' : ((row.ctr * 100).toFixed(1) + '%') %></td>
+                          <td><%= row.clicks %>/<%= row.impressions %></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            <% } %>
 
             <% if (typeof relatedClicksTopDestinations !== 'undefined' && relatedClicksTopDestinations && relatedClicksTopDestinations.length > 0) { %>
               <article class="article-card" style="grid-column: 1 / -1;">
