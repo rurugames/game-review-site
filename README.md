@@ -117,6 +117,48 @@ npm run dev
 
 アプリケーションは `http://localhost:3000` で起動します。
 
+## SEO（本番運用チェック）
+
+### 必須：Render本番の環境変数
+
+- `SITE_URL` は本番の公開URL（https付き・末尾スラッシュなし）を設定してください。
+   - 例: `SITE_URL=https://game-review-site.onrender.com`
+   - canonical / sitemap の絶対URLに使われます。
+
+### 即時チェック（デプロイ直後に確認）
+
+- robots.txt
+   - `https://game-review-site.onrender.com/robots.txt`
+   - `Sitemap: https://game-review-site.onrender.com/sitemap.xml` が出ていること
+- sitemap.xml
+   - `https://game-review-site.onrender.com/sitemap.xml`
+   - `<urlset>` が返り、主要ページと記事URL（`/articles/<id>`）が含まれること
+
+### headタグ出力チェック（PowerShell）
+
+以下でページの`<head>`だけを抜き出して、canonical/robots/OG/JSON-LDが出ているか確認できます。
+
+```powershell
+$u="https://game-review-site.onrender.com/"
+$html=(Invoke-WebRequest -UseBasicParsing $u).Content
+$head=($html -split '</head>')[0]
+$head | Select-String -Pattern '<title>|rel="canonical"|meta name="robots"|meta name="description"|property="og:|name="twitter:|application/ld\+json' -AllMatches
+```
+
+推奨チェック先:
+
+- `/`（トップ）: `index,follow` + canonical + OG/Twitter + WebSite JSON-LD
+- `/search?q=test`（検索）: `noindex,nofollow` になっていること
+- `/articles/<id>`（記事詳細）: `og:type=article` + Article JSON-LD
+
+### Search Console（中期チェック）
+
+即時チェックは「出力されているか」の確認です。Googleの反映確認はSearch Consoleで行います。
+
+- プロパティ登録（URLプレフィックス）: `https://game-review-site.onrender.com/`
+- サイトマップ送信: `https://game-review-site.onrender.com/sitemap.xml`
+- 「URL検査」: インデックス登録の可否、選択されたcanonicalなどを確認
+
 ## 使い方
 
 ### 1. ログイン

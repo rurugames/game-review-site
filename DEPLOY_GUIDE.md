@@ -238,6 +238,44 @@ Ctrl + Shift + R (キャッシュをクリアして再読み込み)
 
 ---
 
+## 🔎 デプロイ後のSEOチェック（推奨）
+
+デプロイ直後に「SEOタグが本番で出ているか」を即時確認できます。
+
+### 1) 環境変数の確認（重要）
+
+- Renderの環境変数で `SITE_URL` が本番URLになっていること
+   - 例: `https://game-review-site.onrender.com`
+   - canonical / sitemap の絶対URLに使われます
+
+### 2) robots.txt / sitemap.xml の確認
+
+- `https://game-review-site.onrender.com/robots.txt`
+   - `Sitemap: https://game-review-site.onrender.com/sitemap.xml` が出ていること
+- `https://game-review-site.onrender.com/sitemap.xml`
+   - `<urlset>` が返り、主要ページと記事URL（`/articles/<id>`）が含まれること
+
+### 3) headタグ（canonical/robots/OG/JSON-LD）の確認（PowerShell）
+
+```powershell
+$u="https://game-review-site.onrender.com/"
+$html=(Invoke-WebRequest -UseBasicParsing $u).Content
+$head=($html -split '</head>')[0]
+$head | Select-String -Pattern '<title>|rel="canonical"|meta name="robots"|meta name="description"|property="og:|name="twitter:|application/ld\+json' -AllMatches
+```
+
+推奨チェック先:
+
+- `/`（トップ）: `index,follow` + canonical + OG/Twitter + WebSite JSON-LD
+- `/search?q=test`（検索）: `noindex,nofollow` になっていること
+- `/articles/<id>`（記事詳細）: `og:type=article` + Article JSON-LD
+
+### 4) Google Search Console（反映確認）
+
+- プロパティ登録（URLプレフィックス）: `https://game-review-site.onrender.com/`
+- サイトマップ送信: `https://game-review-site.onrender.com/sitemap.xml`
+- URL検査で、インデックス状況・選択されたcanonical等を確認
+
 ## 🎯 クイックリファレンス
 
 ### よく使うコマンド
