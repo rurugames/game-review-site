@@ -54,12 +54,14 @@
 
     <div class="form-group">
       <label for="content">本文 *</label>
+      <small>末尾の「同属性のおすすめ」「同サークルの他作」は自動表示されます</small>
       <textarea id="content" name="content" rows="15" required><%= article.content %></textarea>
     </div>
 
     <div class="form-group">
       <label for="tags">タグ（カンマ区切り）</label>
       <input type="text" id="tags" name="tags" value="<%= article.tags ? article.tags.join(', ') : '' %>">
+      <small>推奨: 5〜8個／表記ゆれ禁止（#は不要）</small>
     </div>
 
     <div class="form-group">

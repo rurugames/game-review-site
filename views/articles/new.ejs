@@ -53,12 +53,30 @@
 
     <div class="form-group">
       <label for="content">本文 *</label>
-      <textarea id="content" name="content" rows="15" required placeholder="ゲームの詳細なレビューや情報を入力してください"></textarea>
+      <small>テンプレ（このまま書き換えてOK）／末尾の「同属性のおすすめ」「同サークルの他作」は自動表示されます</small>
+      <textarea id="content" name="content" rows="15" required>## まず結論（評価と刺さる人）
+- 評価: ★★★★☆（10段階なら: 8/10）
+- 刺さる人: 
+- 合わない人: 
+
+## ここが良かった（3つ）
+1. 
+2. 
+3. 
+
+## ここは注意（2つ）
+1. 
+2. 
+
+## 総評（まとめ）
+
+</textarea>
     </div>
 
     <div class="form-group">
       <label for="tags">タグ（カンマ区切り）</label>
       <input type="text" id="tags" name="tags" placeholder="例: RPG, オープンワールド, マルチプレイ">
+      <small>推奨: 5〜8個／表記ゆれ禁止（#は不要）</small>
     </div>
 
     <div class="form-group">
@@ -69,8 +87,8 @@
     <div class="form-group">
       <label for="status">ステータス</label>
       <select id="status" name="status">
+        <option value="draft" selected>下書き</option>
         <option value="published">公開</option>
-        <option value="draft">下書き</option>
       </select>
     </div>
 
