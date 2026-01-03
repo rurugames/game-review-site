@@ -10,6 +10,7 @@ const Setting = require('../models/Setting');
 const CacheGCLog = require('../models/CacheGCLog');
 const youtubeApi = require('../services/youtubeDataApiService');
 const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 
 // キャッシュ設定
 let rankingCache = null;
@@ -26,8 +27,12 @@ const { ensureAdmin } = require('../middleware/auth');
 
 // Contact form (simple in-memory rate limit)
 const contactRate = new Map();
+const contactCooldown = new Map();
+const contactDedupe = new Map();
 const CONTACT_RATE_WINDOW_MS = 10 * 60 * 1000;
 const CONTACT_RATE_MAX = 5;
+const CONTACT_COOLDOWN_MS = Math.max(0, Number(process.env.CONTACT_COOLDOWN_MS || 60 * 1000));
+const CONTACT_DEDUPE_WINDOW_MS = Math.max(0, Number(process.env.CONTACT_DEDUPE_WINDOW_MS || 10 * 60 * 1000));
 
 function getClientIp(req) {
   try {
@@ -51,6 +56,33 @@ function isRateLimited(key, now = Date.now()) {
   rec.count += 1;
   contactRate.set(key, rec);
   return rec.count > CONTACT_RATE_MAX;
+}
+
+function isCoolingDown(key, now = Date.now()) {
+  if (CONTACT_COOLDOWN_MS <= 0) return false;
+  const last = contactCooldown.get(key);
+  if (!last) return false;
+  return (now - last) < CONTACT_COOLDOWN_MS;
+}
+
+function markSent(key, now = Date.now()) {
+  contactCooldown.set(key, now);
+}
+
+function makeDedupeKey(ip, email, subject, message) {
+  const raw = `${ip}\n${email}\n${subject}\n${message}`;
+  return crypto.createHash('sha256').update(raw).digest('hex');
+}
+
+function isDuplicateSubmission(key, now = Date.now()) {
+  if (CONTACT_DEDUPE_WINDOW_MS <= 0) return false;
+  const last = contactDedupe.get(key);
+  if (!last) return false;
+  return (now - last) < CONTACT_DEDUPE_WINDOW_MS;
+}
+
+function markDuplicateSubmission(key, now = Date.now()) {
+  contactDedupe.set(key, now);
 }
 
 function sanitizeSingleLine(value, maxLen) {
@@ -275,13 +307,14 @@ router.get('/contact', function(req, res) {
 
 router.post('/contact', async function(req, res) {
   const ip = getClientIp(req);
+  const now = Date.now();
 
   // spam対策: honeypot / レート制限
   const company = String((req.body && req.body.company) || '').trim();
   if (company) {
     return res.redirect('/contact?sent=1');
   }
-  if (isRateLimited(ip)) {
+  if (isRateLimited(ip, now)) {
     return res.status(429).render('contact', {
       title: 'お問い合わせ',
       sent: false,
@@ -299,6 +332,24 @@ router.post('/contact', async function(req, res) {
   const email = sanitizeSingleLine(req.body?.email, 120);
   const subject = sanitizeSingleLine(req.body?.subject, 120);
   const message = sanitizeMultiline(req.body?.message, 4000);
+
+  // クールダウン（IP+メールの組み合わせ）
+  const coolKey = `${ip}|${email}`;
+  if (email && isCoolingDown(coolKey, now)) {
+    return res.status(429).render('contact', {
+      title: 'お問い合わせ',
+      sent: false,
+      error: '短時間に連続送信できません。少し時間をおいて再度お試しください。',
+      form: { name, email, subject, message },
+    });
+  }
+
+  // 同一内容の重複送信抑止（連打/再送対策）
+  const dedupeKey = makeDedupeKey(ip, email, subject, message);
+  if (isDuplicateSubmission(dedupeKey, now)) {
+    // 既に送信済み扱いでメールは送らず、UXは成功に寄せる
+    return res.redirect('/contact?sent=1');
+  }
 
   if (!name || !email || !subject || !message) {
     return res.status(400).render('contact', {
@@ -355,6 +406,10 @@ router.post('/contact', async function(req, res) {
       subject: `[Contact] ${subject}`,
       text,
     });
+
+    // success: mark cooldown + dedupe
+    try { markSent(coolKey, now); } catch (_) {}
+    try { markDuplicateSubmission(dedupeKey, now); } catch (_) {}
 
     return res.redirect('/contact?sent=1');
   } catch (e) {
