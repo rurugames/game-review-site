@@ -84,8 +84,9 @@
           <% articles.forEach(function(a){ %>
             <article class="article-card">
               <div class="article-image">
-                <% if (a.featuredImage) { %>
-                  <img src="<%= a.featuredImage %>" alt="<%= a.title %>">
+                <% const cover = a.imageUrl || a.featuredImage; %>
+                <% if (cover) { %>
+                  <img src="<%= cover %>" alt="<%= a.gameTitle || a.title %>">
                 <% } else { %>
                   <img src="/images/siteicon.png" alt="placeholder">
                 <% } %>
