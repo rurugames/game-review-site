@@ -29,10 +29,16 @@ const { ensureAdmin } = require('../middleware/auth');
 const contactRate = new Map();
 const contactCooldown = new Map();
 const contactDedupe = new Map();
+const contactInFlight = new Map();
 const CONTACT_RATE_WINDOW_MS = 10 * 60 * 1000;
 const CONTACT_RATE_MAX = 5;
-const CONTACT_COOLDOWN_MS = Math.max(0, Number(process.env.CONTACT_COOLDOWN_MS || 60 * 1000));
-const CONTACT_DEDUPE_WINDOW_MS = Math.max(0, Number(process.env.CONTACT_DEDUPE_WINDOW_MS || 10 * 60 * 1000));
+// fixed anti-spam timings
+// - same IP+email: cannot send again within 10 minutes
+// - same content (IP+email+subject+message): cannot send again within 1 hour
+const CONTACT_COOLDOWN_MS = 10 * 60 * 1000;
+const CONTACT_DEDUPE_WINDOW_MS = 60 * 60 * 1000;
+// in-flight suppression: prevent double-submit while SMTP is processing
+const CONTACT_INFLIGHT_TTL_MS = 2 * 60 * 1000;
 
 function getClientIp(req) {
   try {
@@ -83,6 +89,24 @@ function isDuplicateSubmission(key, now = Date.now()) {
 
 function markDuplicateSubmission(key, now = Date.now()) {
   contactDedupe.set(key, now);
+}
+
+function isInFlight(key, now = Date.now()) {
+  const ts = contactInFlight.get(key);
+  if (!ts) return false;
+  if (CONTACT_INFLIGHT_TTL_MS > 0 && (now - ts) > CONTACT_INFLIGHT_TTL_MS) {
+    contactInFlight.delete(key);
+    return false;
+  }
+  return true;
+}
+
+function markInFlight(key, now = Date.now()) {
+  contactInFlight.set(key, now);
+}
+
+function clearInFlight(key) {
+  contactInFlight.delete(key);
 }
 
 function sanitizeSingleLine(value, maxLen) {
@@ -351,6 +375,18 @@ router.post('/contact', async function(req, res) {
     return res.redirect('/contact?sent=1');
   }
 
+  // 送信処理中の二重送信を防止
+  const inflightKey = `${coolKey}|${dedupeKey}`;
+  if (isInFlight(inflightKey, now)) {
+    return res.status(429).render('contact', {
+      title: 'お問い合わせ',
+      sent: false,
+      error: '送信処理中です。少し時間をおいて再度お試しください。',
+      form: { name, email, subject, message },
+    });
+  }
+  markInFlight(inflightKey, now);
+
   if (!name || !email || !subject || !message) {
     return res.status(400).render('contact', {
       title: 'お問い合わせ',
@@ -420,6 +456,8 @@ router.post('/contact', async function(req, res) {
       error: '送信に失敗しました。時間をおいて再度お試しください。',
       form: { name, email, subject, message },
     });
+  } finally {
+    try { clearInFlight(inflightKey); } catch (_) {}
   }
 });
 
