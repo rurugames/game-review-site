@@ -16,14 +16,37 @@
     <p class="section-lead">レビューや攻略、特集記事を一覧で表示します。気になる記事を見つけて深掘りしましょう。</p>
   </div>
 
+  <% const activeQueryText = (query && query.q) ? String(query.q).trim() : ''; %>
+  <form class="search-form" method="get" action="/articles" role="search" aria-label="記事検索">
+    <% if (query) { %>
+      <% Object.keys(query).forEach(function(k){
+           if (k === 'q' || k === 'page') return;
+           const v = query[k];
+           if (v === undefined || v === null || v === '') return;
+           if (Array.isArray(v)) {
+             v.forEach(function(item){ if (item !== undefined && item !== null && item !== '') { %>
+               <input type="hidden" name="<%= k %>" value="<%= item %>">
+             <% }});
+           } else { %>
+             <input type="hidden" name="<%= k %>" value="<%= v %>">
+           <% }
+         }); %>
+    <% } %>
+    <input type="search" name="q" placeholder="タイトル/ゲーム名/メーカーで検索" value="<%= activeQueryText %>">
+    <button type="submit">検索</button>
+  </form>
+
   <% const selectedTagsValue = (typeof selectedTags !== 'undefined' && selectedTags && selectedTags.length)
     ? selectedTags
     : ((query && query.tags) ? String(query.tags).split(',').map(t => String(t || '').trim().replace(/^#/, '')).filter(Boolean) : []);
   %>
   <% const activeTags = Array.from(new Set(selectedTagsValue)).filter(Boolean); %>
-  <% if (activeTags.length) { %>
+  <% if (activeTags.length || activeQueryText) { %>
     <div class="per-toggle" aria-label="タグ絞り込み">
       <span class="per-label">絞り込み中:</span>
+      <% if (activeQueryText) { %>
+        <span class="tag">検索: <%= activeQueryText %></span>
+      <% } %>
       <% activeTags.forEach(function(t){ %>
         <span class="tag">#<%= t %></span>
       <% }); %>

@@ -86,6 +86,22 @@ router.get('/', async (req, res) => {
 
     const articlesQuery = { status: 'published' };
 
+    // 検索（部分一致）: q=...
+    const rawQ = (req.query.q ?? '').toString().trim();
+    const q = rawQ.length > 80 ? rawQ.slice(0, 80) : rawQ;
+    const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    if (q) {
+      const rx = new RegExp(escapeRegExp(q), 'i');
+      articlesQuery.$or = [
+        { title: rx },
+        { gameTitle: rx },
+        { developer: rx },
+        { genre: rx },
+        { platform: rx },
+        { tags: rx },
+      ];
+    }
+
     const normalizeTag = (t) => String(t || '').trim().replace(/^#/, '');
     const selectedTags = [];
 
