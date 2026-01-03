@@ -199,8 +199,21 @@ body {
 /* Mobile: collapse left rail into off-canvas drawer */
 @media (max-width: 768px) {
   .main-area { margin-left: 0; width: 100%; }
-  .topbar { left: 0; }
+  .topbar {
+    left: 0;
+    position: sticky;
+    height: auto;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+  }
+  .topbar-center { order: 2; width: 100%; justify-content: stretch; }
+  .topbar-right { order: 3; width: 100%; min-width: 0; justify-content: flex-end; }
+  .search-form { width: 100%; }
+  .search-form input[type="search"] { width: 100%; max-width: none; }
   .footer { margin-left: 0; }
+
+  .content-area { margin-top: 0; }
 
   .left-rail {
     width: min(80vw, 280px);

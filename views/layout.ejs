@@ -32,6 +32,11 @@
             <li><a href="/dashboard">ダッシュボード</a></li>
             <li><a href="/admin/settings">設定</a></li>
           <% } %>
+          <% if (user) { %>
+            <li><a href="/auth/logout">ログアウト</a></li>
+          <% } else { %>
+            <li><a href="/auth/google">ログイン</a></li>
+          <% } %>
         </ul>
       </nav>
     </aside>
