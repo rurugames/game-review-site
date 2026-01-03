@@ -165,6 +165,14 @@ body {
 .left-nav a { color: var(--text-secondary); text-decoration: none; display:block; padding: 0.5rem 0; }
 .left-nav a:hover { color: var(--text-primary); background: rgba(255,255,255,0.02); }
 
+.left-rail-banner {
+  margin-top: auto;
+  padding: 0.75rem 0;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .main-area { margin-left: var(--left-rail-width); min-width: 0; width: calc(100% - var(--left-rail-width)); }
 
 .topbar {
