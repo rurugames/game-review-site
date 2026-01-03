@@ -16,6 +16,17 @@
     <p class="section-lead">レビューや攻略、特集記事を一覧で表示します。気になる記事を見つけて深掘りしましょう。</p>
   </div>
 
+  <% if (activeTags && activeTags.length) { %>
+    <% const tagLabel = activeTags.slice(0, 5).map(t => '#' + t).join('、'); %>
+    <div class="panel" aria-label="タグ一覧の説明">
+      <div class="panel-body">
+        <p class="section-lead">
+          このページでは、<%= tagLabel %> に関連するレビュー・攻略・特集記事をまとめています。気になる作品を見つけたら記事を開き、本文末尾の「同属性のおすすめ」「同サークルの他作」からさらに深掘りできます。タグは記事内容に基づき付与しているため、同じタグでも作品の方向性が異なる場合があります。自分に合うものから読んでみてください。
+        </p>
+      </div>
+    </div>
+  <% } %>
+
   <% const activeQueryText = (query && query.q) ? String(query.q).trim() : ''; %>
   <form class="search-form" method="get" action="/articles" role="search" aria-label="記事検索">
     <% if (query) { %>
