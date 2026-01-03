@@ -220,6 +220,16 @@ node -e "const dlsite = require('./services/dlsiteService'); dlsite.fetchGamesBy
 - 本文フィールドには改行が含まれるため、必ずダブルクォートで囲むこと
 - ダブルクォート内のダブルクォートは `""` とエスケープすること
 - UTF-8 BOM付きで保存すること（Excelで文字化けしないため）
+- **末尾に空行を入れないこと（重要）**: CSVの末尾に余分な改行（空行）があると、インポート時に「空レコード」が1件発生し、`タイトル/ゲームタイトル/本文` 必須チェックで「行スキップ」エラーになります。
+  - **末尾は改行1回だけ**にする（`CRLF` を1回）
+  - 最後の行の後に空行（改行2回以上）を付けない
+
+**任意: 生成CSVの事前検証（推奨）**
+- 出力後に、同じパーサ設定で「空レコードが混ざっていないか」を確認できます（PowerShell/Nodeどちらでも可）。
+
+```powershell
+node -e "const fs=require('fs'); const csv=require('csv-parser'); const rows=[]; fs.createReadStream('csvoutput/articles_{年}-{月}_part{番号}.csv').pipe(csv({skipEmptyLines:true, mapHeaders:({header})=>header.trim()})).on('data', r=>rows.push(r)).on('end',()=>{ const bad=rows.filter(r=>!(r['タイトル']||r['title'])||!(r['ゲームタイトル']||r['gameTitle'])||!(r['本文']||r['content'])); console.log('rows=',rows.length,'bad=',bad.length); if(bad.length) console.log(bad[0]); });"
+```
 
 ---
 

@@ -113,7 +113,7 @@ router.post('/import', ensureAuth, ensureAdmin, upload.single('csvFile'), async 
     fs.createReadStream(filepath)
       .pipe(csv({ 
         skipEmptyLines: true,
-        mapHeaders: ({ header }) => header.trim() // ヘッダーの空白を削除
+        mapHeaders: ({ header }) => String(header || '').replace(/^\uFEFF/, '').trim() // BOM/空白を削除
       }))
       .on('data', (data) => results.push(data))
       .on('end', async () => {
