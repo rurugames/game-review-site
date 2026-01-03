@@ -265,6 +265,11 @@ body {
   }
 }
 
+/* Portrait (mobile): hide logout button on the right side (topbar) */
+@media (max-width: 768px) and (orientation: portrait) {
+  .topbar-right .user-info-top .btn-secondary { display: none; }
+}
+
 /* Desktop: hide mobile-only overlay/button */
 @media (min-width: 769px) {
   .sidebar-overlay { display: none; }
