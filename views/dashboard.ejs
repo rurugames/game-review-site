@@ -130,6 +130,14 @@
   </div>
 
   <% if (articles.length > 0) { %>
+    <div class="per-toggle" aria-label="表示件数切替">
+      <span class="per-label">表示件数:</span>
+      <% const perOptions = [10, 20, 50, 100]; %>
+      <% perOptions.forEach(function(opt){ %>
+        <a class="per-button <%= (typeof per !== 'undefined' && per === opt) ? 'active' : '' %>" href="<%= buildQs({ per: opt, page: 1 }) %>"><%= opt %></a>
+      <% }); %>
+    </div>
+
     <div class="bulk-actions">
       <button id="selectAllArticles" class="btn-secondary">全選択</button>
       <button id="deselectAllArticles" class="btn-secondary">全解除</button>
@@ -137,6 +145,33 @@
       <button id="unpublishSelectedArticles" class="btn-secondary" style="display: none;">選択した記事を下書きに</button>
       <button id="deleteSelectedArticles" class="btn-delete" style="display: none;">選択した記事を削除</button>
     </div>
+
+    <% if (typeof totalPages !== 'undefined' && totalPages > 1) { %>
+      <nav class="pagination" aria-label="ページネーション（上部）">
+        <% if (page > 1) { %>
+          <a class="page-btn prev" href="<%= buildQs({ per: per, page: page - 1 }) %>">« 前へ</a>
+        <% } else { %>
+          <span class="page-btn disabled">« 前へ</span>
+        <% } %>
+
+        <% for (let p = 1; p <= totalPages; p++) { %>
+          <% if (Math.abs(p - page) <= 2 || p === 1 || p === totalPages) { %>
+            <a class="page-btn <%= p === page ? 'active' : '' %>" href="<%= buildQs({ per: per, page: p }) %>"><%= p %></a>
+          <% } else if (p === 2 && page > 4) { %>
+            <span class="ellipsis">…</span>
+          <% } else if (p === totalPages - 1 && page < totalPages - 3) { %>
+            <span class="ellipsis">…</span>
+          <% } %>
+        <% } %>
+
+        <% if (page < totalPages) { %>
+          <a class="page-btn next" href="<%= buildQs({ per: per, page: page + 1 }) %>">次へ »</a>
+        <% } else { %>
+          <span class="page-btn disabled">次へ »</span>
+        <% } %>
+      </nav>
+    <% } %>
+
     <table class="articles-table">
       <thead>
         <tr>
