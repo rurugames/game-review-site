@@ -13,7 +13,7 @@
 </head>
 <body>
   <div class="app-shell">
-    <aside class="left-rail">
+    <aside class="left-rail" id="left-rail" aria-label="メインメニュー">
       <div class="site-title">
         <a href="/">
           <img src="/images/siteicon.png" alt="R18Hub" class="site-icon">
@@ -36,9 +36,13 @@
       </nav>
     </aside>
 
+    <div class="sidebar-overlay" data-sidebar-overlay aria-hidden="true"></div>
+
     <div class="main-area">
       <header class="topbar">
-        <div class="topbar-left"></div>
+        <div class="topbar-left">
+          <button type="button" class="menu-toggle" data-sidebar-toggle aria-controls="left-rail" aria-expanded="false" aria-label="メニューを開く">≡</button>
+        </div>
         <div class="topbar-center">
           <form action="/search" method="get" class="search-form">
             <input type="search" name="q" placeholder="ゲームタイトル、サークル名、キーワードで検索" value="" aria-label="検索">
@@ -82,6 +86,7 @@
   </footer>
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/rankingProgress.js"></script>
+  <script src="/js/mobileSidebar.js"></script>
   <script>
     // 外部URLリンクは別タブで開く
     document.addEventListener('DOMContentLoaded', () => {

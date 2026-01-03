@@ -196,6 +196,54 @@ body {
 /* make main footer appear below full-width content */
 .footer { margin-left: var(--left-rail-width); }
 
+/* Mobile: collapse left rail into off-canvas drawer */
+@media (max-width: 768px) {
+  .main-area { margin-left: 0; width: 100%; }
+  .topbar { left: 0; }
+  .footer { margin-left: 0; }
+
+  .left-rail {
+    width: min(80vw, 280px);
+    flex: 0 0 auto;
+    transform: translateX(-100%);
+    transition: transform 180ms ease;
+    z-index: 300;
+  }
+  body.sidebar-open .left-rail { transform: translateX(0); }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+    z-index: 250;
+  }
+  body.sidebar-open .sidebar-overlay { opacity: 1; pointer-events: auto; }
+
+  .menu-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.03);
+    color: var(--text-primary);
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+  }
+}
+
+/* Desktop: hide mobile-only overlay/button */
+@media (min-width: 769px) {
+  .sidebar-overlay { display: none; }
+  .menu-toggle { display: none; }
+}
+
 
 .nav-links {
   display: flex;
