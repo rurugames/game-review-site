@@ -36,6 +36,10 @@
     <button type="submit">検索</button>
   </form>
 
+  <div class="filters-toggle-row">
+    <button type="button" class="per-button filters-toggle" data-filters-toggle aria-controls="articles-filters" aria-expanded="false">フィルターを表示</button>
+  </div>
+
   <% const selectedTagsValue = (typeof selectedTags !== 'undefined' && selectedTags && selectedTags.length)
     ? selectedTags
     : ((query && query.tags) ? String(query.tags).split(',').map(t => String(t || '').trim().replace(/^#/, '')).filter(Boolean) : []);
@@ -85,37 +89,39 @@
      }
   %>
 
-  <% if (typeof recommendedTags !== 'undefined' && recommendedTags && recommendedTags.length) { %>
-    <div class="per-toggle" aria-label="おすすめタグ">
-      <span class="per-label">おすすめタグ:</span>
-      <% recommendedTags.forEach(function(tag){ %>
-        <a class="per-button <%= activeTags.includes(tag) ? 'active' : '' %>" href="<%= buildQs({ tags: nextTagsForToggle(tag), tag: '', page: 1 }) %>">#<%= tag %></a>
+  <div id="articles-filters" class="filters-panel" hidden>
+    <% if (typeof recommendedTags !== 'undefined' && recommendedTags && recommendedTags.length) { %>
+      <div class="per-toggle" aria-label="おすすめタグ">
+        <span class="per-label">おすすめタグ:</span>
+        <% recommendedTags.forEach(function(tag){ %>
+          <a class="per-button <%= activeTags.includes(tag) ? 'active' : '' %>" href="<%= buildQs({ tags: nextTagsForToggle(tag), tag: '', page: 1 }) %>">#<%= tag %></a>
+        <% }); %>
+      </div>
+    <% } %>
+
+    <div class="per-toggle" aria-label="評価フィルター">
+      <span class="per-label">評価:</span>
+      <% for (let n = 1; n <= 10; n++) { %>
+        <a class="per-button <%= activeRatings.includes(n) ? 'active' : '' %>" href="<%= buildQs({ ratings: nextRatingsForToggle(n), rating: '', page: 1 }) %>" title="★<%= n %>"><%= '★'.repeat(n) %></a>
+      <% } %>
+    </div>
+
+    <div class="per-toggle" aria-label="並び替え">
+      <span class="per-label">並び替え:</span>
+      <% const currentSort = (typeof sortKey !== 'undefined' ? sortKey : (query && query.sort) || 'new'); %>
+      <a class="per-button <%= currentSort === 'new' ? 'active' : '' %>" href="<%= buildQs({ sort: 'new', page: 1, per: per }) %>">新しい順</a>
+      <a class="per-button <%= currentSort === 'old' ? 'active' : '' %>" href="<%= buildQs({ sort: 'old', page: 1, per: per }) %>">古い順</a>
+      <a class="per-button <%= currentSort === 'release_new' ? 'active' : '' %>" href="<%= buildQs({ sort: 'release_new', page: 1, per: per }) %>">発売日(新しい順)</a>
+      <a class="per-button <%= currentSort === 'release_old' ? 'active' : '' %>" href="<%= buildQs({ sort: 'release_old', page: 1, per: per }) %>">発売日(古い順)</a>
+    </div>
+
+    <div class="per-toggle" aria-label="表示件数切替">
+      <span class="per-label">表示件数:</span>
+      <% const options = [10,30,50,100]; %>
+      <% options.forEach(function(opt){ %>
+        <a class="per-button <%= (typeof per !== 'undefined' && per === opt) ? 'active' : '' %>" href="<%= buildQs({ per: opt, page: 1 }) %>"><%= opt %></a>
       <% }); %>
     </div>
-  <% } %>
-
-  <div class="per-toggle" aria-label="評価フィルター">
-    <span class="per-label">評価:</span>
-    <% for (let n = 1; n <= 10; n++) { %>
-      <a class="per-button <%= activeRatings.includes(n) ? 'active' : '' %>" href="<%= buildQs({ ratings: nextRatingsForToggle(n), rating: '', page: 1 }) %>" title="★<%= n %>"><%= '★'.repeat(n) %></a>
-    <% } %>
-  </div>
-
-  <div class="per-toggle" aria-label="並び替え">
-    <span class="per-label">並び替え:</span>
-    <% const currentSort = (typeof sortKey !== 'undefined' ? sortKey : (query && query.sort) || 'new'); %>
-    <a class="per-button <%= currentSort === 'new' ? 'active' : '' %>" href="<%= buildQs({ sort: 'new', page: 1, per: per }) %>">新しい順</a>
-    <a class="per-button <%= currentSort === 'old' ? 'active' : '' %>" href="<%= buildQs({ sort: 'old', page: 1, per: per }) %>">古い順</a>
-    <a class="per-button <%= currentSort === 'release_new' ? 'active' : '' %>" href="<%= buildQs({ sort: 'release_new', page: 1, per: per }) %>">発売日(新しい順)</a>
-    <a class="per-button <%= currentSort === 'release_old' ? 'active' : '' %>" href="<%= buildQs({ sort: 'release_old', page: 1, per: per }) %>">発売日(古い順)</a>
-  </div>
-
-  <div class="per-toggle" aria-label="表示件数切替">
-    <span class="per-label">表示件数:</span>
-    <% const options = [10,30,50,100]; %>
-    <% options.forEach(function(opt){ %>
-      <a class="per-button <%= (typeof per !== 'undefined' && per === opt) ? 'active' : '' %>" href="<%= buildQs({ per: opt, page: 1 }) %>"><%= opt %></a>
-    <% }); %>
   </div>
 
   <% if (articles && articles.length > 0) { %>
@@ -182,3 +188,5 @@
     </div>
   <% } %>
 </section>
+
+<script src="/js/articlesFiltersToggle.js"></script>
