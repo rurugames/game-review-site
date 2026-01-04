@@ -11,21 +11,31 @@
      }
 
      const dayOptions = [7, 30, 90];
+
+     const hasDailyAccess = (typeof dailyAccessTrend !== 'undefined' && dailyAccessTrend && dailyAccessTrend.length > 0);
+     const hasRelatedAnalytics = (
+       (typeof relatedClicksByBlock !== 'undefined' && relatedClicksByBlock && relatedClicksByBlock.length > 0) ||
+       (typeof relatedImpressionsByBlock !== 'undefined' && relatedImpressionsByBlock && relatedImpressionsByBlock.length > 0)
+     );
   %>
 
   <h1>ダッシュボード</h1>
 
-  <nav class="per-toggle" aria-label="ダッシュボード目次" style="margin: 0.5rem 0 1.25rem;">
-    <span class="per-label">目次:</span>
-    <a class="per-button" href="#daily-access">日別アクセス</a>
-    <a class="per-button" href="#related-analytics">関連記事CTR</a>
-    <a class="per-button" href="#related-daily-ctr">└ 日別CTR推移</a>
-    <a class="per-button" href="#related-details">└ 詳細</a>
-    <a class="per-button" href="#my-articles">記事管理</a>
+  <nav class="per-toggle" aria-label="ダッシュボード" style="margin: 0.5rem 0 1.25rem;" data-dashboard-tabs>
+    <span class="per-label">表示:</span>
+    <% if (hasDailyAccess) { %>
+      <a class="per-button" href="#daily-access" data-tab="daily-access">日別アクセス</a>
+    <% } %>
+    <% if (hasRelatedAnalytics) { %>
+      <a class="per-button" href="#related-analytics" data-tab="related-analytics">関連記事CTR</a>
+      <a class="per-button" href="#related-daily-ctr">└ 日別CTR推移</a>
+      <a class="per-button" href="#related-details">└ 詳細</a>
+    <% } %>
+    <a class="per-button" href="#my-articles" data-tab="my-articles">記事管理</a>
   </nav>
 
-  <% if (typeof dailyAccessTrend !== 'undefined' && dailyAccessTrend && dailyAccessTrend.length > 0) { %>
-    <section id="daily-access" class="page-section" aria-label="日別アクセス数">
+  <% if (hasDailyAccess) { %>
+    <section id="daily-access" class="page-section" aria-label="日別アクセス数" data-tabpanel="daily-access">
       <div class="page-header">
         <h2 class="section-title">日別アクセス数（直近<%= (typeof days !== 'undefined' && days) ? days : 30 %>日）</h2>
         <p class="section-lead">あなたの記事詳細ページの閲覧数（PV）の合計です（JST基準）。</p>
@@ -60,11 +70,8 @@
     </section>
   <% } %>
 
-  <% if (
-    (typeof relatedClicksByBlock !== 'undefined' && relatedClicksByBlock && relatedClicksByBlock.length > 0) ||
-    (typeof relatedImpressionsByBlock !== 'undefined' && relatedImpressionsByBlock && relatedImpressionsByBlock.length > 0)
-  ) { %>
-    <section id="related-analytics" class="page-section" aria-label="関連記事クリック集計">
+  <% if (hasRelatedAnalytics) { %>
+    <section id="related-analytics" class="page-section" aria-label="関連記事クリック集計" data-tabpanel="related-analytics">
       <div class="page-header">
         <h2 class="section-title">関連記事クリック（直近<%= (typeof days !== 'undefined' && days) ? days : 30 %>日）</h2>
         <p class="section-lead">記事末尾の「同属性/同サークル」導線のクリック数とCTR（クリック/表示）です。</p>
@@ -437,7 +444,7 @@
     </section>
   <% } %>
 
-  <section id="my-articles" class="page-section" aria-label="記事管理">
+  <section id="my-articles" class="page-section" aria-label="記事管理" data-tabpanel="my-articles">
     <div class="dashboard-header">
       <h2>記事管理</h2>
       <div class="header-actions">
@@ -582,6 +589,95 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // --- Dashboard tabs (hash-driven) ---
+  const tabNav = document.querySelector('[data-dashboard-tabs]');
+  const tabButtons = tabNav ? Array.from(tabNav.querySelectorAll('[data-tab]')) : [];
+  const tabPanels = Array.from(document.querySelectorAll('[data-tabpanel]'));
+
+  function normalizeHashToTabId(hash) {
+    const id = (hash || '').replace(/^#/, '');
+    if (!id) return '';
+    if (id === 'related-daily-ctr' || id === 'related-details') return 'related-analytics';
+    return id;
+  }
+
+  function getFallbackTabId() {
+    const preferred = ['daily-access', 'related-analytics', 'my-articles'];
+    for (const id of preferred) {
+      if (document.querySelector(`[data-tabpanel="${id}"]`)) return id;
+    }
+    return tabPanels.length ? (tabPanels[0].getAttribute('data-tabpanel') || '') : '';
+  }
+
+  function setActiveTab(tabId) {
+    if (!tabId) tabId = getFallbackTabId();
+    if (!tabId) return;
+
+    tabPanels.forEach(panel => {
+      const id = panel.getAttribute('data-tabpanel');
+      panel.style.display = (id === tabId) ? '' : 'none';
+    });
+
+    tabButtons.forEach(btn => {
+      const isActive = btn.getAttribute('data-tab') === tabId;
+      btn.classList.toggle('active', isActive);
+      if (isActive) btn.setAttribute('aria-current', 'page');
+      else btn.removeAttribute('aria-current');
+    });
+  }
+
+  function scrollToHashTarget(rawHash) {
+    const id = (rawHash || '').replace(/^#/, '');
+    if (!id) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    requestAnimationFrame(() => {
+      el.scrollIntoView({ block: 'start', behavior: 'auto' });
+    });
+  }
+
+  if (tabNav && tabPanels.length) {
+    // Click on main tab buttons
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', function(e) {
+        const tabId = this.getAttribute('data-tab');
+        if (!tabId) return;
+        e.preventDefault();
+        history.replaceState(null, '', `#${tabId}`);
+        setActiveTab(tabId);
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      });
+    });
+
+    // Deep links and back/forward
+    window.addEventListener('hashchange', function() {
+      const rawHash = location.hash;
+      const tabId = normalizeHashToTabId(rawHash);
+      setActiveTab(tabId);
+      if (rawHash && rawHash !== `#${tabId}`) scrollToHashTarget(rawHash);
+    });
+
+    // Initial state
+    {
+      const rawHash = location.hash;
+      const tabId = normalizeHashToTabId(rawHash);
+      setActiveTab(tabId);
+      if (rawHash && rawHash !== `#${tabId}`) scrollToHashTarget(rawHash);
+    }
+
+    // In-page sublinks (switch tab then scroll)
+    const subLinks = Array.from(tabNav.querySelectorAll('a[href="#related-daily-ctr"], a[href="#related-details"]'));
+    subLinks.forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const rawHash = this.getAttribute('href') || '';
+        history.replaceState(null, '', rawHash);
+        setActiveTab('related-analytics');
+        scrollToHashTarget(rawHash);
+      });
+    });
+  }
+
   const selectAllCheckbox = document.getElementById('selectAllCheckbox');
   const selectAllBtn = document.getElementById('selectAllArticles');
   const deselectAllBtn = document.getElementById('deselectAllArticles');
