@@ -37,11 +37,17 @@
   <% if (hasDailyAccess) { %>
     <section id="daily-access" class="page-section" aria-label="日別アクセス数" data-tabpanel="daily-access">
       <div class="page-header">
-        <h2 class="section-title">日別アクセス数（直近<%= (typeof days !== 'undefined' && days) ? days : 30 %>日）</h2>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+          <h2 class="section-title" style="margin:0;">日別アクセス数（直近<%= (typeof days !== 'undefined' && days) ? days : 30 %>日）</h2>
+          <button type="button" class="per-button section-toggle" data-section-toggle aria-expanded="true" aria-controls="daily-access-body" title="表示/非表示">
+            <span class="caret">▼</span>
+          </button>
+        </div>
         <p class="section-lead">あなたの記事詳細ページの閲覧数（PV）の合計です（JST基準）。</p>
       </div>
-      <div class="panel">
-        <div class="panel-body">
+      <div id="daily-access-body" data-section-body>
+        <div class="panel">
+          <div class="panel-body">
           <div class="per-toggle" aria-label="集計期間切替" style="margin-bottom: 1rem;">
             <span class="per-label">期間:</span>
             <% dayOptions.forEach(function(opt){ %>
@@ -65,6 +71,7 @@
               <% }); %>
             </tbody>
           </table>
+          </div>
         </div>
       </div>
     </section>
@@ -73,11 +80,17 @@
   <% if (hasRelatedAnalytics) { %>
     <section id="related-analytics" class="page-section" aria-label="関連記事クリック集計" data-tabpanel="related-analytics">
       <div class="page-header">
-        <h2 class="section-title">関連記事クリック（直近<%= (typeof days !== 'undefined' && days) ? days : 30 %>日）</h2>
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+          <h2 class="section-title" style="margin:0;">関連記事クリック（直近<%= (typeof days !== 'undefined' && days) ? days : 30 %>日）</h2>
+          <button type="button" class="per-button section-toggle" data-section-toggle aria-expanded="true" aria-controls="related-analytics-body" title="表示/非表示">
+            <span class="caret">▼</span>
+          </button>
+        </div>
         <p class="section-lead">記事末尾の「同属性/同サークル」導線のクリック数とCTR（クリック/表示）です。</p>
       </div>
-      <div class="panel">
-        <div class="panel-body">
+      <div id="related-analytics-body" data-section-body>
+        <div class="panel">
+          <div class="panel-body">
           <div class="per-toggle" aria-label="集計期間切替" style="margin-bottom: 1rem;">
             <span class="per-label">期間:</span>
             <% dayOptions.forEach(function(opt){ %>
@@ -439,18 +452,26 @@
               </article>
             <% } %>
           </div>
+          </div>
         </div>
       </div>
     </section>
   <% } %>
 
   <section id="my-articles" class="page-section" aria-label="記事管理" data-tabpanel="my-articles">
-    <div class="dashboard-header">
-      <h2>記事管理</h2>
-      <div class="header-actions">
-        <a href="/articles/new" class="btn-primary">新規記事作成</a>
+    <div class="dashboard-header" style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+      <h2 style="margin:0;">記事管理</h2>
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <div class="header-actions">
+          <a href="/articles/new" class="btn-primary">新規記事作成</a>
+        </div>
+        <button type="button" class="per-button section-toggle" data-section-toggle aria-expanded="true" aria-controls="my-articles-body" title="表示/非表示">
+          <span class="caret">▼</span>
+        </button>
       </div>
     </div>
+
+    <div id="my-articles-body" data-section-body>
 
   <% if (articles.length > 0) { %>
     <div class="per-toggle" aria-label="表示件数切替">
@@ -563,12 +584,22 @@
     </div>
   <% } %>
 
+    </div>
   </section>
 </div>
 
 <style>
-.dashboard [data-tabpanel] {
-  display: none;
+.dashboard [data-tabpanel] { display: none; }
+.dashboard [data-tabpanel][data-open="true"] { display: block; }
+
+.section-toggle .caret {
+  display: inline-block;
+  transform-origin: 50% 50%;
+  transition: transform 0.12s ease-in-out;
+}
+
+.section-toggle[aria-expanded="false"] .caret {
+  transform: rotate(-90deg);
 }
 
 .bulk-actions {
@@ -598,15 +629,15 @@ document.addEventListener('DOMContentLoaded', function() {
   const tabButtons = tabNav ? Array.from(tabNav.querySelectorAll('[data-tab]')) : [];
   const tabPanels = Array.from(document.querySelectorAll('[data-tabpanel]'));
 
-  function isPanelVisible(panel) {
-    return panel.style.display !== 'none';
+  function isPanelOpen(panel) {
+    return panel.getAttribute('data-open') === 'true';
   }
 
   function syncTabButtonStates() {
     tabButtons.forEach(btn => {
       const id = btn.getAttribute('data-tab');
       const panel = id ? document.querySelector(`[data-tabpanel="${id}"]`) : null;
-      const isActive = !!(panel && isPanelVisible(panel));
+      const isActive = !!(panel && isPanelOpen(panel));
       btn.classList.toggle('active', isActive);
       if (isActive) btn.setAttribute('aria-pressed', 'true');
       else btn.setAttribute('aria-pressed', 'false');
@@ -620,11 +651,11 @@ document.addEventListener('DOMContentLoaded', function() {
     return id;
   }
 
-  function setPanelVisibleById(tabId, visible) {
+  function setPanelOpenById(tabId, open) {
     if (!tabId) return;
     const panel = document.querySelector(`[data-tabpanel="${tabId}"]`);
     if (!panel) return;
-    panel.style.display = visible ? '' : 'none';
+    panel.setAttribute('data-open', open ? 'true' : 'false');
     syncTabButtonStates();
   }
 
@@ -639,30 +670,19 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   if (tabNav && tabPanels.length) {
-    // Ensure all panels are hidden by default (CSS also hides them)
-    tabPanels.forEach(panel => {
-      panel.style.display = 'none';
-    });
+    // Initialize: closed
+    tabPanels.forEach(panel => panel.setAttribute('data-open', 'false'));
     syncTabButtonStates();
 
-    // Click on main tab buttons (toggle)
+    // Click on main tab buttons (always open)
     tabButtons.forEach(btn => {
       btn.addEventListener('click', function(e) {
         const tabId = this.getAttribute('data-tab');
         if (!tabId) return;
         e.preventDefault();
-        const panel = document.querySelector(`[data-tabpanel="${tabId}"]`);
-        if (!panel) return;
-        const willShow = !isPanelVisible(panel);
-        setPanelVisibleById(tabId, willShow);
-        if (willShow) {
-          history.replaceState(null, '', `#${tabId}`);
-          scrollToHashTarget(`#${tabId}`);
-        } else {
-          if (location.hash === `#${tabId}`) {
-            history.replaceState(null, '', location.pathname + location.search);
-          }
-        }
+        setPanelOpenById(tabId, true);
+        history.replaceState(null, '', `#${tabId}`);
+        scrollToHashTarget(`#${tabId}`);
       });
     });
 
@@ -670,7 +690,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('hashchange', function() {
       const rawHash = location.hash;
       const tabId = normalizeHashToTabId(rawHash);
-      if (tabId) setPanelVisibleById(tabId, true);
+      if (tabId) setPanelOpenById(tabId, true);
       if (rawHash && rawHash !== `#${tabId}`) scrollToHashTarget(rawHash);
     });
 
@@ -678,8 +698,14 @@ document.addEventListener('DOMContentLoaded', function() {
     {
       const rawHash = location.hash;
       const tabId = normalizeHashToTabId(rawHash);
-      if (tabId) setPanelVisibleById(tabId, true);
-      if (rawHash && rawHash !== `#${tabId}`) scrollToHashTarget(rawHash);
+      if (tabId) {
+        setPanelOpenById(tabId, true);
+        if (rawHash && rawHash !== `#${tabId}`) scrollToHashTarget(rawHash);
+      } else {
+        // Default open: 日別アクセス
+        if (document.querySelector('[data-tabpanel="daily-access"]')) setPanelOpenById('daily-access', true);
+        else if (document.querySelector('[data-tabpanel="my-articles"]')) setPanelOpenById('my-articles', true);
+      }
     }
 
     // In-page sublinks (switch tab then scroll)
@@ -689,11 +715,24 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const rawHash = this.getAttribute('href') || '';
         history.replaceState(null, '', rawHash);
-        setPanelVisibleById('related-analytics', true);
+        setPanelOpenById('related-analytics', true);
         scrollToHashTarget(rawHash);
       });
     });
   }
+
+  // --- Section inline toggles (▼) ---
+  const sectionToggles = Array.from(document.querySelectorAll('[data-section-toggle]'));
+  sectionToggles.forEach(btn => {
+    const controls = btn.getAttribute('aria-controls');
+    const body = controls ? document.getElementById(controls) : null;
+    if (!body) return;
+    btn.addEventListener('click', function() {
+      const expanded = this.getAttribute('aria-expanded') !== 'false';
+      this.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+      body.style.display = expanded ? 'none' : '';
+    });
+  });
 
   const selectAllCheckbox = document.getElementById('selectAllCheckbox');
   const selectAllBtn = document.getElementById('selectAllArticles');
