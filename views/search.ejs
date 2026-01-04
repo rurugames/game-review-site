@@ -124,11 +124,11 @@
               </div>
               <div class="ranking-content">
                 <div class="ranking-circle"><%= g.genre || '' %></div>
-                <% const dlUrl = g.dlsiteUrl || g.url || '#'; %>
-                <div class="ranking-game-title"><a href="<%= dlUrl %>"><%- g._titleHighlighted || g.title %></a></div>
+                <% const dlUrl = g.affiliateUrl || g.dlsiteUrl || g.url || '#'; %>
+                <div class="ranking-game-title"><a href="<%= dlUrl %>" target="_blank" rel="noopener noreferrer sponsored"><%- g._titleHighlighted || g.title %></a></div>
                 <div class="description" style="color:var(--text-secondary); font-size:0.95rem; margin-top:0.5rem;"><%= g.circle ? 'サークル：' + g.circle : '' %></div>
                 <% if (g.price) { %>
-                  <div style="margin-top:0.75rem;"><a class="btn-dlsite-small" href="<%= dlUrl %>">価格：<%= g.price %></a></div>
+                  <div style="margin-top:0.75rem;"><a class="btn-dlsite-small" href="<%= dlUrl %>" target="_blank" rel="noopener noreferrer sponsored">価格：<%= g.price %></a></div>
                 <% } %>
               </div>
             </div>

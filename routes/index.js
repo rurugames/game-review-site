@@ -15,6 +15,7 @@ const RelatedClick = require('../models/RelatedClick');
 const RelatedImpression = require('../models/RelatedImpression');
 const DailyArticleView = require('../models/DailyArticleView');
 const { isAdminEmail } = require('../lib/admin');
+const { normalizeAffiliateLink, DEFAULT_AID } = require('../lib/dlsiteAffiliate');
 
 // キャッシュ設定
 let rankingCache = null;
@@ -177,7 +178,7 @@ function startRankingFetch(maxItems = 100) {
         try {
           const partialPath = path.join(__dirname, '..', 'views', 'partials', 'rankingList.ejs');
           // limit to top 10 for the partial sent to home clients
-          const limited = Array.isArray(rankingCache) ? rankingCache.slice(0, 10) : [];
+          const limited = attachAffiliateUrls(Array.isArray(rankingCache) ? rankingCache.slice(0, 10) : []);
           const rankingStatus = makeStatus();
           const rankingStatusFormatted = {
             lastUpdatedStr: rankingStatus.cacheTime ? formatJp(rankingStatus.cacheTime) : null,
@@ -208,6 +209,16 @@ function startRankingFetch(maxItems = 100) {
   })();
 
   return rankingFetchPromise;
+}
+
+function attachAffiliateUrls(ranking) {
+  const list = Array.isArray(ranking) ? ranking : [];
+  return list.map((game) => {
+    if (!game) return game;
+    const dlsiteUrl = String(game.dlsiteUrl || '').trim();
+    const affiliateUrl = normalizeAffiliateLink(dlsiteUrl, { aid: DEFAULT_AID }) || dlsiteUrl;
+    return { ...game, dlsiteUrl, affiliateUrl };
+  });
 }
 
 // ホームページ - 記事一覧とDLsiteランキング
@@ -510,7 +521,8 @@ router.get('/ranking', async (req, res) => {
     if (page > totalPages) page = totalPages;
 
     const start = (page - 1) * per;
-    const limitedRanking = Array.isArray(ranking) ? ranking.slice(start, start + per) : [];
+    const limitedRankingRaw = Array.isArray(ranking) ? ranking.slice(start, start + per) : [];
+    const limitedRanking = attachAffiliateUrls(limitedRankingRaw);
 
     const rankingStatus = makeStatus();
     const rankingStatusFormatted = {
@@ -558,7 +570,8 @@ router.get('/ranking/partial', async (req, res) => {
     if (page < 1) page = 1;
     if (page > totalPages) page = totalPages;
     const start = (page - 1) * per;
-    const limitedRanking = Array.isArray(ranking) ? ranking.slice(start, start + per) : [];
+    const limitedRankingRaw = Array.isArray(ranking) ? ranking.slice(start, start + per) : [];
+    const limitedRanking = attachAffiliateUrls(limitedRankingRaw);
 
     // render partial template and return HTML
     const ejs = require('ejs');
@@ -947,6 +960,9 @@ router.get('/search', async (req, res) => {
         return g;
       });
     }
+
+    // 検索ページ内ランキングのリンクも dlaf 形式へ統一
+    games = attachAffiliateUrls(games);
 
     const total = (articles ? articles.length : 0) + (games ? games.length : 0);
     res.render('search', { query: q, articles, games, total, filters: { genre, minPrice, maxPrice, fromDate: req.query.fromDate || '', toDate: req.query.toDate || '' }, genres });

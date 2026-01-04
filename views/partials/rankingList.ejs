@@ -5,7 +5,7 @@
         <div class="panel-body">
           <article class="ranking-card">
           <% const _rankClass = (game && game.rank && game.rank <= 3) ? ('rank-top rank-' + game.rank) : ''; %>
-          <a class="cover-link" href="<%= game.dlsiteUrl %>" target="_blank" rel="noopener">
+          <a class="cover-link" href="<%= game.affiliateUrl || game.dlsiteUrl %>" target="_blank" rel="noopener noreferrer sponsored">
             <div class="cover">
             <% if (game.imageUrl) { %>
               <img src="<%= game.imageUrl %>" alt="<%= game.title %>">
@@ -22,11 +22,11 @@
           <div class="meta-row">
             <span class="badge genre"><%= game.genre || 'ジャンル不明' %></span>
           </div>
-          <h3 class="card-title"><a href="<%= game.dlsiteUrl %>" target="_blank" rel="noopener"><%= game.title %></a></h3>
+          <h3 class="card-title"><a href="<%= game.affiliateUrl || game.dlsiteUrl %>" target="_blank" rel="noopener noreferrer sponsored"><%= game.title %></a></h3>
           <% if (game.circle) { %><div class="card-sub">サークル: <%= game.circle %></div><% } %>
           <p class="card-excerpt"><%= (game.description || '').replace(/<[^>]*>/g, '').slice(0,140) %><%= (game.description || '').length > 140 ? '…' : '' %></p>
           <div class="card-actions">
-            <a class="btn-dlsite" href="<%= game.dlsiteUrl %>" target="_blank" rel="noopener">DLsiteで見る</a>
+            <a class="btn-dlsite" href="<%= game.affiliateUrl || game.dlsiteUrl %>" target="_blank" rel="noopener noreferrer sponsored">DLsiteで見る</a>
           </div>
           </article>
         </div>
