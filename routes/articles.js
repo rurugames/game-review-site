@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Article = require('../models/Article');
 const Comment = require('../models/Comment');
+const RelatedClick = require('../models/RelatedClick');
+const RelatedImpression = require('../models/RelatedImpression');
 const { ensureAuth, ensureAdmin } = require('../middleware/auth');
 const { marked } = require('marked');
 
@@ -10,6 +12,83 @@ marked.setOptions({
   breaks: true,
   gfm: true
 });
+
+const RELATED_POSITION_ORDER_TTL_MS = 30 * 60 * 1000;
+const relatedPositionOrderCache = new Map();
+
+async function getRelatedPositionOrder(block, days = 30) {
+  const key = `${block}|${days}`;
+  const now = Date.now();
+  const cached = relatedPositionOrderCache.get(key);
+  if (cached && (now - cached.ts) < RELATED_POSITION_ORDER_TTL_MS) {
+    return cached.order;
+  }
+
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const [clicksByPos, impsByPos] = await Promise.all([
+    RelatedClick.aggregate([
+      { $match: { ts: { $gte: since }, block } },
+      { $group: { _id: '$position', clicks: { $sum: 1 } } },
+    ]),
+    RelatedImpression.aggregate([
+      { $match: { ts: { $gte: since }, block } },
+      { $group: { _id: '$position', impressions: { $sum: 1 } } },
+    ]),
+  ]);
+
+  const clickMap = new Map((clicksByPos || []).map((r) => [String(r._id ?? ''), Number(r.clicks) || 0]));
+  const impMap = new Map((impsByPos || []).map((r) => [String(r._id ?? ''), Number(r.impressions) || 0]));
+
+  const positions = [1, 2, 3];
+  const rows = positions.map((p) => {
+    const k = String(p);
+    const clicks = clickMap.get(k) || 0;
+    const impressions = impMap.get(k) || 0;
+    const ctr = impressions > 0 ? clicks / impressions : 0;
+    return { position: p, ctr };
+  });
+
+  // 位置別CTRが全て0なら従来通り
+  const hasSignal = rows.some((r) => r.ctr > 0);
+  const order = hasSignal
+    ? rows.sort((a, b) => (b.ctr - a.ctr) || (a.position - b.position)).map((r) => r.position)
+    : positions;
+
+  relatedPositionOrderCache.set(key, { ts: now, order });
+  return order;
+}
+
+function reorderByPositionOrder(items, positionOrder) {
+  if (!Array.isArray(items) || items.length <= 1) return items;
+  const order = Array.isArray(positionOrder) && positionOrder.length ? positionOrder : [1, 2, 3];
+
+  const n = items.length;
+  const positions = order.filter((p) => Number.isFinite(p) && p >= 1 && p <= n);
+  const out = new Array(n).fill(null);
+
+  for (let i = 0; i < Math.min(n, positions.length); i++) {
+    const targetIdx = positions[i] - 1;
+    if (out[targetIdx] == null) out[targetIdx] = items[i];
+  }
+
+  // 余った/穴を元の順で埋める
+  const used = new Set(out.filter(Boolean).map((x) => String(x && x._id)));
+  let srcIdx = 0;
+  for (let j = 0; j < n; j++) {
+    if (out[j] != null) continue;
+    while (srcIdx < n) {
+      const cand = items[srcIdx++];
+      const id = String(cand && cand._id);
+      if (!used.has(id)) {
+        out[j] = cand;
+        used.add(id);
+        break;
+      }
+    }
+  }
+
+  return out.filter(Boolean);
+}
 
 // 新規記事作成フォーム（管理者のみ）
 router.get('/new', ensureAdmin, (req, res) => {
@@ -100,6 +179,18 @@ router.get('/:id', async (req, res) => {
           .sort({ rating: -1, createdAt: -1, _id: -1 })
           .limit(3)
           .lean();
+      }
+
+      // 位置別CTRに合わせて「一番良い枠」に一番良い候補を置く
+      try {
+        const [attrOrder, devOrder] = await Promise.all([
+          getRelatedPositionOrder('same_attribute', 30),
+          getRelatedPositionOrder('same_developer', 30),
+        ]);
+        recommendedSameAttribute = reorderByPositionOrder(recommendedSameAttribute, attrOrder);
+        recommendedSameDeveloper = reorderByPositionOrder(recommendedSameDeveloper, devOrder);
+      } catch (e) {
+        // 並び替え失敗は無視（記事表示を優先）
       }
     } catch (e) {
       // 回遊導線の取得失敗で記事表示自体が落ちないようにする
