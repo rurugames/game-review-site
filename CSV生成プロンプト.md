@@ -145,8 +145,15 @@ node -e "const dlsite = require('./services/dlsiteService'); dlsite.fetchGamesBy
 - タグは半角カンマ区切りで記述（例: 「学生,恋愛,学園,純愛」）
 
 **アフィリエイトリンク:**
-- 固定値: `https://www.dlsite.com/maniax/`
-- ※後で各ゲーム固有のURLに変更予定
+- **各ゲーム固有のURL**を設定してください（RJ番号まで含む作品URL）。
+  - 例（DLsite作品URL）: `https://www.dlsite.com/maniax/work/=/product_id/RJ01484541.html`
+  - 例（変換後のdlaf作品リンク）: `https://dlaf.jp/maniax/dlaf/=/t/s/link/work/aid/r18Hub/id/RJ01484541.html`
+- CSVには **DLsite作品URL** を入れてOKです（サーバー側で表示時にdlaf形式へ自動変換します）。
+
+**重要: 本文内の作品タイトルリンク**
+- 記事本文の冒頭（ゲーム概要など）で、作品タイトルを **必ずリンク** にしてください。
+  - Markdown例: `[{ゲームタイトル}](https://www.dlsite.com/maniax/work/=/product_id/RJxxxxxxxx.html)`
+  - このDLsite作品URLも、表示時にdlaf形式へ自動変換されます。
 
 **ステータス:**
 - `draft`（下書き状態）

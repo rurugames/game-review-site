@@ -8,6 +8,7 @@ const path = require('path');
 const { ensureAuth, ensureAdmin } = require('../middleware/auth');
 const Article = require('../models/Article');
 const { marked } = require('marked');
+const { normalizeAffiliateLink, DEFAULT_AID } = require('../lib/dlsiteAffiliate');
 
 // Markdown設定
 marked.setOptions({
@@ -166,7 +167,7 @@ router.post('/import', ensureAuth, ensureAdmin, upload.single('csvFile'), async 
                 status: normalizedRow.status || 'draft',
                 releaseDate: normalizedRow.releaseDate ? new Date(normalizedRow.releaseDate) : null,
                 tags: tagsArray,
-                affiliateLink: normalizedRow.affiliateLink || '',
+                affiliateLink: normalizeAffiliateLink(normalizedRow.affiliateLink || '', { aid: DEFAULT_AID }) || '',
                 author: req.user.id
               });
 

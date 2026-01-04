@@ -7,6 +7,7 @@ const RelatedClick = require('../models/RelatedClick');
 const RelatedImpression = require('../models/RelatedImpression');
 const { ensureAuth, ensureAdmin } = require('../middleware/auth');
 const { marked } = require('marked');
+const { normalizeAffiliateLink, rewriteDlsiteWorkLinksInHtml, DEFAULT_AID } = require('../lib/dlsiteAffiliate');
 
 // Markedの設定
 marked.setOptions({
@@ -118,6 +119,11 @@ router.post('/', ensureAdmin, async (req, res) => {
       ...req.body,
       author: req.user.id
     };
+
+    // アフィリエイトリンク（DLsite作品URL → dlaf作品リンク）
+    if (typeof articleData.affiliateLink !== 'undefined') {
+      articleData.affiliateLink = normalizeAffiliateLink(articleData.affiliateLink, { aid: DEFAULT_AID }) || '';
+    }
     
     // タグの処理（カンマ区切りの文字列を配列に変換）
     if (req.body.tags) {
@@ -176,6 +182,24 @@ router.get('/:id', async (req, res) => {
     } else {
       // Markdownの場合は変換
       articleWithHtml.contentHtml = marked.parse(article.content || '');
+    }
+
+    // 本文内のDLsite作品URLをdlaf作品リンクへ置換（既存記事にも適用）
+    try {
+      const { html, firstAffiliateLink } = rewriteDlsiteWorkLinksInHtml(articleWithHtml.contentHtml, { aid: DEFAULT_AID });
+      articleWithHtml.contentHtml = html;
+
+      const normalized = normalizeAffiliateLink(articleWithHtml.affiliateLink, { aid: DEFAULT_AID });
+      if (normalized && normalized !== articleWithHtml.affiliateLink) {
+        articleWithHtml.affiliateLink = normalized;
+      } else if ((!articleWithHtml.affiliateLink || !String(articleWithHtml.affiliateLink).trim()) && firstAffiliateLink) {
+        articleWithHtml.affiliateLink = firstAffiliateLink;
+      } else if (articleWithHtml.affiliateLink && !/^https?:\/\//i.test(String(articleWithHtml.affiliateLink))) {
+        // 不正値は表示上は無効化
+        articleWithHtml.affiliateLink = '';
+      }
+    } catch (_) {
+      // 変換失敗は表示を止めない
     }
 
     // 記事末尾の回遊導線: 同属性のおすすめ / 同サークル(開発元)の他作
@@ -456,6 +480,11 @@ router.put('/:id', ensureAdmin, async (req, res) => {
     }
     
     const updateData = { ...req.body };
+
+    // アフィリエイトリンク（DLsite作品URL → dlaf作品リンク）
+    if (typeof updateData.affiliateLink !== 'undefined') {
+      updateData.affiliateLink = normalizeAffiliateLink(updateData.affiliateLink, { aid: DEFAULT_AID }) || '';
+    }
     
     // タグの処理
     if (req.body.tags) {
