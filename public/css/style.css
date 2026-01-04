@@ -768,6 +768,17 @@ body {
 .panel .panel-body { padding: 0.75rem; }
 .page-header + .panel { margin-top: 0.75rem; }
 
+/* Top: DLsite blogparts ranking widgets (stacked) */
+.dlsite-ranking-widgets {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dlsite-ranking-widget {
+  display: block;
+}
+
 /* Adjust articles grid inside panel for visual spacing */
 .panel .articles-grid { padding: 0.5rem; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
 /* When outer panel is removed, keep articles grid layout consistent */
