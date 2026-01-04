@@ -15,8 +15,15 @@
 
   <h1>ダッシュボード</h1>
 
+  <nav class="per-toggle" aria-label="ダッシュボード目次" style="margin: 0.5rem 0 1.25rem;">
+    <span class="per-label">目次:</span>
+    <a class="per-button" href="#daily-access">日別アクセス</a>
+    <a class="per-button" href="#related-analytics">関連記事CTR</a>
+    <a class="per-button" href="#my-articles">記事管理</a>
+  </nav>
+
   <% if (typeof dailyAccessTrend !== 'undefined' && dailyAccessTrend && dailyAccessTrend.length > 0) { %>
-    <section class="page-section" aria-label="日別アクセス数">
+    <section id="daily-access" class="page-section" aria-label="日別アクセス数">
       <div class="page-header">
         <h2 class="section-title">日別アクセス数（直近<%= (typeof days !== 'undefined' && days) ? days : 30 %>日）</h2>
         <p class="section-lead">あなたの記事詳細ページの閲覧数（PV）の合計です（JST基準）。</p>
@@ -55,7 +62,7 @@
     (typeof relatedClicksByBlock !== 'undefined' && relatedClicksByBlock && relatedClicksByBlock.length > 0) ||
     (typeof relatedImpressionsByBlock !== 'undefined' && relatedImpressionsByBlock && relatedImpressionsByBlock.length > 0)
   ) { %>
-    <section class="page-section" aria-label="関連記事クリック集計">
+    <section id="related-analytics" class="page-section" aria-label="関連記事クリック集計">
       <div class="page-header">
         <h2 class="section-title">関連記事クリック（直近<%= (typeof days !== 'undefined' && days) ? days : 30 %>日）</h2>
         <p class="section-lead">記事末尾の「同属性/同サークル」導線のクリック数とCTR（クリック/表示）です。</p>
@@ -64,11 +71,12 @@
         <div class="panel-body">
           <div class="per-toggle" aria-label="集計期間切替" style="margin-bottom: 1rem;">
             <span class="per-label">期間:</span>
-            <% const dayOptions = [7, 30, 90]; %>
             <% dayOptions.forEach(function(opt){ %>
               <a class="per-button <%= (typeof days !== 'undefined' && days === opt) ? 'active' : '' %>" href="<%= buildQs({ days: opt, page: 1 }) %>"><%= opt %>日</a>
             <% }); %>
           </div>
+
+          <h3 style="margin:0 0 0.75rem;">概要</h3>
 
           <div class="articles-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
             <article class="article-card">
@@ -164,6 +172,12 @@
                 </div>
               </article>
             <% } %>
+
+          </div>
+
+          <h3 style="margin:1rem 0 0.75rem;">詳細</h3>
+
+          <div class="articles-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
 
             <% if (typeof relatedCtrByTag !== 'undefined' && relatedCtrByTag && relatedCtrByTag.length > 0) { %>
               <article class="article-card" style="grid-column: 1 / -1;">
@@ -421,12 +435,13 @@
     </section>
   <% } %>
 
-  <div class="dashboard-header">
-    <h2>あなたの記事</h2>
-    <div class="header-actions">
-      <a href="/articles/new" class="btn-primary">新規記事作成</a>
+  <section id="my-articles" class="page-section" aria-label="記事管理">
+    <div class="dashboard-header">
+      <h2>記事管理</h2>
+      <div class="header-actions">
+        <a href="/articles/new" class="btn-primary">新規記事作成</a>
+      </div>
     </div>
-  </div>
 
   <% if (articles.length > 0) { %>
     <div class="per-toggle" aria-label="表示件数切替">
@@ -538,6 +553,8 @@
       <a href="/articles/new" class="btn-primary">最初の記事を作成する</a>
     </div>
   <% } %>
+
+  </section>
 </div>
 
 <style>
