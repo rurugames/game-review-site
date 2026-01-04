@@ -6,6 +6,8 @@ const RelatedImpression = require('../models/RelatedImpression');
 
 const router = express.Router();
 
+const RELATED_CLICK_DEDUPE_WINDOW_MS = 10 * 1000;
+
 const getClientIp = (req) => {
   const xf = req.headers['x-forwarded-for'];
   if (typeof xf === 'string' && xf.trim()) {
@@ -48,6 +50,30 @@ router.post('/related-click', async (req, res) => {
     }
 
     const ip = getClientIp(req);
+    const ipHash = hashIp(ip);
+
+    // 短時間の連打/二重送信を軽く抑止（同一ユーザー or 同一IPハッシュをキーにする）
+    try {
+      const now = Date.now();
+      const since = new Date(now - RELATED_CLICK_DEDUPE_WINDOW_MS);
+      const actor = req.user ? { user: req.user.id } : (ipHash ? { ipHash } : null);
+      if (actor) {
+        const exists = await RelatedClick.exists({
+          ...actor,
+          fromArticle: new mongoose.Types.ObjectId(fromArticleId),
+          toArticle: new mongoose.Types.ObjectId(toArticleId),
+          block,
+          position,
+          ts: { $gte: since },
+        });
+        if (exists) {
+          return res.status(204).send();
+        }
+      }
+    } catch (_) {
+      // 抑止処理の失敗は無視して保存を優先
+    }
+
     const doc = {
       fromArticle: new mongoose.Types.ObjectId(fromArticleId),
       toArticle: new mongoose.Types.ObjectId(toArticleId),
@@ -56,7 +82,7 @@ router.post('/related-click', async (req, res) => {
       user: req.user ? req.user.id : null,
       referrer: req.get('referer') || '',
       ua: req.get('user-agent') || '',
-      ipHash: hashIp(ip),
+      ipHash,
       ts: new Date(),
     };
 
