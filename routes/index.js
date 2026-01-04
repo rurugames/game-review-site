@@ -987,6 +987,8 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
     let relatedWorstCtrFromArticles = [];
     let relatedWorstCtrToArticles = [];
 
+    let relatedCtrByTag = [];
+
     let relatedImpressionsByBlock = [];
     let relatedImpressionsByBlockPosition = [];
 
@@ -1234,6 +1236,56 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
           return (b.clicks || 0) - (a.clicks || 0);
         })
         .slice(0, 20);
+
+      // タグ別CTR（同属性ブロック）: fromArticle.tags を集計軸にする
+      const [tagImpressions, tagClicks] = await Promise.all([
+        RelatedImpression.aggregate([
+          { $match: { ts: { $gte: since }, block: 'same_attribute' } },
+          {
+            $lookup: {
+              from: 'articles',
+              localField: 'fromArticle',
+              foreignField: '_id',
+              as: 'fromArticle',
+            },
+          },
+          { $unwind: { path: '$fromArticle', preserveNullAndEmptyArrays: false } },
+          { $unwind: { path: '$fromArticle.tags', preserveNullAndEmptyArrays: false } },
+          { $group: { _id: '$fromArticle.tags', impressions: { $sum: 1 } } },
+          { $sort: { impressions: -1, _id: 1 } },
+          { $limit: 80 },
+        ]),
+        RelatedClick.aggregate([
+          { $match: { ts: { $gte: since }, block: 'same_attribute' } },
+          {
+            $lookup: {
+              from: 'articles',
+              localField: 'fromArticle',
+              foreignField: '_id',
+              as: 'fromArticle',
+            },
+          },
+          { $unwind: { path: '$fromArticle', preserveNullAndEmptyArrays: false } },
+          { $unwind: { path: '$fromArticle.tags', preserveNullAndEmptyArrays: false } },
+          { $group: { _id: '$fromArticle.tags', clicks: { $sum: 1 } } },
+          { $sort: { clicks: -1, _id: 1 } },
+          { $limit: 200 },
+        ]),
+      ]);
+
+      const impByTag = new Map((tagImpressions || []).map((r) => [String(r._id), Number(r.impressions) || 0]));
+      const clickByTag = new Map((tagClicks || []).map((r) => [String(r._id), Number(r.clicks) || 0]));
+      const tags = Array.from(new Set([...impByTag.keys(), ...clickByTag.keys()]));
+      relatedCtrByTag = tags.map((tag) => {
+        const impressions = impByTag.get(tag) || 0;
+        const clicks = clickByTag.get(tag) || 0;
+        const ctr = impressions > 0 ? clicks / impressions : null;
+        return { tag, clicks, impressions, ctr };
+      }).sort((a, b) => {
+        if ((b.impressions || 0) !== (a.impressions || 0)) return (b.impressions || 0) - (a.impressions || 0);
+        if ((b.clicks || 0) !== (a.clicks || 0)) return (b.clicks || 0) - (a.clicks || 0);
+        return String(a.tag || '').localeCompare(String(b.tag || ''));
+      }).slice(0, 30);
     }
 
     res.render('dashboard', {
@@ -1251,6 +1303,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       relatedClicksTopFromArticles,
       relatedWorstCtrFromArticles,
       relatedWorstCtrToArticles,
+      relatedCtrByTag,
       relatedImpressionsByBlock,
       relatedImpressionsByBlockPosition,
       relatedCtrByBlock,

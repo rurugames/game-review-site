@@ -92,6 +92,36 @@
               </article>
             <% } %>
 
+            <% if (typeof relatedCtrByTag !== 'undefined' && relatedCtrByTag && relatedCtrByTag.length > 0) { %>
+              <article class="article-card" style="grid-column: 1 / -1;">
+                <div class="article-content">
+                  <h3 style="margin:0 0 0.5rem;">タグ別CTR（同属性）</h3>
+                  <table class="articles-table" style="margin-top:0.5rem;">
+                    <thead>
+                      <tr>
+                        <th>タグ</th>
+                        <th>CTR</th>
+                        <th>クリック/表示</th>
+                        <th>表示数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% relatedCtrByTag.forEach(row => { %>
+                        <tr>
+                          <td>
+                            <a href="/articles?tags=<%= encodeURIComponent(row.tag) %>"><%= row.tag %></a>
+                          </td>
+                          <td><%= row.ctr === null ? '-' : ((row.ctr * 100).toFixed(1) + '%') %></td>
+                          <td><%= row.clicks %>/<%= row.impressions %></td>
+                          <td><%= row.impressions %></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            <% } %>
+
             <% if (typeof relatedClicksTopDestinations !== 'undefined' && relatedClicksTopDestinations && relatedClicksTopDestinations.length > 0) { %>
               <article class="article-card" style="grid-column: 1 / -1;">
                 <div class="article-content">
