@@ -175,7 +175,13 @@
         }
         if (url.origin !== window.location.origin) {
           a.setAttribute('target', '_blank');
-          a.setAttribute('rel', 'noopener noreferrer');
+          const rel = (a.getAttribute('rel') || '')
+            .split(/\s+/)
+            .map(s => s.trim())
+            .filter(Boolean);
+          if (!rel.includes('noopener')) rel.push('noopener');
+          if (!rel.includes('noreferrer')) rel.push('noreferrer');
+          a.setAttribute('rel', Array.from(new Set(rel)).join(' '));
         }
       }
     });
