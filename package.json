@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "start:detached": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows-start-detached.ps1",
+    "start:detached:debug": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows-start-detached.ps1 -DebugExit",
+    "stop:detached": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows-stop-detached.ps1"
   },
   "engines": {
     "node": ">=18.0.0",

@@ -118,6 +118,23 @@ npm start
 npm run dev
 ```
 
+#### Windows: ターミナルから切り離して起動（停止しやすい環境向け）
+
+起動後にすぐ終了する（`received SIGINT` が出る）場合、ターミナル/タスク側から中断されている可能性があります。Windowsでは以下で「切り離し起動」できます。
+
+```bash
+npm run start:detached
+
+# 停止
+npm run stop:detached
+```
+
+デバッグログ付き（`DEBUG_PROCESS_EXIT=1`）で切り離し起動する場合:
+
+```bash
+npm run start:detached:debug
+```
+
 アプリケーションは `http://localhost:3000` で起動します。
 
 #### VS Code から起動（推奨）
