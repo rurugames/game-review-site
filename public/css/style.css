@@ -1025,23 +1025,29 @@ body {
   margin-top: 1rem;
 }
 
-.icon-btn {
+.share-btn {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
+  gap: 0.5rem;
+  padding: 0.55rem 0.9rem;
   border-radius: 0.75rem;
   background: var(--card-background);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   cursor: pointer;
   transition: all 0.2s ease;
+  font-weight: 600;
 }
 
-.icon-btn:hover {
+.share-btn:hover {
   background: var(--card-hover);
   border-color: var(--primary-color);
+}
+
+.share-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .share-menu-wrap {
@@ -1051,7 +1057,8 @@ body {
 
 .share-menu {
   position: absolute;
-  right: 0;
+  left: 0;
+  right: auto;
   top: calc(100% + 8px);
   min-width: 200px;
   background: var(--card-background);
