@@ -122,6 +122,36 @@
               </article>
             <% } %>
 
+            <% if (typeof relatedCtrByDeveloper !== 'undefined' && relatedCtrByDeveloper && relatedCtrByDeveloper.length > 0) { %>
+              <article class="article-card" style="grid-column: 1 / -1;">
+                <div class="article-content">
+                  <h3 style="margin:0 0 0.5rem;">開発元別CTR（同サークル）</h3>
+                  <table class="articles-table" style="margin-top:0.5rem;">
+                    <thead>
+                      <tr>
+                        <th>開発元</th>
+                        <th>CTR</th>
+                        <th>クリック/表示</th>
+                        <th>表示数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% relatedCtrByDeveloper.forEach(row => { %>
+                        <tr>
+                          <td>
+                            <a href="/articles?q=<%= encodeURIComponent(row.developer) %>"><%= row.developer %></a>
+                          </td>
+                          <td><%= row.ctr === null ? '-' : ((row.ctr * 100).toFixed(1) + '%') %></td>
+                          <td><%= row.clicks %>/<%= row.impressions %></td>
+                          <td><%= row.impressions %></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            <% } %>
+
             <% if (typeof relatedClicksTopDestinations !== 'undefined' && relatedClicksTopDestinations && relatedClicksTopDestinations.length > 0) { %>
               <article class="article-card" style="grid-column: 1 / -1;">
                 <div class="article-content">

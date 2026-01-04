@@ -988,6 +988,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
     let relatedWorstCtrToArticles = [];
 
     let relatedCtrByTag = [];
+    let relatedCtrByDeveloper = [];
 
     let relatedImpressionsByBlock = [];
     let relatedImpressionsByBlockPosition = [];
@@ -1286,6 +1287,56 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
         if ((b.clicks || 0) !== (a.clicks || 0)) return (b.clicks || 0) - (a.clicks || 0);
         return String(a.tag || '').localeCompare(String(b.tag || ''));
       }).slice(0, 30);
+
+      // 開発元（サークル）別CTR（同サークルブロック）: fromArticle.developer を集計軸にする
+      const [devImpressions, devClicks] = await Promise.all([
+        RelatedImpression.aggregate([
+          { $match: { ts: { $gte: since }, block: 'same_developer' } },
+          {
+            $lookup: {
+              from: 'articles',
+              localField: 'fromArticle',
+              foreignField: '_id',
+              as: 'fromArticle',
+            },
+          },
+          { $unwind: { path: '$fromArticle', preserveNullAndEmptyArrays: false } },
+          { $match: { 'fromArticle.developer': { $type: 'string', $ne: '' } } },
+          { $group: { _id: '$fromArticle.developer', impressions: { $sum: 1 } } },
+          { $sort: { impressions: -1, _id: 1 } },
+          { $limit: 80 },
+        ]),
+        RelatedClick.aggregate([
+          { $match: { ts: { $gte: since }, block: 'same_developer' } },
+          {
+            $lookup: {
+              from: 'articles',
+              localField: 'fromArticle',
+              foreignField: '_id',
+              as: 'fromArticle',
+            },
+          },
+          { $unwind: { path: '$fromArticle', preserveNullAndEmptyArrays: false } },
+          { $match: { 'fromArticle.developer': { $type: 'string', $ne: '' } } },
+          { $group: { _id: '$fromArticle.developer', clicks: { $sum: 1 } } },
+          { $sort: { clicks: -1, _id: 1 } },
+          { $limit: 200 },
+        ]),
+      ]);
+
+      const impByDev = new Map((devImpressions || []).map((r) => [String(r._id), Number(r.impressions) || 0]));
+      const clickByDev = new Map((devClicks || []).map((r) => [String(r._id), Number(r.clicks) || 0]));
+      const devs = Array.from(new Set([...impByDev.keys(), ...clickByDev.keys()]));
+      relatedCtrByDeveloper = devs.map((developer) => {
+        const impressions = impByDev.get(developer) || 0;
+        const clicks = clickByDev.get(developer) || 0;
+        const ctr = impressions > 0 ? clicks / impressions : null;
+        return { developer, clicks, impressions, ctr };
+      }).sort((a, b) => {
+        if ((b.impressions || 0) !== (a.impressions || 0)) return (b.impressions || 0) - (a.impressions || 0);
+        if ((b.clicks || 0) !== (a.clicks || 0)) return (b.clicks || 0) - (a.clicks || 0);
+        return String(a.developer || '').localeCompare(String(b.developer || ''));
+      }).slice(0, 30);
     }
 
     res.render('dashboard', {
@@ -1304,6 +1355,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       relatedWorstCtrFromArticles,
       relatedWorstCtrToArticles,
       relatedCtrByTag,
+      relatedCtrByDeveloper,
       relatedImpressionsByBlock,
       relatedImpressionsByBlockPosition,
       relatedCtrByBlock,
