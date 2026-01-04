@@ -19,6 +19,43 @@ if (process.env.DEBUG_PROCESS_EXIT === '1') {
     } catch (_) {}
     return originalExit(code);
   };
+
+  try {
+    console.error('[exit-debug] enabled pid=', process.pid, 'node=', process.version, 'platform=', process.platform);
+  } catch (_) {}
+
+  try {
+    process.on('beforeExit', (code) => {
+      try {
+        const err = new Error('beforeExit');
+        console.error('[exit-debug] beforeExit code=', code);
+        console.error(err && err.stack ? err.stack : err);
+      } catch (_) {}
+    });
+
+    process.on('exit', (code) => {
+      try {
+        console.error('[exit-debug] exit code=', code);
+      } catch (_) {}
+    });
+
+    const signals = ['SIGINT', 'SIGTERM', 'SIGHUP', 'SIGBREAK'];
+    for (const sig of signals) {
+      try {
+        process.on(sig, () => {
+          try {
+            const err = new Error('signal ' + sig);
+            console.error('[exit-debug] received', sig);
+            console.error(err && err.stack ? err.stack : err);
+          } catch (_) {}
+          // Keep default behavior: terminate after logging
+          try { originalExit(0); } catch (_) {}
+        });
+      } catch (_) {
+        // ignore unsupported signals
+      }
+    }
+  } catch (_) {}
 }
 
 const app = express();
