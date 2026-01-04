@@ -398,10 +398,10 @@ router.get('/', async (req, res) => {
     ]);
     const recommendedTags = (recommendedTagsAgg || []).map((x) => x._id).filter(Boolean);
 
-    // 並び替え（最小実装: 公開日時の新しい順/古い順）
+    // 並び替え（デフォルト: 発売日の新しい順）
     const allowedSorts = ['new', 'old', 'release_new', 'release_old'];
-    let sortKey = (req.query.sort || 'new').toString();
-    if (!allowedSorts.includes(sortKey)) sortKey = 'new';
+    let sortKey = (req.query.sort || 'release_new').toString();
+    if (!allowedSorts.includes(sortKey)) sortKey = 'release_new';
     const sortSpec = (() => {
       switch (sortKey) {
         case 'old':
@@ -429,7 +429,7 @@ router.get('/', async (req, res) => {
     const heroHtml = `
       <div class="hero">
         <h1>記事一覧</h1>
-        <p>公開された記事を新しい順に表示します。</p>
+        <p>公開された記事を発売日の新しい順に表示します。</p>
       </div>
     `;
 

@@ -215,7 +215,7 @@ router.get('/', async (req, res) => {
   try {
     const articles = await Article.find({ status: 'published' })
       .populate('author')
-      .sort({ createdAt: -1 })
+      .sort({ releaseDate: -1, createdAt: -1, _id: -1 })
       .limit(10);
 
     // YouTube Data API v3
