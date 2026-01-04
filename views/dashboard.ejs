@@ -567,6 +567,10 @@
 </div>
 
 <style>
+.dashboard [data-tabpanel] {
+  display: none;
+}
+
 .bulk-actions {
   display: flex;
   gap: 1rem;
@@ -594,6 +598,21 @@ document.addEventListener('DOMContentLoaded', function() {
   const tabButtons = tabNav ? Array.from(tabNav.querySelectorAll('[data-tab]')) : [];
   const tabPanels = Array.from(document.querySelectorAll('[data-tabpanel]'));
 
+  function isPanelVisible(panel) {
+    return panel.style.display !== 'none';
+  }
+
+  function syncTabButtonStates() {
+    tabButtons.forEach(btn => {
+      const id = btn.getAttribute('data-tab');
+      const panel = id ? document.querySelector(`[data-tabpanel="${id}"]`) : null;
+      const isActive = !!(panel && isPanelVisible(panel));
+      btn.classList.toggle('active', isActive);
+      if (isActive) btn.setAttribute('aria-pressed', 'true');
+      else btn.setAttribute('aria-pressed', 'false');
+    });
+  }
+
   function normalizeHashToTabId(hash) {
     const id = (hash || '').replace(/^#/, '');
     if (!id) return '';
@@ -601,29 +620,12 @@ document.addEventListener('DOMContentLoaded', function() {
     return id;
   }
 
-  function getFallbackTabId() {
-    const preferred = ['daily-access', 'related-analytics', 'my-articles'];
-    for (const id of preferred) {
-      if (document.querySelector(`[data-tabpanel="${id}"]`)) return id;
-    }
-    return tabPanels.length ? (tabPanels[0].getAttribute('data-tabpanel') || '') : '';
-  }
-
-  function setActiveTab(tabId) {
-    if (!tabId) tabId = getFallbackTabId();
+  function setPanelVisibleById(tabId, visible) {
     if (!tabId) return;
-
-    tabPanels.forEach(panel => {
-      const id = panel.getAttribute('data-tabpanel');
-      panel.style.display = (id === tabId) ? '' : 'none';
-    });
-
-    tabButtons.forEach(btn => {
-      const isActive = btn.getAttribute('data-tab') === tabId;
-      btn.classList.toggle('active', isActive);
-      if (isActive) btn.setAttribute('aria-current', 'page');
-      else btn.removeAttribute('aria-current');
-    });
+    const panel = document.querySelector(`[data-tabpanel="${tabId}"]`);
+    if (!panel) return;
+    panel.style.display = visible ? '' : 'none';
+    syncTabButtonStates();
   }
 
   function scrollToHashTarget(rawHash) {
@@ -637,15 +639,30 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   if (tabNav && tabPanels.length) {
-    // Click on main tab buttons
+    // Ensure all panels are hidden by default (CSS also hides them)
+    tabPanels.forEach(panel => {
+      panel.style.display = 'none';
+    });
+    syncTabButtonStates();
+
+    // Click on main tab buttons (toggle)
     tabButtons.forEach(btn => {
       btn.addEventListener('click', function(e) {
         const tabId = this.getAttribute('data-tab');
         if (!tabId) return;
         e.preventDefault();
-        history.replaceState(null, '', `#${tabId}`);
-        setActiveTab(tabId);
-        window.scrollTo({ top: 0, behavior: 'auto' });
+        const panel = document.querySelector(`[data-tabpanel="${tabId}"]`);
+        if (!panel) return;
+        const willShow = !isPanelVisible(panel);
+        setPanelVisibleById(tabId, willShow);
+        if (willShow) {
+          history.replaceState(null, '', `#${tabId}`);
+          scrollToHashTarget(`#${tabId}`);
+        } else {
+          if (location.hash === `#${tabId}`) {
+            history.replaceState(null, '', location.pathname + location.search);
+          }
+        }
       });
     });
 
@@ -653,7 +670,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('hashchange', function() {
       const rawHash = location.hash;
       const tabId = normalizeHashToTabId(rawHash);
-      setActiveTab(tabId);
+      if (tabId) setPanelVisibleById(tabId, true);
       if (rawHash && rawHash !== `#${tabId}`) scrollToHashTarget(rawHash);
     });
 
@@ -661,7 +678,7 @@ document.addEventListener('DOMContentLoaded', function() {
     {
       const rawHash = location.hash;
       const tabId = normalizeHashToTabId(rawHash);
-      setActiveTab(tabId);
+      if (tabId) setPanelVisibleById(tabId, true);
       if (rawHash && rawHash !== `#${tabId}`) scrollToHashTarget(rawHash);
     }
 
@@ -672,7 +689,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const rawHash = this.getAttribute('href') || '';
         history.replaceState(null, '', rawHash);
-        setActiveTab('related-analytics');
+        setPanelVisibleById('related-analytics', true);
         scrollToHashTarget(rawHash);
       });
     });
