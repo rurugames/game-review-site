@@ -90,6 +90,21 @@ function reorderByPositionOrder(items, positionOrder) {
   return out.filter(Boolean);
 }
 
+function getTagSet(tags) {
+  if (!Array.isArray(tags)) return new Set();
+  return new Set(tags.map((t) => String(t || '').trim()).filter(Boolean));
+}
+
+function countTagMatches(aTags, bTagSet) {
+  if (!Array.isArray(aTags) || aTags.length === 0 || !bTagSet || bTagSet.size === 0) return 0;
+  let c = 0;
+  for (const t of aTags) {
+    const k = String(t || '').trim();
+    if (k && bTagSet.has(k)) c += 1;
+  }
+  return c;
+}
+
 // 新規記事作成フォーム（管理者のみ）
 router.get('/new', ensureAdmin, (req, res) => {
   res.render('articles/new');
@@ -152,31 +167,45 @@ router.get('/:id', async (req, res) => {
     let recommendedSameDeveloper = [];
 
     try {
-      // 同属性: genre優先、無ければタグ一致で補完
-      if (article.genre) {
-        recommendedSameAttribute = await Article.find({ ...baseQuery, genre: article.genre })
-          .populate('author')
-          .sort({ rating: -1, createdAt: -1, _id: -1 })
-          .limit(3)
-          .lean();
-      }
+      // 同属性: 同ジャンル優先 + タグ一致数でスコアリング（新着順ベース）
+      const tagSet = getTagSet(article.tags);
+      const or = [];
+      if (article.genre) or.push({ genre: article.genre });
+      if (tagSet.size > 0) or.push({ tags: { $in: Array.from(tagSet) } });
 
-      if (recommendedSameAttribute.length < 3 && article.tags && article.tags.length > 0) {
-        const already = new Set(recommendedSameAttribute.map((a) => String(a && a._id)));
-        const excludeIds = [article._id, ...Array.from(already).filter(Boolean)];
-        const more = await Article.find({ status: 'published', _id: { $nin: excludeIds }, tags: { $in: article.tags } })
+      if (or.length > 0) {
+        const candidates = await Article.find({ ...baseQuery, $or: or })
           .populate('author')
-          .sort({ rating: -1, createdAt: -1, _id: -1 })
-          .limit(3 - recommendedSameAttribute.length)
+          .sort({ createdAt: -1, _id: -1 })
+          .limit(60)
           .lean();
-        recommendedSameAttribute = recommendedSameAttribute.concat(more || []);
+
+        const scored = (candidates || []).map((a) => {
+          const genreBoost = article.genre && a && a.genre === article.genre ? 100 : 0;
+          const tagMatches = countTagMatches(a && a.tags, tagSet);
+          const score = genreBoost + (tagMatches * 10);
+          return { a, score, tagMatches };
+        });
+
+        scored.sort((x, y) => {
+          if ((y.score || 0) !== (x.score || 0)) return (y.score || 0) - (x.score || 0);
+          if ((y.tagMatches || 0) !== (x.tagMatches || 0)) return (y.tagMatches || 0) - (x.tagMatches || 0);
+          const ya = y.a || {};
+          const xa = x.a || {};
+          const yCreated = ya.createdAt ? new Date(ya.createdAt).getTime() : 0;
+          const xCreated = xa.createdAt ? new Date(xa.createdAt).getTime() : 0;
+          if (yCreated !== xCreated) return yCreated - xCreated;
+          return String(ya._id || '').localeCompare(String(xa._id || ''));
+        });
+
+        recommendedSameAttribute = scored.slice(0, 3).map((r) => r.a);
       }
 
       // 同サークル(開発元): developer一致
       if (article.developer) {
         recommendedSameDeveloper = await Article.find({ ...baseQuery, developer: article.developer })
           .populate('author')
-          .sort({ rating: -1, createdAt: -1, _id: -1 })
+          .sort({ createdAt: -1, _id: -1 })
           .limit(3)
           .lean();
       }
