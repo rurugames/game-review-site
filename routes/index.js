@@ -980,6 +980,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
     let relatedClicksTopDestinations = [];
 
     let relatedClicksTopFromArticles = [];
+    let relatedWorstCtrFromArticles = [];
 
     let relatedImpressionsByBlock = [];
     let relatedImpressionsByBlockPosition = [];
@@ -1084,6 +1085,12 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       ]);
       const impByFrom = new Map((impressionsByFrom || []).map((r) => [String(r._id), Number(r.count) || 0]));
 
+      const clicksByFromAll = await RelatedClick.aggregate([
+        { $match: { ts: { $gte: since } } },
+        { $group: { _id: '$fromArticle', count: { $sum: 1 } } },
+      ]);
+      const clickByFrom = new Map((clicksByFromAll || []).map((r) => [String(r._id), Number(r.count) || 0]));
+
       const clicksByFrom = await RelatedClick.aggregate([
         { $match: { ts: { $gte: since } } },
         { $group: { _id: '$fromArticle', count: { $sum: 1 } } },
@@ -1122,6 +1129,53 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
           ctr,
         };
       });
+
+      const impressionsByFromWithTitle = await RelatedImpression.aggregate([
+        { $match: { ts: { $gte: since } } },
+        { $group: { _id: '$fromArticle', impressions: { $sum: 1 } } },
+        { $sort: { impressions: -1 } },
+        { $limit: 200 },
+        {
+          $lookup: {
+            from: 'articles',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'fromArticle',
+          },
+        },
+        { $unwind: { path: '$fromArticle', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            fromArticleId: '$_id',
+            impressions: 1,
+            fromTitle: '$fromArticle.title',
+            fromGameTitle: '$fromArticle.gameTitle',
+          },
+        },
+      ]);
+
+      relatedWorstCtrFromArticles = (impressionsByFromWithTitle || [])
+        .map((row) => {
+          const fromId = row && row.fromArticleId ? String(row.fromArticleId) : '';
+          const impressions = Number(row.impressions) || 0;
+          const clicks = fromId ? (clickByFrom.get(fromId) || 0) : 0;
+          const ctr = impressions > 0 ? clicks / impressions : null;
+          return {
+            fromArticleId: row.fromArticleId,
+            fromTitle: row.fromTitle,
+            fromGameTitle: row.fromGameTitle,
+            clicks,
+            impressions,
+            ctr,
+          };
+        })
+        .filter((row) => row.ctr !== null)
+        .sort((a, b) => {
+          if ((a.ctr || 0) !== (b.ctr || 0)) return (a.ctr || 0) - (b.ctr || 0);
+          if ((b.impressions || 0) !== (a.impressions || 0)) return (b.impressions || 0) - (a.impressions || 0);
+          return (b.clicks || 0) - (a.clicks || 0);
+        })
+        .slice(0, 20);
     }
 
     res.render('dashboard', {
@@ -1136,6 +1190,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       relatedClicksByBlockPosition,
       relatedClicksTopDestinations,
       relatedClicksTopFromArticles,
+      relatedWorstCtrFromArticles,
       relatedImpressionsByBlock,
       relatedImpressionsByBlockPosition,
       relatedCtrByBlock,

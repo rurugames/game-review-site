@@ -156,6 +156,43 @@
               </article>
             <% } %>
 
+            <% if (typeof relatedWorstCtrFromArticles !== 'undefined' && relatedWorstCtrFromArticles && relatedWorstCtrFromArticles.length > 0) { %>
+              <article class="article-card" style="grid-column: 1 / -1;">
+                <div class="article-content">
+                  <h3 style="margin:0 0 0.5rem;">低CTR（元記事）</h3>
+                  <p style="margin:0 0 0.75rem; color: var(--text-muted);">表示（impression）が多いのにクリックされていない記事の上位です。</p>
+                  <table class="articles-table" style="margin-top:0.5rem;">
+                    <thead>
+                      <tr>
+                        <th>元記事</th>
+                        <th>CTR</th>
+                        <th>クリック/表示</th>
+                        <th>表示数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% relatedWorstCtrFromArticles.forEach(row => { %>
+                        <tr>
+                          <td>
+                            <% if (row.fromArticleId) { %>
+                              <a href="/articles/<%= row.fromArticleId %>">
+                                <%= row.fromTitle || row.fromGameTitle || String(row.fromArticleId) %>
+                              </a>
+                            <% } else { %>
+                              (不明)
+                            <% } %>
+                          </td>
+                          <td><%= row.ctr === null ? '-' : ((row.ctr * 100).toFixed(1) + '%') %></td>
+                          <td><%= row.clicks %>/<%= row.impressions %></td>
+                          <td><%= row.impressions %></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            <% } %>
+
             <% if (typeof relatedClicks !== 'undefined' && relatedClicks && relatedClicks.length > 0) { %>
               <article class="article-card" style="grid-column: 1 / -1;">
                 <div class="article-content">
