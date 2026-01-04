@@ -63,7 +63,8 @@
               </tr>
             </thead>
             <tbody>
-              <% dailyAccessTrend.forEach(row => { %>
+              <% const dailyAccessSorted = dailyAccessTrend.slice().sort((a, b) => String(b.day).localeCompare(String(a.day))); %>
+              <% dailyAccessSorted.forEach(row => { %>
                 <tr>
                   <td><%= row.day %></td>
                   <td><%= row.views %></td>
