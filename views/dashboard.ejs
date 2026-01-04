@@ -19,6 +19,8 @@
     <span class="per-label">目次:</span>
     <a class="per-button" href="#daily-access">日別アクセス</a>
     <a class="per-button" href="#related-analytics">関連記事CTR</a>
+    <a class="per-button" href="#related-daily-ctr">└ 日別CTR推移</a>
+    <a class="per-button" href="#related-details">└ 詳細</a>
     <a class="per-button" href="#my-articles">記事管理</a>
   </nav>
 
@@ -94,7 +96,7 @@
             </article>
 
             <% if (typeof relatedDailyCtrTrend !== 'undefined' && relatedDailyCtrTrend && relatedDailyCtrTrend.length > 0) { %>
-              <article class="article-card" style="grid-column: 1 / -1;">
+              <article id="related-daily-ctr" class="article-card" style="grid-column: 1 / -1;">
                 <div class="article-content">
                   <h3 style="margin:0 0 0.5rem;">日別CTR推移</h3>
                   <p style="margin:0 0 0.75rem; color: var(--text-muted);">JST基準。合計（同属性＋同サークル）とブロック別の推移です。</p>
@@ -175,7 +177,7 @@
 
           </div>
 
-          <h3 style="margin:1rem 0 0.75rem;">詳細</h3>
+          <h3 id="related-details" style="margin:1rem 0 0.75rem;">詳細</h3>
 
           <div class="articles-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
 
