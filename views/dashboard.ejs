@@ -488,6 +488,7 @@
       <button id="deselectAllArticles" class="btn-secondary">全解除</button>
       <button id="publishSelectedArticles" class="btn-primary" style="display: none;">選択した記事を公開</button>
       <button id="unpublishSelectedArticles" class="btn-secondary" style="display: none;">選択した記事を下書きに</button>
+      <button id="publishAllDraftArticles" class="btn-primary">下書きをすべて公開</button>
       <button id="deleteSelectedArticles" class="btn-delete" style="display: none;">選択した記事を削除</button>
     </div>
 
@@ -740,6 +741,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const deselectAllBtn = document.getElementById('deselectAllArticles');
   const publishSelectedBtn = document.getElementById('publishSelectedArticles');
   const unpublishSelectedBtn = document.getElementById('unpublishSelectedArticles');
+  const publishAllDraftBtn = document.getElementById('publishAllDraftArticles');
   const deleteSelectedBtn = document.getElementById('deleteSelectedArticles');
   const articleCheckboxes = document.querySelectorAll('.article-checkbox');
 
@@ -910,6 +912,40 @@ document.addEventListener('DOMContentLoaded', function() {
       } catch (error) {
         console.error('エラー:', error);
         alert('削除に失敗しました。');
+      }
+    });
+  }
+
+  // 下書きをすべて公開
+  if (publishAllDraftBtn) {
+    publishAllDraftBtn.addEventListener('click', async function () {
+      if (!confirm('下書きの記事をすべて公開しますか？')) return;
+
+      try {
+        const response = await fetch('/articles/publish-all-drafts', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        let data = null;
+        try {
+          data = await response.json();
+        } catch (_) {
+          const txt = await response.text();
+          throw new Error(txt || '不明なエラー');
+        }
+
+        if (data && data.success) {
+          alert(`${data.updatedCount}件の下書きを公開しました。`);
+          location.reload();
+        } else {
+          alert('公開に失敗しました: ' + ((data && data.error) || '不明なエラー'));
+        }
+      } catch (error) {
+        console.error('エラー:', error);
+        alert('公開に失敗しました。');
       }
     });
   }

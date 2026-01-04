@@ -317,6 +317,14 @@ router.get('/', async (req, res) => {
 
     const articlesQuery = { status: 'published' };
 
+    // 年/月フィルタ（releaseDate優先、未設定はcreatedAt）
+    const rawYear = req.query.year;
+    const rawMonth = req.query.month;
+    const selectedYear = rawYear != null && rawYear !== '' ? parseInt(String(rawYear), 10) : null;
+    const selectedMonth = rawMonth != null && rawMonth !== '' ? parseInt(String(rawMonth), 10) : null;
+    const hasValidYear = Number.isFinite(selectedYear) && selectedYear >= 2000 && selectedYear <= 2100;
+    const hasValidMonth = Number.isFinite(selectedMonth) && selectedMonth >= 1 && selectedMonth <= 12;
+
     // 検索（部分一致）: q=...
     const rawQ = (req.query.q ?? '').toString().trim();
     const q = rawQ.length > 80 ? rawQ.slice(0, 80) : rawQ;
@@ -388,6 +396,79 @@ router.get('/', async (req, res) => {
       articlesQuery.rating = { $in: uniqueRatings };
     }
 
+    // 年/月タブ用: 現在の検索条件（年/月以外）で集計
+    const baseQueryForBuckets = { ...articlesQuery };
+
+    // 既存の$or（検索）を壊さずに、日付条件は$andに積む
+    const andConditions = [];
+    if (articlesQuery.$and && Array.isArray(articlesQuery.$and)) {
+      andConditions.push(...articlesQuery.$and);
+    }
+
+    if (hasValidYear) {
+      if (hasValidMonth) {
+        const mStart = new Date(Date.UTC(selectedYear, selectedMonth - 1, 1, 0, 0, 0, 0));
+        const mEnd = new Date(Date.UTC(selectedYear, selectedMonth, 1, 0, 0, 0, 0));
+        andConditions.push({
+          $or: [
+            { releaseDate: { $gte: mStart, $lt: mEnd } },
+            {
+              $and: [
+                { $or: [{ releaseDate: { $exists: false } }, { releaseDate: null }] },
+                { createdAt: { $gte: mStart, $lt: mEnd } },
+              ],
+            },
+          ],
+        });
+      } else {
+        const start = new Date(Date.UTC(selectedYear, 0, 1, 0, 0, 0, 0));
+        const end = new Date(Date.UTC(selectedYear + 1, 0, 1, 0, 0, 0, 0));
+        andConditions.push({
+          $or: [
+            { releaseDate: { $gte: start, $lt: end } },
+            {
+              $and: [
+                { $or: [{ releaseDate: { $exists: false } }, { releaseDate: null }] },
+                { createdAt: { $gte: start, $lt: end } },
+              ],
+            },
+          ],
+        });
+      }
+    }
+
+    if (andConditions.length) {
+      articlesQuery.$and = andConditions;
+    } else {
+      delete articlesQuery.$and;
+    }
+
+    // 年一覧・月一覧（年選択時のみ）
+    const yearsAgg = await Article.aggregate([
+      { $match: baseQueryForBuckets },
+      { $addFields: { _effectiveDate: { $ifNull: ['$releaseDate', '$createdAt'] } } },
+      { $project: { y: { $year: '$_effectiveDate' }, m: { $month: '$_effectiveDate' } } },
+      { $group: { _id: '$y', count: { $sum: 1 } } },
+      { $sort: { _id: -1 } },
+    ]);
+    const availableYears = (yearsAgg || [])
+      .map((r) => (r && r._id != null ? Number(r._id) : null))
+      .filter((n) => Number.isFinite(n));
+
+    let availableMonths = [];
+    if (hasValidYear) {
+      const monthsAgg = await Article.aggregate([
+        { $match: baseQueryForBuckets },
+        { $addFields: { _effectiveDate: { $ifNull: ['$releaseDate', '$createdAt'] } } },
+        { $match: { $expr: { $eq: [{ $year: '$_effectiveDate' }, selectedYear] } } },
+        { $group: { _id: { $month: '$_effectiveDate' }, count: { $sum: 1 } } },
+        { $sort: { _id: 1 } },
+      ]);
+      availableMonths = (monthsAgg || [])
+        .map((r) => (r && r._id != null ? Number(r._id) : null))
+        .filter((n) => Number.isFinite(n) && n >= 1 && n <= 12);
+    }
+
     const recommendedTagsAgg = await Article.aggregate([
       { $match: { status: 'published' } },
       { $unwind: '$tags' },
@@ -446,6 +527,10 @@ router.get('/', async (req, res) => {
       recommendedTags,
       selectedTags: uniqueTags,
       selectedRatings: uniqueRatings,
+      availableYears,
+      availableMonths,
+      selectedYear: hasValidYear ? selectedYear : null,
+      selectedMonth: hasValidYear && hasValidMonth ? selectedMonth : null,
       query: req.query
     });
   } catch (err) {
@@ -601,6 +686,35 @@ router.post('/bulk-update-status', ensureAdmin, async (req, res) => {
     res.status(500).json({ 
       success: false, 
       error: 'ステータスの更新に失敗しました' 
+    });
+  }
+});
+
+// 下書きの記事を全て公開（管理者のみ）
+router.post('/publish-all-drafts', ensureAdmin, async (req, res) => {
+  try {
+    const result = await Article.updateMany(
+      {
+        author: req.user.id,
+        status: 'draft',
+      },
+      {
+        $set: {
+          status: 'published',
+          updatedAt: Date.now(),
+        },
+      }
+    );
+
+    res.json({
+      success: true,
+      updatedCount: result.modifiedCount,
+    });
+  } catch (err) {
+    console.error('下書き一括公開エラー:', err);
+    res.status(500).json({
+      success: false,
+      error: '下書きの一括公開に失敗しました',
     });
   }
 });

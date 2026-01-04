@@ -40,11 +40,22 @@
     <button type="button" class="per-button filters-toggle" data-filters-toggle aria-controls="articles-filters" aria-expanded="false">フィルターを表示</button>
   </div>
 
+  <div class="per-toggle" aria-label="表示件数切替">
+    <span class="per-label">表示件数:</span>
+    <% const options = [10,30,50,100]; %>
+    <% options.forEach(function(opt){ %>
+      <a class="per-button <%= (typeof per !== 'undefined' && per === opt) ? 'active' : '' %>" href="<%= buildQs({ per: opt, page: 1 }) %>"><%= opt %></a>
+    <% }); %>
+  </div>
+
   <% const selectedTagsValue = (typeof selectedTags !== 'undefined' && selectedTags && selectedTags.length)
     ? selectedTags
     : ((query && query.tags) ? String(query.tags).split(',').map(t => String(t || '').trim().replace(/^#/, '')).filter(Boolean) : []);
   %>
   <% const activeTags = Array.from(new Set(selectedTagsValue)).filter(Boolean); %>
+
+  <% const activeYear = (typeof selectedYear !== 'undefined' && selectedYear) ? Number(selectedYear) : ((query && query.year) ? parseInt(String(query.year), 10) : null); %>
+  <% const activeMonth = (typeof selectedMonth !== 'undefined' && selectedMonth) ? Number(selectedMonth) : ((query && query.month) ? parseInt(String(query.month), 10) : null); %>
 
   <% if (activeTags && activeTags.length) { %>
     <% const tagLabel = activeTags.slice(0, 5).map(t => '#' + t).join('、'); %>
@@ -57,11 +68,17 @@
     </div>
   <% } %>
 
-  <% if (activeTags.length || activeQueryText) { %>
+  <% if (activeTags.length || activeQueryText || (activeYear && !isNaN(activeYear)) || (activeMonth && !isNaN(activeMonth))) { %>
     <div class="per-toggle" aria-label="タグ絞り込み">
       <span class="per-label">絞り込み中:</span>
       <% if (activeQueryText) { %>
         <span class="tag">検索: <%= activeQueryText %></span>
+      <% } %>
+      <% if (activeYear && !isNaN(activeYear)) { %>
+        <span class="tag"><%= activeYear %>年</span>
+      <% } %>
+      <% if (activeMonth && !isNaN(activeMonth)) { %>
+        <span class="tag"><%= String(activeMonth).padStart(2,'0') %>月</span>
       <% } %>
       <% activeTags.forEach(function(t){ %>
         <span class="tag">#<%= t %></span>
@@ -102,6 +119,26 @@
   %>
 
   <div id="articles-filters" class="filters-panel" hidden>
+    <% if (typeof availableYears !== 'undefined' && availableYears && availableYears.length) { %>
+      <div class="per-toggle" aria-label="年フィルター">
+        <span class="per-label">年:</span>
+        <a class="per-button <%= (!activeYear || isNaN(activeYear)) ? 'active' : '' %>" href="<%= buildQs({ year: '', month: '', page: 1 }) %>">すべて</a>
+        <% availableYears.forEach(function(y){ %>
+          <a class="per-button <%= (activeYear === Number(y)) ? 'active' : '' %>" href="<%= buildQs({ year: y, month: '', page: 1 }) %>"><%= y %></a>
+        <% }); %>
+      </div>
+
+      <% if (activeYear && !isNaN(activeYear) && typeof availableMonths !== 'undefined' && availableMonths && availableMonths.length) { %>
+        <div class="per-toggle" aria-label="月フィルター">
+          <span class="per-label">月:</span>
+          <a class="per-button <%= (!activeMonth || isNaN(activeMonth)) ? 'active' : '' %>" href="<%= buildQs({ year: activeYear, month: '', page: 1 }) %>">すべて</a>
+          <% availableMonths.forEach(function(m){ %>
+            <a class="per-button <%= (activeMonth === Number(m)) ? 'active' : '' %>" href="<%= buildQs({ year: activeYear, month: m, page: 1 }) %>"><%= String(m).padStart(2,'0') %></a>
+          <% }); %>
+        </div>
+      <% } %>
+    <% } %>
+
     <% if (typeof recommendedTags !== 'undefined' && recommendedTags && recommendedTags.length) { %>
       <div class="per-toggle" aria-label="おすすめタグ">
         <span class="per-label">おすすめタグ:</span>
@@ -127,13 +164,6 @@
       <a class="per-button <%= currentSort === 'release_old' ? 'active' : '' %>" href="<%= buildQs({ sort: 'release_old', page: 1, per: per }) %>">発売日(古い順)</a>
     </div>
 
-    <div class="per-toggle" aria-label="表示件数切替">
-      <span class="per-label">表示件数:</span>
-      <% const options = [10,30,50,100]; %>
-      <% options.forEach(function(opt){ %>
-        <a class="per-button <%= (typeof per !== 'undefined' && per === opt) ? 'active' : '' %>" href="<%= buildQs({ per: opt, page: 1 }) %>"><%= opt %></a>
-      <% }); %>
-    </div>
   </div>
 
   <% if (articles && articles.length > 0) { %>
