@@ -401,6 +401,9 @@ router.get('/:id', async (req, res) => {
     const metaDescription = String(articleWithHtml.description || '').trim().slice(0, 160);
     const ogImage = articleWithHtml.imageUrl || undefined;
     const authorName = (articleWithHtml.author && articleWithHtml.author.displayName) ? articleWithHtml.author.displayName : 'R18Hub';
+    const canonicalUrl = (res.locals && res.locals.canonicalUrl)
+      ? String(res.locals.canonicalUrl)
+      : `${req.protocol}://${req.get('host')}${req.originalUrl}`;
     const jsonLd = {
       '@context': 'https://schema.org',
       '@type': 'Article',
@@ -419,6 +422,7 @@ router.get('/:id', async (req, res) => {
       ogType: 'article',
       ogImage,
       jsonLd,
+      canonicalUrl,
       article: articleWithHtml,
       comments,
       recommendedSameAttribute,
