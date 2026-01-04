@@ -13,6 +13,7 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const RelatedClick = require('../models/RelatedClick');
 const RelatedImpression = require('../models/RelatedImpression');
+const DailyArticleView = require('../models/DailyArticleView');
 const { isAdminEmail } = require('../lib/admin');
 
 // キャッシュ設定
@@ -978,6 +979,26 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       .skip((page - 1) * per)
       .limit(per);
 
+    // 日別アクセス数（あなたの記事の合計）
+    const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+    const MS_PER_DAY = 24 * 60 * 60 * 1000;
+    const ymdJstFromMs = (ms) => new Date(ms + JST_OFFSET_MS).toISOString().slice(0, 10);
+    const startOfDayJstMs = (ymd) => {
+      const [y, m, d] = String(ymd || '').split('-').map((n) => parseInt(n, 10));
+      return Date.UTC(y, (m || 1) - 1, d || 1) - JST_OFFSET_MS;
+    };
+    const todayYmdJst = ymdJstFromMs(Date.now());
+    const todayStartJstMs = startOfDayJstMs(todayYmdJst);
+    const daysList = Array.from({ length: days }, (_, idx) => ymdJstFromMs(todayStartJstMs - (days - 1 - idx) * MS_PER_DAY));
+
+    const dailyViewsAgg = await DailyArticleView.aggregate([
+      { $match: { author: new mongoose.Types.ObjectId(req.user.id), day: { $in: daysList } } },
+      { $group: { _id: '$day', views: { $sum: '$views' } } },
+      { $sort: { _id: 1 } },
+    ]);
+    const viewsByDay = new Map((dailyViewsAgg || []).map((r) => [String(r._id), Number(r.views) || 0]));
+    const dailyAccessTrend = daysList.map((day) => ({ day, views: viewsByDay.get(day) || 0 }));
+
     let relatedClicks = [];
     let relatedClicksByBlock = [];
     let relatedClicksByBlockPosition = [];
@@ -1425,6 +1446,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       page,
       totalPages,
       query: req.query,
+      dailyAccessTrend,
       relatedClicks,
       relatedClicksByBlock,
       relatedClicksByBlockPosition,

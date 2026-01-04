@@ -9,9 +9,47 @@
        }
        return parts.length ? ('?' + parts.join('&')) : '';
      }
+
+     const dayOptions = [7, 30, 90];
   %>
 
   <h1>ダッシュボード</h1>
+
+  <% if (typeof dailyAccessTrend !== 'undefined' && dailyAccessTrend && dailyAccessTrend.length > 0) { %>
+    <section class="page-section" aria-label="日別アクセス数">
+      <div class="page-header">
+        <h2 class="section-title">日別アクセス数（直近<%= (typeof days !== 'undefined' && days) ? days : 30 %>日）</h2>
+        <p class="section-lead">あなたの記事詳細ページの閲覧数（PV）の合計です（JST基準）。</p>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <div class="per-toggle" aria-label="集計期間切替" style="margin-bottom: 1rem;">
+            <span class="per-label">期間:</span>
+            <% dayOptions.forEach(function(opt){ %>
+              <a class="per-button <%= (typeof days !== 'undefined' && days === opt) ? 'active' : '' %>" href="<%= buildQs({ days: opt, page: 1 }) %>"><%= opt %>日</a>
+            <% }); %>
+          </div>
+
+          <table class="articles-table" style="margin-top:0.5rem;">
+            <thead>
+              <tr>
+                <th>日付</th>
+                <th>アクセス数</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% dailyAccessTrend.forEach(row => { %>
+                <tr>
+                  <td><%= row.day %></td>
+                  <td><%= row.views %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  <% } %>
 
   <% if (
     (typeof relatedClicksByBlock !== 'undefined' && relatedClicksByBlock && relatedClicksByBlock.length > 0) ||

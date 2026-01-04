@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Article = require('../models/Article');
+const DailyArticleView = require('../models/DailyArticleView');
 const Comment = require('../models/Comment');
 const RelatedClick = require('../models/RelatedClick');
 const RelatedImpression = require('../models/RelatedImpression');
@@ -149,6 +150,22 @@ router.get('/:id', async (req, res) => {
     // 閲覧数を増加
     article.views += 1;
     await article.save();
+
+    // 日別アクセス数（JST）を集計（軽量カウンター）
+    try {
+      const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+      const day = new Date(Date.now() + JST_OFFSET_MS).toISOString().slice(0, 10);
+      const authorId = article && article.author && (article.author._id || article.author) ? (article.author._id || article.author) : null;
+      if (authorId) {
+        await DailyArticleView.updateOne(
+          { day, article: article._id },
+          { $setOnInsert: { author: authorId, createdAt: new Date() }, $set: { updatedAt: new Date() }, $inc: { views: 1 } },
+          { upsert: true }
+        );
+      }
+    } catch (_) {
+      // 集計失敗は本表示を止めない
+    }
     
     // MarkdownをHTMLに変換（既にHTMLの場合はそのまま使用）
     const articleWithHtml = article.toObject();
