@@ -979,6 +979,8 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
     let relatedClicksByBlockPosition = [];
     let relatedClicksTopDestinations = [];
 
+    let relatedClicksTopFromArticles = [];
+
     let relatedImpressionsByBlock = [];
     let relatedImpressionsByBlockPosition = [];
 
@@ -1075,6 +1077,51 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
           },
         },
       ]);
+
+      const impressionsByFrom = await RelatedImpression.aggregate([
+        { $match: { ts: { $gte: since } } },
+        { $group: { _id: '$fromArticle', count: { $sum: 1 } } },
+      ]);
+      const impByFrom = new Map((impressionsByFrom || []).map((r) => [String(r._id), Number(r.count) || 0]));
+
+      const clicksByFrom = await RelatedClick.aggregate([
+        { $match: { ts: { $gte: since } } },
+        { $group: { _id: '$fromArticle', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 20 },
+        {
+          $lookup: {
+            from: 'articles',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'fromArticle',
+          },
+        },
+        { $unwind: { path: '$fromArticle', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            count: 1,
+            fromArticleId: '$_id',
+            fromTitle: '$fromArticle.title',
+            fromGameTitle: '$fromArticle.gameTitle',
+          },
+        },
+      ]);
+
+      relatedClicksTopFromArticles = (clicksByFrom || []).map((row) => {
+        const fromId = row && row.fromArticleId ? String(row.fromArticleId) : '';
+        const clicks = Number(row.count) || 0;
+        const impressions = fromId ? (impByFrom.get(fromId) || 0) : 0;
+        const ctr = impressions > 0 ? clicks / impressions : null;
+        return {
+          fromArticleId: row.fromArticleId,
+          fromTitle: row.fromTitle,
+          fromGameTitle: row.fromGameTitle,
+          clicks,
+          impressions,
+          ctr,
+        };
+      });
     }
 
     res.render('dashboard', {
@@ -1088,6 +1135,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       relatedClicksByBlock,
       relatedClicksByBlockPosition,
       relatedClicksTopDestinations,
+      relatedClicksTopFromArticles,
       relatedImpressionsByBlock,
       relatedImpressionsByBlockPosition,
       relatedCtrByBlock,
