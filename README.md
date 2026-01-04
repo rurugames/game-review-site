@@ -120,6 +120,12 @@ npm run dev
 
 アプリケーションは `http://localhost:3000` で起動します。
 
+#### VS Code から起動（推奨）
+
+`.vscode/launch.json` を同梱しています。VS Code の「実行とデバッグ」から `Run Server (server.js)` を選ぶと、`.env` を読み込んで起動できます。
+
+もし起動後にすぐ終了する場合は、`DEBUG_PROCESS_EXIT=1` を付けて起動ログを確認してください。ログに `received SIGINT` が出ている場合は、コードの例外ではなく実行元（ターミナル/タスク等）から中断（Ctrl+C相当）されています。
+
 ## SEO（本番運用チェック）
 
 ### 必須：Render本番の環境変数
