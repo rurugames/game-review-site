@@ -990,6 +990,8 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
     let relatedCtrByTag = [];
     let relatedCtrByDeveloper = [];
 
+    let relatedDailyCtrTrend = [];
+
     let relatedImpressionsByBlock = [];
     let relatedImpressionsByBlockPosition = [];
 
@@ -999,6 +1001,19 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
     const isAdmin = !!(req.user && isAdminEmail(req.user.email));
     if (isAdmin) {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+
+      // Daily CTR trend (JST) for the last N days
+      const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+      const MS_PER_DAY = 24 * 60 * 60 * 1000;
+      const ymdJstFromMs = (ms) => new Date(ms + JST_OFFSET_MS).toISOString().slice(0, 10);
+      const startOfDayJstMs = (ymd) => {
+        const [y, m, d] = String(ymd || '').split('-').map((n) => parseInt(n, 10));
+        return Date.UTC(y, (m || 1) - 1, d || 1) - JST_OFFSET_MS;
+      };
+
+      const todayYmdJst = ymdJstFromMs(Date.now());
+      const todayStartJstMs = startOfDayJstMs(todayYmdJst);
+      const daysList = Array.from({ length: days }, (_, idx) => ymdJstFromMs(todayStartJstMs - (days - 1 - idx) * MS_PER_DAY));
 
       relatedClicks = await RelatedClick.find({ ts: { $gte: since } })
         .sort({ ts: -1 })
@@ -1337,6 +1352,69 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
         if ((b.clicks || 0) !== (a.clicks || 0)) return (b.clicks || 0) - (a.clicks || 0);
         return String(a.developer || '').localeCompare(String(b.developer || ''));
       }).slice(0, 30);
+
+      // 日別推移（同属性/同サークル + 合計）
+      const [dailyClicks, dailyImpressions] = await Promise.all([
+        RelatedClick.aggregate([
+          { $match: { ts: { $gte: since }, block: { $in: ['same_attribute', 'same_developer'] } } },
+          {
+            $project: {
+              block: 1,
+              day: {
+                $dateToString: {
+                  format: '%Y-%m-%d',
+                  date: '$ts',
+                  timezone: 'Asia/Tokyo',
+                },
+              },
+            },
+          },
+          { $group: { _id: { day: '$day', block: '$block' }, clicks: { $sum: 1 } } },
+          { $sort: { '_id.day': 1, '_id.block': 1 } },
+        ]),
+        RelatedImpression.aggregate([
+          { $match: { ts: { $gte: since }, block: { $in: ['same_attribute', 'same_developer'] } } },
+          {
+            $project: {
+              block: 1,
+              day: {
+                $dateToString: {
+                  format: '%Y-%m-%d',
+                  date: '$ts',
+                  timezone: 'Asia/Tokyo',
+                },
+              },
+            },
+          },
+          { $group: { _id: { day: '$day', block: '$block' }, impressions: { $sum: 1 } } },
+          { $sort: { '_id.day': 1, '_id.block': 1 } },
+        ]),
+      ]);
+
+      const clickByDayBlock = new Map((dailyClicks || []).map((r) => [`${String(r._id.day)}|${String(r._id.block)}`, Number(r.clicks) || 0]));
+      const impByDayBlock = new Map((dailyImpressions || []).map((r) => [`${String(r._id.day)}|${String(r._id.block)}`, Number(r.impressions) || 0]));
+
+      relatedDailyCtrTrend = daysList.map((day) => {
+        const row = { day };
+        const blocks = ['same_attribute', 'same_developer'];
+        let totalClicks = 0;
+        let totalImpressions = 0;
+        blocks.forEach((block) => {
+          const key = `${day}|${block}`;
+          const clicks = clickByDayBlock.get(key) || 0;
+          const impressions = impByDayBlock.get(key) || 0;
+          const ctr = impressions > 0 ? clicks / impressions : null;
+          row[block] = { clicks, impressions, ctr };
+          totalClicks += clicks;
+          totalImpressions += impressions;
+        });
+        row.total = {
+          clicks: totalClicks,
+          impressions: totalImpressions,
+          ctr: totalImpressions > 0 ? totalClicks / totalImpressions : null,
+        };
+        return row;
+      });
     }
 
     res.render('dashboard', {
@@ -1360,6 +1438,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       relatedImpressionsByBlockPosition,
       relatedCtrByBlock,
       relatedCtrByPosition,
+      relatedDailyCtrTrend,
     });
   } catch (err) {
     console.error(err);

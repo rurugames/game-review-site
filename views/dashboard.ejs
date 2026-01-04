@@ -47,6 +47,41 @@
               </div>
             </article>
 
+            <% if (typeof relatedDailyCtrTrend !== 'undefined' && relatedDailyCtrTrend && relatedDailyCtrTrend.length > 0) { %>
+              <article class="article-card" style="grid-column: 1 / -1;">
+                <div class="article-content">
+                  <h3 style="margin:0 0 0.5rem;">日別CTR推移</h3>
+                  <p style="margin:0 0 0.75rem; color: var(--text-muted);">JST基準。合計（同属性＋同サークル）とブロック別の推移です。</p>
+                  <table class="articles-table" style="margin-top:0.5rem;">
+                    <thead>
+                      <tr>
+                        <th>日付</th>
+                        <th>合計CTR</th>
+                        <th>合計 クリック/表示</th>
+                        <th>同属性CTR</th>
+                        <th>同属性 クリック/表示</th>
+                        <th>同サークルCTR</th>
+                        <th>同サークル クリック/表示</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% relatedDailyCtrTrend.forEach(row => { %>
+                        <tr>
+                          <td><%= row.day %></td>
+                          <td><%= row.total && row.total.ctr !== null ? ((row.total.ctr * 100).toFixed(1) + '%') : '-' %></td>
+                          <td><%= row.total ? (row.total.clicks + '/' + row.total.impressions) : '-' %></td>
+                          <td><%= row.same_attribute && row.same_attribute.ctr !== null ? ((row.same_attribute.ctr * 100).toFixed(1) + '%') : '-' %></td>
+                          <td><%= row.same_attribute ? (row.same_attribute.clicks + '/' + row.same_attribute.impressions) : '-' %></td>
+                          <td><%= row.same_developer && row.same_developer.ctr !== null ? ((row.same_developer.ctr * 100).toFixed(1) + '%') : '-' %></td>
+                          <td><%= row.same_developer ? (row.same_developer.clicks + '/' + row.same_developer.impressions) : '-' %></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            <% } %>
+
             <% if (typeof relatedCtrByBlock !== 'undefined' && relatedCtrByBlock && relatedCtrByBlock.length > 0) { %>
               <article class="article-card">
                 <div class="article-content">
