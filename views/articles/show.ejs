@@ -55,12 +55,36 @@
     </div>
 
     <div class="article-actions">
-      <button
-        type="button"
-        class="btn-back"
-        data-share-link-button="1"
+      <div
+        class="share-menu-wrap"
+        data-share-wrap="1"
         data-share-url="<%= canonicalUrl %>"
-      >共有リンクをコピー</button>
+        data-share-text="<%= (article && (article.title || article.gameTitle)) ? (article.title || article.gameTitle) : '' %>"
+      >
+        <button
+          type="button"
+          class="icon-btn"
+          data-share-toggle="1"
+          aria-label="共有"
+          aria-haspopup="true"
+          aria-expanded="false"
+        ><span aria-hidden="true">📤</span></button>
+
+        <div class="share-menu" data-share-menu="1" hidden>
+          <a href="#" class="share-menu-item" data-share-line="1" target="_blank" rel="noopener noreferrer">
+            <span class="share-menu-icon" aria-hidden="true">💬</span>
+            <span class="share-menu-label">LINEで共有</span>
+          </a>
+          <a href="#" class="share-menu-item" data-share-x="1" target="_blank" rel="noopener noreferrer">
+            <span class="share-menu-icon" aria-hidden="true">𝕏</span>
+            <span class="share-menu-label">Xで共有</span>
+          </a>
+          <button type="button" class="share-menu-item" data-share-copy="1">
+            <span class="share-menu-icon" aria-hidden="true">🔗</span>
+            <span class="share-menu-label">URLをコピー</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <% if (isAdmin) { %>
