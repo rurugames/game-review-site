@@ -958,6 +958,10 @@ router.get('/search', async (req, res) => {
 // ダッシュボード（ログイン必須）
 router.get('/dashboard', ensureAuth, async (req, res) => {
   try {
+    const allowedDays = [7, 30, 90];
+    let days = parseInt(req.query.days, 10) || 30;
+    if (!allowedDays.includes(days)) days = 30;
+
     const allowedPer = [10, 20, 50, 100];
     let per = parseInt(req.query.per, 10) || 20;
     if (!allowedPer.includes(per)) per = 20;
@@ -981,6 +985,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
 
     let relatedClicksTopFromArticles = [];
     let relatedWorstCtrFromArticles = [];
+    let relatedWorstCtrToArticles = [];
 
     let relatedImpressionsByBlock = [];
     let relatedImpressionsByBlockPosition = [];
@@ -990,7 +995,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
 
     const isAdmin = !!(req.user && isAdminEmail(req.user.email));
     if (isAdmin) {
-      const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
       relatedClicks = await RelatedClick.find({ ts: { $gte: since } })
         .sort({ ts: -1 })
@@ -1176,10 +1181,64 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
           return (b.clicks || 0) - (a.clicks || 0);
         })
         .slice(0, 20);
+
+      const clicksByTo = await RelatedClick.aggregate([
+        { $match: { ts: { $gte: since } } },
+        { $group: { _id: '$toArticle', clicks: { $sum: 1 } } },
+      ]);
+      const clickByTo = new Map((clicksByTo || []).map((r) => [String(r._id), Number(r.clicks || r.count) || 0]));
+
+      const impressionsByToWithTitle = await RelatedImpression.aggregate([
+        { $match: { ts: { $gte: since } } },
+        { $group: { _id: '$toArticle', impressions: { $sum: 1 } } },
+        { $sort: { impressions: -1 } },
+        { $limit: 200 },
+        {
+          $lookup: {
+            from: 'articles',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'toArticle',
+          },
+        },
+        { $unwind: { path: '$toArticle', preserveNullAndEmptyArrays: true } },
+        {
+          $project: {
+            toArticleId: '$_id',
+            impressions: 1,
+            toTitle: '$toArticle.title',
+            toGameTitle: '$toArticle.gameTitle',
+          },
+        },
+      ]);
+
+      relatedWorstCtrToArticles = (impressionsByToWithTitle || [])
+        .map((row) => {
+          const toId = row && row.toArticleId ? String(row.toArticleId) : '';
+          const impressions = Number(row.impressions) || 0;
+          const clicks = toId ? (clickByTo.get(toId) || 0) : 0;
+          const ctr = impressions > 0 ? clicks / impressions : null;
+          return {
+            toArticleId: row.toArticleId,
+            toTitle: row.toTitle,
+            toGameTitle: row.toGameTitle,
+            clicks,
+            impressions,
+            ctr,
+          };
+        })
+        .filter((row) => row.ctr !== null)
+        .sort((a, b) => {
+          if ((a.ctr || 0) !== (b.ctr || 0)) return (a.ctr || 0) - (b.ctr || 0);
+          if ((b.impressions || 0) !== (a.impressions || 0)) return (b.impressions || 0) - (a.impressions || 0);
+          return (b.clicks || 0) - (a.clicks || 0);
+        })
+        .slice(0, 20);
     }
 
     res.render('dashboard', {
       articles,
+      days,
       per,
       totalCount,
       page,
@@ -1191,6 +1250,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       relatedClicksTopDestinations,
       relatedClicksTopFromArticles,
       relatedWorstCtrFromArticles,
+      relatedWorstCtrToArticles,
       relatedImpressionsByBlock,
       relatedImpressionsByBlockPosition,
       relatedCtrByBlock,

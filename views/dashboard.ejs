@@ -19,11 +19,19 @@
   ) { %>
     <section class="page-section" aria-label="関連記事クリック集計">
       <div class="page-header">
-        <h2 class="section-title">関連記事クリック（直近30日）</h2>
+        <h2 class="section-title">関連記事クリック（直近<%= (typeof days !== 'undefined' && days) ? days : 30 %>日）</h2>
         <p class="section-lead">記事末尾の「同属性/同サークル」導線のクリック数とCTR（クリック/表示）です。</p>
       </div>
       <div class="panel">
         <div class="panel-body">
+          <div class="per-toggle" aria-label="集計期間切替" style="margin-bottom: 1rem;">
+            <span class="per-label">期間:</span>
+            <% const dayOptions = [7, 30, 90]; %>
+            <% dayOptions.forEach(function(opt){ %>
+              <a class="per-button <%= (typeof days !== 'undefined' && days === opt) ? 'active' : '' %>" href="<%= buildQs({ days: opt, page: 1 }) %>"><%= opt %>日</a>
+            <% }); %>
+          </div>
+
           <div class="articles-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
             <article class="article-card">
               <div class="article-content">
@@ -112,6 +120,43 @@
                             <% } %>
                           </td>
                           <td><%= row.count %></td>
+                        </tr>
+                      <% }); %>
+                    </tbody>
+                  </table>
+                </div>
+              </article>
+            <% } %>
+
+            <% if (typeof relatedWorstCtrToArticles !== 'undefined' && relatedWorstCtrToArticles && relatedWorstCtrToArticles.length > 0) { %>
+              <article class="article-card" style="grid-column: 1 / -1;">
+                <div class="article-content">
+                  <h3 style="margin:0 0 0.5rem;">低CTR（行き先）</h3>
+                  <p style="margin:0 0 0.75rem; color: var(--text-muted);">表示（impression）が多いのにクリックされていない行き先の上位です。</p>
+                  <table class="articles-table" style="margin-top:0.5rem;">
+                    <thead>
+                      <tr>
+                        <th>行き先</th>
+                        <th>CTR</th>
+                        <th>クリック/表示</th>
+                        <th>表示数</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% relatedWorstCtrToArticles.forEach(row => { %>
+                        <tr>
+                          <td>
+                            <% if (row.toArticleId) { %>
+                              <a href="/articles/<%= row.toArticleId %>">
+                                <%= row.toTitle || row.toGameTitle || String(row.toArticleId) %>
+                              </a>
+                            <% } else { %>
+                              (不明)
+                            <% } %>
+                          </td>
+                          <td><%= row.ctr === null ? '-' : ((row.ctr * 100).toFixed(1) + '%') %></td>
+                          <td><%= row.clicks %>/<%= row.impressions %></td>
+                          <td><%= row.impressions %></td>
                         </tr>
                       <% }); %>
                     </tbody>
