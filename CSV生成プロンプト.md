@@ -191,6 +191,33 @@ node -e "const dlsite = require('./services/dlsiteService'); dlsite.fetchGamesBy
 5. 各記事をCSV行に変換（カンマ区切り、改行・カンマを含む場合はダブルクォートで囲む）
 6. create_file ツールで `c:\\Users\\hider\\mytool\\csvoutput\\articles_{年}-{月}_part{番号}.csv` に書き込み
 
+**重要（part CSVの退避）**
+- **5件ずつ出力した `articles_{年}-{月}_part{番号}.csv` は、最後に `csvoutput` 直下の `backup` フォルダへ退避（移動）してください。**
+  - 退避先: `c:\\Users\\hider\\mytool\\csvoutput\\backup\\`
+  - 同名ファイルが既に存在する場合は、上書きせずに連番またはサフィックス（例: `_v2`）を付けて退避してください。
+
+### 3.5. 月次（YYYY-MM）で結合したインポート用CSVも出力
+**目的**: partに分割されたCSVを、インポート可能な「月1本」にまとめて追加で出力します。
+
+- 出力先: `c:\\Users\\hider\\mytool\\csvoutput\\articles_{年}-{月}_all.csv`
+- 仕様:
+  - UTF-8 BOM付き
+  - 改行はCRLF
+  - ヘッダーは先頭に1回のみ
+  - 末尾に空行を入れない（最後の行の後は改行1回のみ）
+
+**結合手順（JSスクリプトは使わず、Agentが直接処理）**
+1. `csvoutput` から当月の `articles_{年}-{月}_part*.csv` をすべて読み込む
+2. 先頭ファイルのヘッダー行を取得（列は以下で固定）
+   - `タイトル,ゲームタイトル,説明,本文,ジャンル,評価,画像URL,ステータス,発売日,タグ,アフィリエイトリンク`
+3. 各part CSVから
+   - BOM除去
+   - 改行（CRLF/LF）を正規化
+   - ヘッダー行を除いたデータ行のみ
+   を順に連結
+4. 上記を `articles_{年}-{月}_all.csv` として `create_file` で出力
+5. `articles_{年}-{月}_all.csv` の出力が完了したら、当月の `articles_{年}-{月}_part*.csv` を `csvoutput/backup/` へ退避（移動）
+
 **重要: Markdown記号の処理**
 - 本文フィールドはMarkdown形式で記述されています
 - Web表示時にHTMLに変換する必要があります
@@ -258,6 +285,12 @@ node -e "const fs=require('fs'); const csv=require('csv-parser'); const rows=[];
 2024年12月
 ```
 
+**年のみ指定（1月〜12月を順番に処理）:**
+
+```
+2025年
+```
+
 **実行の流れ:**
 1. VS Code Copilot Chatがこのプロンプトを読み込み
 2. DLsiteから当月発売のゲーム情報を**全件**取得（Node.jsコマンド実行）
@@ -266,7 +299,16 @@ node -e "const fs=require('fs'); const csv=require('csv-parser'); const rows=[];
 5. 新規ゲームについてAIが記事を生成
 6. **5件ずつ**CSVファイルを `csvoutput/` フォルダに出力
 7. 出力したゲームを `processed_games.json` に追記して保存
-7. 完了メッセージと次のステップを表示
+8. 当月の `articles_{年}-{月}_all.csv`（インポート用の月次まとめ）も出力
+9. 当月の `articles_{年}-{月}_part*.csv` は `csvoutput/backup/` へ退避
+10. 完了メッセージと次のステップを表示
+
+**年のみ指定の場合（例: `2025年`）の実行の流れ:**
+- 1月〜12月まで、上記の「実行の流れ（年月指定）」を**月ごとに順番に**繰り返してください。
+  - 対象月: `2025-01` → `2025-02` → ... → `2025-12`
+  - 各月で `fetched_games_{年}-{月}.json` / `articles_{年}-{月}_part*.csv` / `articles_{年}-{月}_all.csv` をそれぞれ作成
+  - 各月の `_all.csv` 出力後、その月の `_part*.csv` を `csvoutput/backup/` へ退避
+  - `processed_games.json` は通年で共通の重複回避リストとして扱い、月をまたいで再出力しない
 
 ---
 
