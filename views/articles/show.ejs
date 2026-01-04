@@ -91,6 +91,47 @@
       </div>
     <% } %>
 
+    <% if (relatedVideos && relatedVideos.length > 0) { %>
+      <section class="articles-section page-section" aria-label="関連動画">
+        <div class="page-header">
+          <h2 class="section-title">関連動画</h2>
+          <p class="section-lead">タイトルの単語から関連動画を探しました。</p>
+        </div>
+        <div class="panel">
+          <div class="panel-body">
+            <div class="articles-grid">
+              <% relatedVideos.forEach(function(v){ %>
+                <article class="article-card">
+                  <% if (v.thumbnailUrl) { %>
+                    <div class="article-image">
+                      <a href="<%= v.url %>" target="_blank" rel="noopener noreferrer">
+                        <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>">
+                      </a>
+                    </div>
+                  <% } %>
+                  <div class="article-content">
+                    <div class="article-meta">
+                      <span class="genre">YouTube</span>
+                      <% if (v.publishedAtJp) { %>
+                        <span class="date"><%= v.publishedAtJp %></span>
+                      <% } %>
+                    </div>
+                    <h2>
+                      <a href="<%= v.url %>" target="_blank" rel="noopener noreferrer"><%= v.title %></a>
+                    </h2>
+                    <% if (v.shortDescription) { %>
+                      <p class="description"><%= v.shortDescription %></p>
+                    <% } %>
+                    <a href="<%= v.url %>" target="_blank" rel="noopener noreferrer" class="btn-read-more">動画を見る</a>
+                  </div>
+                </article>
+              <% }); %>
+            </div>
+          </div>
+        </div>
+      </section>
+    <% } %>
+
     <section class="articles-section page-section" aria-label="同属性のおすすめ">
       <div class="page-header">
         <h2 class="section-title">同属性のおすすめ3本</h2>

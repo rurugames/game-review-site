@@ -5,6 +5,7 @@ const { XMLParser } = require('fast-xml-parser');
 const DEFAULT_TTL_MS = 60 * 60 * 1000;
 const UPLOADS_PLAYLIST_TTL_MS = 24 * 60 * 60 * 1000;
 const QUOTA_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const SEARCH_TTL_MS = 24 * 60 * 60 * 1000;
 
 /** @type {Map<string, {ts:number, data:any}>} */
 const cache = new Map();
@@ -385,8 +386,48 @@ async function fetchVideosByPlaylist(playlistId, { limit = 12, ttlMs = DEFAULT_T
   });
 }
 
+async function searchVideosByQuery(query, { limit = 6, ttlMs = SEARCH_TTL_MS } = {}) {
+  const q = normalizeSpaces(query);
+  if (!q) return [];
+
+  const cacheKey = `search:q:${q}:limit:${limit}`;
+  return runWithInflight(cacheKey, async () => {
+    const cached = getFromCache(cacheKey, ttlMs);
+    if (cached) return cached;
+
+    if (Date.now() < quotaExceededUntilTs) {
+      return getAnyFromCache(cacheKey) || [];
+    }
+
+    try {
+      const data = await youtubeGet('search', {
+        part: 'snippet',
+        q,
+        type: 'video',
+        maxResults: Math.min(50, Math.max(1, Number(limit) || 6)),
+        order: 'relevance',
+      });
+
+      const items = Array.isArray(data && data.items) ? data.items : [];
+      const videos = items.map(mapSearchItemToVideo).filter((v) => v && v.id);
+      setCache(cacheKey, videos);
+      return videos;
+    } catch (e) {
+      if (isQuotaExceededError(e)) {
+        quotaExceededUntilTs = Date.now() + QUOTA_COOLDOWN_MS;
+        return getAnyFromCache(cacheKey) || [];
+      }
+      if (e && e.code === 'YOUTUBE_API_KEY_MISSING') {
+        return [];
+      }
+      throw e;
+    }
+  });
+}
+
 module.exports = {
   fetchLatestVideosByChannel,
   fetchPopularVideosByChannel,
   fetchVideosByPlaylist,
+  searchVideosByQuery,
 };

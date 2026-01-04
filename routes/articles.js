@@ -8,6 +8,7 @@ const RelatedImpression = require('../models/RelatedImpression');
 const { ensureAuth, ensureAdmin } = require('../middleware/auth');
 const { marked } = require('marked');
 const { normalizeAffiliateLink, rewriteDlsiteWorkLinksInHtml, DEFAULT_AID } = require('../lib/dlsiteAffiliate');
+const { searchVideosByQuery } = require('../services/youtubeDataApiService');
 
 // Markedの設定
 marked.setOptions({
@@ -105,6 +106,107 @@ function countTagMatches(aTags, bTagSet) {
     if (k && bTagSet.has(k)) c += 1;
   }
   return c;
+}
+
+function normalizeYoutubeKeyword(s) {
+  return String(s || '')
+    .replace(/\uFEFF/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractYoutubeKeywordsFromText(text) {
+  const src = normalizeYoutubeKeyword(text);
+  if (!src) return [];
+
+  const out = [];
+  const push = (v) => {
+    const k = normalizeYoutubeKeyword(v);
+    if (!k) return;
+    if (k.length < 2) return;
+    if (k.length > 60) return;
+    out.push(k);
+  };
+
+  // 「」『』"" 内のフレーズを優先
+  const quoteRx = /[「『"“”]([^」』"“”]{2,60})[」』"“”]/g;
+  let m;
+  while ((m = quoteRx.exec(src)) !== null) {
+    push(m[1]);
+  }
+
+  // 〜系 っぽい語
+  const keiRx = /[一-龯ぁ-んァ-ヶー]{2,}系/g;
+  const keis = src.match(keiRx) || [];
+  keis.forEach(push);
+
+  // 日本語の連続
+  const jpRx = /[一-龯ぁ-んァ-ヶー]{2,}/g;
+  const jp = src.match(jpRx) || [];
+  jp.forEach(push);
+
+  // 英数字トークン（例: RPG3, SRPG, etc）
+  const anRx = /[A-Za-z0-9][A-Za-z0-9+._-]{2,}/g;
+  const an = src.match(anRx) || [];
+  an.forEach(push);
+
+  // 末尾の数字を落とした派生（深淵の森RPG3 -> 深淵の森RPG）
+  const derived = [];
+  for (const t of out) {
+    const d = t.replace(/[0-9０-９]+$/g, '').trim();
+    if (d && d !== t) derived.push(d);
+  }
+  derived.forEach(push);
+
+  const stop = new Set([
+    'レビュー',
+    '感想',
+    'おすすめ',
+    'まとめ',
+    '攻略',
+    '同人',
+    'ゲーム',
+    '紹介',
+  ]);
+
+  const seen = new Set();
+  const uniq = [];
+  for (const t of out) {
+    const k = normalizeYoutubeKeyword(t);
+    if (!k) continue;
+    if (stop.has(k)) continue;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    uniq.push(k);
+  }
+  return uniq;
+}
+
+function buildYoutubeSearchKeywords(article) {
+  const texts = [];
+  if (article && article.gameTitle) texts.push(article.gameTitle);
+  if (article && article.title) texts.push(article.title);
+  if (article && Array.isArray(article.tags) && article.tags.length) {
+    texts.push(article.tags.slice(0, 6).join(' '));
+  }
+
+  const tokens = [];
+  for (const t of texts) {
+    extractYoutubeKeywordsFromText(t).forEach((x) => tokens.push(x));
+  }
+
+  // 長めの語を優先（ノイズを減らす）
+  tokens.sort((a, b) => (b.length - a.length) || a.localeCompare(b, 'ja'));
+
+  const seen = new Set();
+  const out = [];
+  for (const t of tokens) {
+    if (seen.has(t)) continue;
+    seen.add(t);
+    out.push(t);
+    if (out.length >= 6) break;
+  }
+  return out;
 }
 
 // 新規記事作成フォーム（管理者のみ）
@@ -271,6 +373,29 @@ router.get('/:id', async (req, res) => {
       } catch (_) {}
     }
 
+    // 関連動画（YouTube）: 単語ベースの曖昧検索 → 統合・重複排除
+    let relatedVideos = [];
+    try {
+      const keywords = buildYoutubeSearchKeywords(articleWithHtml).slice(0, 4);
+      const seenVideoIds = new Set();
+      for (const kw of keywords) {
+        const videos = await searchVideosByQuery(kw, { limit: 3 });
+        for (const v of videos) {
+          const id = v && v.id ? String(v.id) : '';
+          if (!id || seenVideoIds.has(id)) continue;
+          seenVideoIds.add(id);
+          relatedVideos.push(v);
+          if (relatedVideos.length >= 6) break;
+        }
+        if (relatedVideos.length >= 6) break;
+      }
+    } catch (e) {
+      relatedVideos = [];
+      try {
+        console.warn('Related videos fetch failed:', e && e.message ? e.message : String(e));
+      } catch (_) {}
+    }
+
     // SEO
     const title = articleWithHtml.title || articleWithHtml.gameTitle || '記事';
     const metaDescription = String(articleWithHtml.description || '').trim().slice(0, 160);
@@ -298,6 +423,7 @@ router.get('/:id', async (req, res) => {
       comments,
       recommendedSameAttribute,
       recommendedSameDeveloper,
+      relatedVideos,
     });
   } catch (err) {
     console.error(err);
