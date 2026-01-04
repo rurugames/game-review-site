@@ -125,8 +125,14 @@ npm run dev
 ```bash
 npm run start:detached
 
+# 起動確認（pidファイル or /healthz）
+npm run status:detached
+
 # 停止
 npm run stop:detached
+
+# 再起動
+npm run restart:detached
 ```
 
 デバッグログ付き（`DEBUG_PROCESS_EXIT=1`）で切り離し起動する場合:
