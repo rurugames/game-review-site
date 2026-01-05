@@ -1,0 +1,113 @@
+<div class="page">
+  <div class="page-header">
+    <h1 class="section-title" style="margin:0;">マイページ</h1>
+    <p class="section-lead" style="margin-top:0.5rem;">自分のコメント一覧と、返信の通知を確認できます。</p>
+  </div>
+
+  <div class="panel" style="margin-top:1rem;">
+    <div class="panel-body" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <img src="<%= profileUser.image %>" alt="<%= profileUser.displayName %>" class="user-avatar">
+        <div>
+          <div style="font-weight:700;"><%= (adminDisplayNames && adminDisplayNames[profileUser.email]) ? adminDisplayNames[profileUser.email] : profileUser.displayName %></div>
+          <div style="color:var(--text-secondary); font-size:0.95rem;"><%= profileUser.email %></div>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <div style="color:var(--text-secondary);">未読返信</div>
+        <div style="font-weight:800; font-size:1.25rem;"><%= typeof unreadRepliesCount !== 'undefined' ? unreadRepliesCount : 0 %></div>
+      </div>
+    </div>
+  </div>
+
+  <section class="page-section" aria-label="自分のコメント一覧" style="margin-top:1.25rem;">
+    <div class="page-header">
+      <h2 class="section-title" style="margin:0;">自分のコメント一覧</h2>
+      <p class="section-lead">記事へのコメント（親コメント）と、その返信を表示します。</p>
+    </div>
+
+    <% if (commentThreads && commentThreads.length > 0) { %>
+      <div class="panel">
+        <div class="panel-body">
+          <table class="articles-table" style="margin-top:0;">
+            <thead>
+              <tr>
+                <th>日時</th>
+                <th>記事</th>
+                <th>コメント</th>
+                <th>返信</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% commentThreads.forEach(function(c){ %>
+                <tr>
+                  <td style="white-space:nowrap;"><%= c.createdAt ? new Date(c.createdAt).toLocaleString('ja-JP') : '' %></td>
+                  <td>
+                    <% if (c.article && c.article._id) { %>
+                      <a href="/articles/<%= c.article._id %>"><%= c.article.title || c.article.gameTitle || '（無題）' %></a>
+                    <% } else { %>
+                      (不明)
+                    <% } %>
+                  </td>
+                  <td>
+                    <% const txt = String(c.content || ''); %>
+                    <%= txt.length > 160 ? (txt.slice(0, 160) + '…') : txt %>
+                    <div style="margin-top:0.35rem;">
+                      <a href="/articles/<%= c.article && c.article._id ? c.article._id : '' %>#comment-<%= c._id %>" class="btn-secondary" style="padding:0.25rem 0.5rem;">該当コメントへ</a>
+                    </div>
+                  </td>
+                  <td>
+                    <% const rs = c.replies || []; %>
+                    <% if (rs.length === 0) { %>
+                      0
+                    <% } else { %>
+                      <div style="display:flex; align-items:center; gap:0.5rem;">
+                        <span><%= rs.length %></span>
+                        <% if (c._hasUnread) { %>
+                          <span class="notif-badge" title="未読返信があります">NEW</span>
+                        <% } %>
+                      </div>
+                      <details style="margin-top:0.4rem;">
+                        <summary class="btn-secondary" style="cursor:pointer; display:inline-block; padding:0.25rem 0.5rem;">返信を見る</summary>
+                        <div style="margin-top:0.5rem;">
+                          <% rs.forEach(function(r){ %>
+                            <div style="padding:0.5rem 0; border-top: 1px solid rgba(255,255,255,0.06);">
+                              <div style="display:flex; align-items:center; justify-content:space-between; gap:0.75rem;">
+                                <div style="display:flex; align-items:center; gap:0.5rem;">
+                                  <img src="<%= r.author && r.author.image ? r.author.image : '' %>" alt="" style="width:22px; height:22px; border-radius:999px; border:1px solid rgba(255,255,255,0.08);">
+                                  <div style="font-weight:600;">
+                                    <%= (r.author && (adminDisplayNames && adminDisplayNames[r.author.email])) ? adminDisplayNames[r.author.email] : (r.author ? r.author.displayName : '（不明）') %>
+                                  </div>
+                                  <% if (r._isUnread) { %>
+                                    <span class="notif-badge" title="未読">未読</span>
+                                  <% } %>
+                                </div>
+                                <div style="color:var(--text-secondary); font-size:0.9rem; white-space:nowrap;">
+                                  <%= r.createdAt ? new Date(r.createdAt).toLocaleString('ja-JP') : '' %>
+                                </div>
+                              </div>
+                              <div style="margin-top:0.35rem;">
+                                <%= String(r.content || '') %>
+                              </div>
+                            </div>
+                          <% }); %>
+                        </div>
+                      </details>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="panel">
+        <div class="panel-body">
+          まだコメントがありません。
+        </div>
+      </div>
+    <% } %>
+  </section>
+</div>

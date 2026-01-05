@@ -91,6 +91,7 @@
           <% } %>
           <li><a href="/help">ヘルプ</a></li>
           <% if (user) { %>
+            <li><a href="/users/me">マイページ</a></li>
             <li><a href="/auth/logout">ログアウト</a></li>
           <% } else { %>
             <li><a href="/auth/google">ログイン</a></li>
@@ -131,7 +132,12 @@
           </div>
           <% if (user) { %>
             <div class="user-info-top">
-              <img src="<%= user.image %>" alt="<%= displayName %>" class="user-avatar">
+              <a href="/users/me" class="user-avatar-wrap" aria-label="マイページ">
+                <img src="<%= user.image %>" alt="<%= displayName %>" class="user-avatar">
+                <% if (typeof notificationCount !== 'undefined' && notificationCount && notificationCount > 0) { %>
+                  <span class="notif-badge" aria-label="未読返信 <%= notificationCount %>件"><%= notificationCount > 99 ? '99+' : notificationCount %></span>
+                <% } %>
+              </a>
               <span class="display-name"><%= displayName %></span>
               <a href="/auth/logout" class="btn-secondary">ログアウト</a>
             </div>

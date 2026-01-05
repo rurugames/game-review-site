@@ -250,10 +250,32 @@ router.get('/:id', async (req, res) => {
       return res.status(404).send('記事が見つかりません');
     }
     
-    // コメントを取得
-    const comments = await Comment.find({ article: req.params.id })
-      .populate('author')
-      .sort({ createdAt: -1 });
+    // コメントを取得（親 + 返信）
+    const [parentComments, replyComments] = await Promise.all([
+      Comment.find({ article: req.params.id, parent: null })
+        .populate('author')
+        .sort({ createdAt: -1, _id: -1 })
+        .lean(),
+      Comment.find({ article: req.params.id, parent: { $ne: null } })
+        .populate('author')
+        .sort({ createdAt: 1, _id: 1 })
+        .lean(),
+    ]);
+
+    const repliesByParent = new Map();
+    (replyComments || []).forEach((c) => {
+      const pid = c && c.parent ? String(c.parent) : '';
+      if (!pid) return;
+      const arr = repliesByParent.get(pid) || [];
+      arr.push(c);
+      repliesByParent.set(pid, arr);
+    });
+
+    const comments = (parentComments || []).map((c) => {
+      const id = c && c._id ? String(c._id) : '';
+      return { ...c, replies: repliesByParent.get(id) || [] };
+    });
+    const commentCount = (parentComments ? parentComments.length : 0) + (replyComments ? replyComments.length : 0);
     
     // 閲覧数を増加
     article.views += 1;
@@ -425,6 +447,7 @@ router.get('/:id', async (req, res) => {
       canonicalUrl,
       article: articleWithHtml,
       comments,
+      commentCount,
       recommendedSameAttribute,
       recommendedSameDeveloper,
       relatedVideos,

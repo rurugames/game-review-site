@@ -322,6 +322,31 @@ body {
   border: 2px solid var(--primary-color);
 }
 
+
+.user-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.notif-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--danger-color);
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  border: 1px solid rgba(0,0,0,0.35);
+}
 .author-avatar {
   width: 40px;
   height: 40px;

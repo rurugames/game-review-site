@@ -324,7 +324,7 @@
 
 <!-- コメントセクション -->
 <section class="comments-section">
-  <h2 class="comments-title">💬 コメント (<%= comments.length %>)</h2>
+  <h2 class="comments-title">💬 コメント (<%= (typeof commentCount !== 'undefined') ? commentCount : comments.length %>)</h2>
 
   <% if (user) { %>
     <!-- コメント投稿フォーム -->
@@ -347,7 +347,7 @@
   <div class="comments-list">
     <% if (comments.length > 0) { %>
       <% comments.forEach(comment => { %>
-        <div class="comment-item">
+        <div class="comment-item" id="comment-<%= comment._id %>">
           <div class="comment-header">
             <img src="<%= comment.author.image %>" alt="<%= (adminDisplayNames && adminDisplayNames[comment.author.email]) ? adminDisplayNames[comment.author.email] : comment.author.displayName %>" class="comment-avatar">
             <div class="comment-meta">
@@ -363,6 +363,43 @@
           <div class="comment-content">
             <%= comment.content %>
           </div>
+
+          <% if (user) { %>
+            <details class="comment-reply" style="margin-top:0.75rem;">
+              <summary class="btn-secondary" style="cursor:pointer; display:inline-block;">返信</summary>
+              <form action="/comments/<%= article._id %>" method="POST" class="comment-form" style="margin-top:0.5rem;">
+                <input type="hidden" name="parentId" value="<%= comment._id %>">
+                <div class="form-group">
+                  <textarea name="content" rows="3" placeholder="返信を入力してください..." required></textarea>
+                </div>
+                <button type="submit" class="btn-primary">返信を投稿</button>
+              </form>
+            </details>
+          <% } %>
+
+          <% if (comment.replies && comment.replies.length > 0) { %>
+            <div class="comment-replies" style="margin-top:0.75rem; padding-left:1rem; border-left: 2px solid rgba(0,0,0,0.08);">
+              <% comment.replies.forEach(reply => { %>
+                <div class="comment-item" style="margin-top:0.75rem;" id="comment-<%= reply._id %>">
+                  <div class="comment-header">
+                    <img src="<%= reply.author.image %>" alt="<%= (adminDisplayNames && adminDisplayNames[reply.author.email]) ? adminDisplayNames[reply.author.email] : reply.author.displayName %>" class="comment-avatar">
+                    <div class="comment-meta">
+                      <span class="comment-author"><%= (adminDisplayNames && adminDisplayNames[reply.author.email]) ? adminDisplayNames[reply.author.email] : reply.author.displayName %></span>
+                      <span class="comment-date"><%= new Date(reply.createdAt).toLocaleDateString('ja-JP') %> <%= new Date(reply.createdAt).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) %></span>
+                    </div>
+                    <% if (user && (reply.author._id.toString() === user.id || isAdmin)) { %>
+                      <form action="/comments/<%= reply._id %>?_method=DELETE" method="POST" class="comment-delete-form">
+                        <button type="submit" class="btn-comment-delete" onclick="return confirm('コメントを削除しますか？')">🗑️</button>
+                      </form>
+                    <% } %>
+                  </div>
+                  <div class="comment-content">
+                    <%= reply.content %>
+                  </div>
+                </div>
+              <% }); %>
+            </div>
+          <% } %>
         </div>
       <% }); %>
     <% } else { %>

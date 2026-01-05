@@ -6,6 +6,18 @@ const CommentSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  parent: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Comment',
+    default: null,
+    index: true
+  },
+  // 返信コメントが「親コメント作者」に既読化された日時（返信にのみ使用）
+  seenByParentAuthorAt: {
+    type: Date,
+    default: null,
+    index: true
+  },
   article: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Article',

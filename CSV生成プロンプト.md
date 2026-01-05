@@ -155,6 +155,28 @@ node -e "const dlsite = require('./services/dlsiteService'); dlsite.fetchGamesBy
   - Markdown例: `[{ゲームタイトル}](https://www.dlsite.com/maniax/work/=/product_id/RJxxxxxxxx.html)`
   - このDLsite作品URLも、表示時にdlaf形式へ自動変換されます。
 
+---
+
+## 本文品質を上げるための「情報収集」方針（重要）
+
+「いろいろなサイトを回って本文を厚くする」ことは可能ですが、**他サイトの説明文・レビュー文をそのまま本文へ貼り付けるのは避けてください**（著作権/規約/重複コンテンツのリスク）。
+
+推奨は以下です：
+
+- **事実情報（メタデータ）を拾う**: 発売日、価格、作品形式、ファイル形式/容量、対応OS、年齢指定、スタッフ（シナリオ/イラスト/声優）、ジャンルタグなど。
+- **本文は自分の言葉で再構成**: 事実情報を根拠に「どんな人向けか」「購入前に確認すべき点」「遊び方の着眼点」をオリジナル文章として組み立てる。
+- **引用は最小限に**: 公式説明文を使う場合でも、丸ごと転載せず、リンクを置いて参照に留める。
+
+特にDLsite作品ページの「基本情報テーブル」から拾える以下の項目は、本文の具体性が上がりやすいです：
+
+- 作品形式 / ファイル形式 / 容量
+- 対応OS（動作環境）
+- 年齢指定
+- シナリオ / イラスト / 声優（表示がある場合）
+
+**攻略/感想の“複数サイト調査”を使って差分を増やす（転載なし）**
+- 具体的な調査メモの作り方・禁止事項・出力フォーマットは、別紙の [攻略・感想サイト調査プロンプト.md](%E6%94%BB%E7%95%A5%E3%83%BB%E6%84%9F%E6%83%B3%E3%82%B5%E3%82%A4%E3%83%88%E8%AA%BF%E6%9F%BB%E3%83%97%E3%83%AD%E3%83%B3%E3%83%97%E3%83%88.md) を参照してください。
+
 **ステータス:**
 - `draft`（下書き状態）
 
@@ -217,6 +239,80 @@ node -e "const dlsite = require('./services/dlsiteService'); dlsite.fetchGamesBy
    を順に連結
 4. 上記を `articles_{年}-{月}_all.csv` として `create_file` で出力
 5. `articles_{年}-{月}_all.csv` の出力が完了したら、当月の `articles_{年}-{月}_part*.csv` を `csvoutput/backup/` へ退避（移動）
+
+### 3.6. 既存の月次 all CSV を最新テンプレで再生成（_v2 / all上書き）
+**目的**: すでに作成済みの月次CSVを、最新の本文テンプレで再生成します。
+
+**本文テンプレで扱うDLsite由来の客観情報（転載なし）**
+- レビュー平均（★）/レビュー件数
+- 体験版の有無（DLsiteに導線があるか）
+- 更新情報（テーブルの「更新情報」）
+- 更新履歴（DLsite上の履歴。本文には最新1件を反映）
+
+**重要**
+- これは「再生成」なので、`processed_games.json`（重複回避リスト）は更新しません。
+- 原則として `csvoutput/fetched_games_{年}-{月}.json` を参照して再生成します（ネットワーク再取得を避ける）。
+
+#### 3.6.1. fetched JSON の「詳細だけ」再取得（追加情報の反映用）
+**目的**: 月次の一覧再クロールはせず、既存 `fetched_games_{年}-{月}.json` の各RJについて「作品詳細だけ」を強制再取得してJSONを更新します。
+
+**実行（PowerShell）**
+```powershell
+node scripts/refresh_fetched_details.js {年}-{月} --concurrency 8
+```
+
+**オプション**
+- `--concurrency N`: 同時取得数（例: 4〜10程度）。
+
+#### 3.6.2. 再生成（出力先: _all_v2.csv）
+**実行（PowerShell）**
+```powershell
+node scripts/regenerate_monthly_all_v2.js {年}-{月} --overwrite
+```
+
+#### 3.6.3. 再生成（出力先: 既存の _all.csv を上書き）
+**目的**: 既存の `articles_{年}-{月}_all.csv` を直接上書き更新します（インポート用の月次CSVを差し替えたい場合）。
+
+**実行（PowerShell）**
+```powershell
+node scripts/regenerate_monthly_all_v2.js {年}-{月} --overwrite --outAll
+```
+
+**オプション（共通）**
+- `--allowFetch`: `fetched_games_{年}-{月}.json` に無いRJがあった場合に、DLsite詳細を個別取得して補完します。
+- `--overwrite`: すでに出力先CSVがある場合に上書きします。
+- `--outAll`: 出力先を `articles_{年}-{月}_all_v2.csv` ではなく `articles_{年}-{月}_all.csv` にします。
+
+#### 3.6.4. 年単位で一括更新（存在する月だけ処理）
+**目的**: ある年（例: 2025年）の 01〜12 を順に、
+1) `fetched_games_YYYY-MM.json` を詳細だけ更新 → 2) `articles_YYYY-MM_all.csv` を上書き再生成
+で一括処理します。
+
+**実行（PowerShell）**
+```powershell
+$year = 2025
+$concurrency = 8
+
+foreach ($m in 1..12) {
+  $ym = "{0}-{1:00}" -f $year, $m
+  $fetched = "csvoutput\\fetched_games_${ym}.json"
+
+  if (-not (Test-Path $fetched)) {
+    Write-Host "SKIP $ym: fetched json not found ($fetched)"
+    continue
+  }
+
+  Write-Host "REFRESH $ym"
+  node scripts/refresh_fetched_details.js $ym --concurrency $concurrency
+
+  Write-Host "REGEN $ym"
+  node scripts/regenerate_monthly_all_v2.js $ym --overwrite --outAll
+}
+```
+
+**補足**
+- すでに全月の `fetched_games_YYYY-MM.json` がある前提です（無い月はSKIPします）。
+- 実行時間が長くなるため、まずは `--concurrency 4` など低めで試すのを推奨します。
 
 **重要: Markdown記号の処理**
 - 本文フィールドはMarkdown形式で記述されています
@@ -314,7 +410,7 @@ node -e "const fs=require('fs'); const csv=require('csv-parser'); const rows=[];
 
 ## 注意事項
 
-- **JavaScriptスクリプトは使用しません** - VS Code Copilot Agentが直接処理を実行
+- **generate-csv.js は使用しません** - VS Code Copilot Agentが必要な処理（`node -e` や `scripts/*` の実行）を直接実行します
 - **OpenAI APIは使用しません** - GitHub Copilot（Claude Sonnet 4.5）で記事生成
 - DLsiteから実際のゲーム情報を取得します
 - 記事内容はAIが生成するため、ゲームごとに独自の内容になります

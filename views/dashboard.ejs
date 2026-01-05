@@ -21,6 +21,56 @@
 
   <h1>ダッシュボード</h1>
 
+  <% if (typeof recentComments !== 'undefined' && recentComments && recentComments.length > 0) { %>
+    <section class="page-section" aria-label="最新コメント">
+      <div class="page-header">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+          <h2 class="section-title" style="margin:0;">最新コメント</h2>
+          <button type="button" class="per-button section-toggle" data-section-toggle aria-expanded="true" aria-controls="recent-comments-body" title="表示/非表示">
+            <span class="caret">▼</span>
+          </button>
+        </div>
+        <p class="section-lead">直近のコメント（最大<%= recentComments.length %>件）です。</p>
+      </div>
+
+      <div id="recent-comments-body" data-section-body>
+        <div class="panel">
+          <div class="panel-body">
+            <table class="articles-table" style="margin-top:0;">
+              <thead>
+                <tr>
+                  <th>日時</th>
+                  <th>記事</th>
+                  <th>投稿者</th>
+                  <th>内容</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% recentComments.forEach(function(c){ %>
+                  <tr>
+                    <td><%= c.createdAt ? new Date(c.createdAt).toLocaleString('ja-JP') : '' %></td>
+                    <td>
+                      <% if (c.article && c.article._id) { %>
+                        <a href="/articles/<%= c.article._id %>"><%= c.article.title || c.article.gameTitle || '（無題）' %></a>
+                      <% } else { %>
+                        (不明)
+                      <% } %>
+                    </td>
+                    <td><%= (c.author && (c.author.displayName || c.author.email)) ? (c.author.displayName || c.author.email) : '（不明）' %></td>
+                    <td>
+                      <% const txt = String(c.content || ''); %>
+                      <%= txt.length > 140 ? (txt.slice(0, 140) + '…') : txt %>
+                    </td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  <% } %>
+
   <nav class="per-toggle" aria-label="ダッシュボード" style="margin: 0.5rem 0 1.25rem;" data-dashboard-tabs>
     <span class="per-label">表示:</span>
     <% if (hasDailyAccess) { %>

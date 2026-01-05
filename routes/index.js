@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const RelatedClick = require('../models/RelatedClick');
 const RelatedImpression = require('../models/RelatedImpression');
 const DailyArticleView = require('../models/DailyArticleView');
+const Comment = require('../models/Comment');
 const { isAdminEmail } = require('../lib/admin');
 const { normalizeAffiliateLink, DEFAULT_AID } = require('../lib/dlsiteAffiliate');
 
@@ -1036,6 +1037,44 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
     let relatedCtrByPosition = [];
 
     const isAdmin = !!(req.user && isAdminEmail(req.user.email));
+
+    // 最新コメント（管理者: 全体 / 一般: 自分の記事に付いたもの）
+    const recentCommentsLimit = 5;
+    let recentComments = [];
+    if (isAdmin) {
+      recentComments = await Comment.find({})
+        .sort({ createdAt: -1, _id: -1 })
+        .limit(recentCommentsLimit)
+        .populate('article', 'title gameTitle')
+        .populate('author', 'displayName email')
+        .lean();
+    } else {
+      const uid = new mongoose.Types.ObjectId(req.user.id);
+      const recentIds = await Comment.aggregate([
+        {
+          $lookup: {
+            from: 'articles',
+            localField: 'article',
+            foreignField: '_id',
+            as: 'articleDoc',
+          },
+        },
+        { $unwind: '$articleDoc' },
+        { $match: { 'articleDoc.author': uid } },
+        { $sort: { createdAt: -1, _id: -1 } },
+        { $limit: recentCommentsLimit },
+        { $project: { _id: 1 } },
+      ]);
+      const ids = (recentIds || []).map((r) => r._id).filter(Boolean);
+      if (ids.length) {
+        const order = new Map(ids.map((id, idx) => [String(id), idx]));
+        recentComments = await Comment.find({ _id: { $in: ids } })
+          .populate('article', 'title gameTitle')
+          .populate('author', 'displayName email')
+          .lean();
+        recentComments.sort((a, b) => (order.get(String(a._id)) ?? 0) - (order.get(String(b._id)) ?? 0));
+      }
+    }
     if (isAdmin) {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
@@ -1463,6 +1502,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       totalPages,
       query: req.query,
       dailyAccessTrend,
+      recentComments,
       relatedClicks,
       relatedClicksByBlock,
       relatedClicksByBlockPosition,

@@ -20,6 +20,111 @@ class DLsiteService {
     this.detailsCacheTTL = 1 * 60 * 60 * 1000; // 1 hour TTL
   }
 
+  _normalizeText(s) {
+    return String(s ?? '')
+      .replace(/\uFEFF/g, '')
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      .replace(/\n+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  _uniqStrings(items) {
+    const seen = new Set();
+    const out = [];
+    for (const it of Array.isArray(items) ? items : []) {
+      const v = this._normalizeText(it);
+      if (!v) continue;
+      if (seen.has(v)) continue;
+      seen.add(v);
+      out.push(v);
+    }
+    return out;
+  }
+
+  _absUrl(href) {
+    const raw = this._normalizeText(href);
+    if (!raw) return '';
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (raw.startsWith('//')) return 'https:' + raw;
+    if (raw.startsWith('/')) return this.baseURL + raw;
+    return raw;
+  }
+
+  _extractOutlineMap($) {
+    /** @type {Record<string, string>} */
+    const out = {};
+
+    const tryTables = [
+      '#work_outline tr',
+      '.work_outline tr',
+      'table.work_outline tr',
+      '#work_outline_table tr',
+    ];
+
+    for (const sel of tryTables) {
+      const rows = $(sel);
+      if (!rows || rows.length === 0) continue;
+      rows.each((_, tr) => {
+        const th = this._normalizeText($(tr).find('th').first().text());
+        const td = this._normalizeText($(tr).find('td').first().text());
+        if (!th || !td) return;
+        if (!(th in out)) out[th] = td;
+      });
+      if (Object.keys(out).length) break;
+    }
+
+    // dt/dd 形式のフォールバック
+    if (Object.keys(out).length === 0) {
+      const dts = $('#work_outline dt, .work_outline dt');
+      if (dts && dts.length) {
+        dts.each((_, dt) => {
+          const label = this._normalizeText($(dt).text());
+          const dd = this._normalizeText($(dt).next('dd').text());
+          if (!label || !dd) return;
+          if (!(label in out)) out[label] = dd;
+        });
+      }
+    }
+
+    return out;
+  }
+
+  _extractGenreTags($) {
+    const candidates = [];
+
+    // 1) ジャンル行（リンクがあればそれを優先）
+    const genreLinks = $('th:contains("ジャンル")').first().next('td').find('a');
+    if (genreLinks && genreLinks.length) {
+      genreLinks.each((_, a) => candidates.push($(a).text()));
+    }
+
+    // 2) main genre ブロックのリンク
+    const mainGenreLinks = $('.main_genre a, .work_genre a, .work_genre_list a');
+    if (mainGenreLinks && mainGenreLinks.length) {
+      mainGenreLinks.each((_, a) => candidates.push($(a).text()));
+    }
+
+    // 3) それでも空なら、ジャンルtdのテキストを分割
+    if (candidates.length === 0) {
+      const genreTdText = this._normalizeText($('th:contains("ジャンル")').first().next('td').text());
+      if (genreTdText) {
+        for (const tok of genreTdText.split(/\s+/)) candidates.push(tok);
+      }
+    }
+
+    // 明らかなノイズを除去
+    const cleaned = this._uniqStrings(candidates)
+      .map((t) => t.replace(/[、,，]/g, ' ').trim())
+      .flatMap((t) => t.split(/\s+/))
+      .map((t) => this._normalizeText(t))
+      .filter(Boolean)
+      .filter((t) => t.length <= 40);
+
+    return this._uniqStrings(cleaned);
+  }
+
   _isMongoConnected() {
     try {
       return Boolean(mongoose?.connection && mongoose.connection.readyState === 1);
@@ -434,7 +539,9 @@ class DLsiteService {
       const title = $('#work_name, .work_name, h1[id*="work"]').first().text().trim();
       
       // サークル名
-      const circle = $('span[class*="maker"] a, .maker_name a').first().text().trim();
+      const circleLink = $('span[class*="maker"] a, .maker_name a').first();
+      const circle = circleLink.text().trim();
+      const circleUrl = this._absUrl(circleLink.attr('href') || '');
       
       // 説明文
       const description = $('.work_parts_area, .summary, [class*="introduction"]').first().text().trim();
@@ -562,18 +669,95 @@ class DLsiteService {
       // ジャンル
       const genreText = $('th:contains("ジャンル")').next('td').text().trim();
       const genre = genreText || this.detectGenre(title);
+
+      // 作品情報（テーブル）とタグ
+      const outline = this._extractOutlineMap($);
+      const dlsiteTags = this._extractGenreTags($);
+
+      const workFormat = outline['作品形式'] || outline['作品形式/ファイル形式'] || '';
+      const fileFormat = outline['ファイル形式'] || '';
+      const fileSize = outline['ファイル容量'] || outline['ファイルサイズ'] || '';
+      const ageRating = outline['年齢指定'] || '';
+      const os = outline['対応OS'] || outline['対応OS/動作環境'] || '';
+      const scenario = outline['シナリオ'] || '';
+      const illustrator = outline['イラスト'] || '';
+      const voiceActors = outline['声優'] || '';
+
+      // レビュー（平均/件数）: meta[itemprop] から取得できることが多い
+      const reviewAverageRaw = this._normalizeText($('meta[itemprop="ratingValue"]').attr('content') || '');
+      const reviewCountRaw = this._normalizeText($('meta[itemprop="ratingCount"]').attr('content') || '');
+      /** @type {number|null} */
+      let reviewAverage = null;
+      /** @type {number|null} */
+      let reviewCount = null;
+      if (reviewAverageRaw) {
+        const n = Number.parseFloat(reviewAverageRaw);
+        if (Number.isFinite(n)) reviewAverage = n;
+      }
+      if (reviewCountRaw) {
+        const n = Number.parseInt(reviewCountRaw.replace(/[^0-9]/g, ''), 10);
+        if (Number.isFinite(n)) reviewCount = n;
+      }
+
+      // 体験版（導線/リンク）
+      const trialLink = $('div.trial_download a.btn_trial, a.btn_trial').first();
+      const trialUrl = this._absUrl(trialLink.attr('href') || '');
+      const hasTrial = Boolean(trialUrl);
+
+      // 更新情報（概要テーブル内の「更新情報」）
+      const updateInfoText = this._normalizeText(outline['更新情報'] || '');
+      const updateInfoDate = updateInfoText ? this.parseDate(updateInfoText) : '';
+
+      // 更新履歴（詳細セクション）
+      const updateHistory = [];
+      const updateLis = $('div.work_article.version_up ul._version_up li');
+      if (updateLis && updateLis.length) {
+        updateLis.each((idx, li) => {
+          if (idx >= 10) return false; // keep it short
+          const dateText = this._normalizeText($(li).find('dt').first().text());
+          const titleText = this._normalizeText($(li).find('dd span').first().text());
+          const commentText = this._normalizeText($(li).find('dd.ver_up_comment').first().text());
+          if (!dateText && !titleText && !commentText) return;
+          updateHistory.push({
+            dateText,
+            date: dateText ? this.parseDate(dateText) : '',
+            title: titleText,
+            comment: commentText,
+          });
+        });
+      }
+      const updateHistoryHasMore = Boolean($('div.version_up_more a._version_up_more, a._version_up_more').length);
       
       const detailsObj = {
         id: gameId,
         title: this.cleanText(title),
         circle: this.cleanText(circle),
+        circleUrl: circleUrl,
         description: this.cleanText(description).substring(0, 500),
         imageUrl: imageUrl,
         price: price,
         releaseDate: releaseDate,
         genre: genre,
         dlsiteUrl: url,
-        tags: ['R18', 'PC', '同人ゲーム']
+        tags: this._uniqStrings(['R18', 'PC', '同人ゲーム', ...dlsiteTags]),
+        workFormat: this._normalizeText(workFormat),
+        fileFormat: this._normalizeText(fileFormat),
+        fileSize: this._normalizeText(fileSize),
+        ageRating: this._normalizeText(ageRating),
+        os: this._normalizeText(os),
+        scenario: this._normalizeText(scenario),
+        illustrator: this._normalizeText(illustrator),
+        voiceActors: this._normalizeText(voiceActors),
+
+        // extra factual fields
+        reviewAverage,
+        reviewCount,
+        hasTrial,
+        trialUrl,
+        updateInfoText,
+        updateInfoDate,
+        updateHistory,
+        updateHistoryHasMore,
       };
 
       // cache in-memory and persist to MongoDB (best-effort)

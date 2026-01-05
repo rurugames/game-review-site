@@ -7,6 +7,7 @@ const mongoose = require('mongoose');
 const methodOverride = require('method-override');
 const path = require('path');
 const Article = require('./models/Article');
+const Comment = require('./models/Comment');
 
 // Debug helper: find unexpected process exits (set DEBUG_PROCESS_EXIT=1)
 if (process.env.DEBUG_PROCESS_EXIT === '1') {
@@ -157,13 +158,46 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+async function getUnreadReplyCountForUser(userId) {
+  try {
+    const uid = String(userId || '').trim();
+    if (!mongoose.Types.ObjectId.isValid(uid)) return 0;
+    const objId = new mongoose.Types.ObjectId(uid);
+
+    const rows = await Comment.aggregate([
+      { $match: { parent: { $ne: null }, seenByParentAuthorAt: null, author: { $ne: objId } } },
+      {
+        $lookup: {
+          from: 'comments',
+          localField: 'parent',
+          foreignField: '_id',
+          as: 'parentDoc',
+        },
+      },
+      { $unwind: '$parentDoc' },
+      { $match: { 'parentDoc.author': objId } },
+      { $count: 'count' },
+    ]);
+    const n = rows && rows[0] && rows[0].count ? Number(rows[0].count) : 0;
+    return Number.isFinite(n) ? n : 0;
+  } catch (_) {
+    return 0;
+  }
+}
+
 // グローバル変数設定
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
   res.locals.user = req.user || null;
   res.locals.adminDisplayNames = ADMIN_DISPLAY_NAMES;
   res.locals.isAdmin = !!(req.user && isAdminEmail(req.user.email));
   if (req.user) {
     res.locals.displayName = getAdminDisplayNameByEmail(req.user.email) || req.user.displayName;
+  }
+
+  // 未読返信通知（自分のコメントに付いた返信）
+  res.locals.notificationCount = 0;
+  if (req.user) {
+    res.locals.notificationCount = await getUnreadReplyCountForUser(req.user.id);
   }
 
   // Search Console verification (HTML tag method)
@@ -195,6 +229,7 @@ app.use((req, res, next) => {
     p.startsWith('/generator') ||
     p.startsWith('/auth') ||
     p.startsWith('/comments') ||
+    p.startsWith('/users') ||
     p.startsWith('/search') ||
     p.startsWith('/events') ||
     /^\/articles\/.+\/edit$/.test(p) ||
@@ -301,6 +336,7 @@ app.use('/auth', require('./routes/auth'));
 app.use('/articles', require('./routes/articles'));
 app.use('/videos', require('./routes/videos'));
 app.use('/comments', require('./routes/comments'));
+app.use('/users', require('./routes/users'));
 app.use('/events', require('./routes/events'));
 app.use('/generator', require('./routes/generator'));
 app.use('/csv', require('./routes/csv'));
