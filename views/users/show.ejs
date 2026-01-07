@@ -110,4 +110,62 @@
       </div>
     <% } %>
   </section>
+
+  <section class="page-section" aria-label="評価した作品一覧" style="margin-top:1.25rem;">
+    <div class="page-header">
+      <h2 class="section-title" style="margin:0;">評価した作品一覧</h2>
+      <p class="section-lead">あなたが投稿した短評レビュー（★1〜5 / 200文字以内）です。</p>
+    </div>
+
+    <% if (typeof myReviews !== 'undefined' && myReviews && myReviews.length > 0) { %>
+      <div class="panel">
+        <div class="panel-body">
+          <table class="articles-table" style="margin-top:0;">
+            <thead>
+              <tr>
+                <th>更新日</th>
+                <th>作品</th>
+                <th>評価</th>
+                <th>短評</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% myReviews.forEach(function(r){ %>
+                <tr>
+                  <td style="white-space:nowrap;"><%= r.updatedAt ? new Date(r.updatedAt).toLocaleString('ja-JP') : (r.createdAt ? new Date(r.createdAt).toLocaleString('ja-JP') : '') %></td>
+                  <td>
+                    <% if (r.article && r.article._id) { %>
+                      <a href="/articles/<%= r.article._id %>"><%= r.article.title || r.article.gameTitle || '（無題）' %></a>
+                    <% } else { %>
+                      (不明)
+                    <% } %>
+                  </td>
+                  <td style="white-space:nowrap;">★<%= r.rating %></td>
+                  <td>
+                    <% const txt = String(r.headline || ''); %>
+                    <%= txt.length > 160 ? (txt.slice(0, 160) + '…') : txt %>
+                  </td>
+                  <td style="white-space:nowrap;">
+                    <% if (r.article && r.article._id) { %>
+                      <a href="/articles/<%= r.article._id %>#reviews" class="btn-secondary" style="padding:0.25rem 0.5rem;">短評レビュー</a>
+                      <% if (r.article.affiliateLink) { %>
+                        <a href="<%= r.article.affiliateLink %>" target="_blank" rel="noopener noreferrer sponsored" class="btn-dlsite-small" style="margin-left:0.4rem;">購入</a>
+                      <% } %>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    <% } else { %>
+      <div class="panel">
+        <div class="panel-body">
+          まだ短評レビューがありません。
+        </div>
+      </div>
+    <% } %>
+  </section>
 </div>

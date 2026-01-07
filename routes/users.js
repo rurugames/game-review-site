@@ -4,6 +4,7 @@ const router = express.Router();
 
 const Comment = require('../models/Comment');
 const User = require('../models/User');
+const Review = require('../models/Review');
 const { ensureAuth } = require('../middleware/auth');
 const { isAdminEmail } = require('../lib/admin');
 
@@ -77,6 +78,12 @@ router.get('/:id', ensureAuth, async (req, res) => {
       return { ...c, replies: threadReplies, _hasUnread: hasUnread };
     });
 
+    // 自分の短評レビュー一覧
+    const myReviews = await Review.find({ author: uid })
+      .sort({ updatedAt: -1, _id: -1 })
+      .populate('article', 'title gameTitle genre imageUrl affiliateLink')
+      .lean();
+
     // 既読化: 自分のページ閲覧時のみ、未読返信を既読化（表示は「既読化前」の状態で出す）
     if (String(req.user.id) === String(userId) && parentIds.length) {
       setImmediate(async () => {
@@ -94,6 +101,7 @@ router.get('/:id', ensureAuth, async (req, res) => {
       profileUser,
       commentThreads,
       unreadRepliesCount,
+      myReviews,
     });
   } catch (err) {
     console.error(err);
