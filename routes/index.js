@@ -88,7 +88,7 @@ async function computeReviewRankings() {
     status: 'published',
     releaseDate: { $gte: startUtc, $lt: endUtc },
   })
-    .select('_id title gameTitle genre imageUrl releaseDate')
+    .select('_id title gameTitle genre imageUrl releaseDate affiliateLink')
     .lean();
   const monthIds = (monthArticles || []).map((a) => a && a._id).filter(Boolean);
   const monthById = new Map((monthArticles || []).map((a) => [String(a._id), a]));
@@ -130,7 +130,7 @@ async function computeReviewRankings() {
   ]);
   const hiddenIds = (hiddenRows || []).map((r) => r && r._id).filter(Boolean);
   const hiddenArticles = hiddenIds.length
-    ? await Article.find({ _id: { $in: hiddenIds }, status: 'published' }).select('_id title gameTitle genre imageUrl releaseDate').lean()
+    ? await Article.find({ _id: { $in: hiddenIds }, status: 'published' }).select('_id title gameTitle genre imageUrl releaseDate affiliateLink').lean()
     : [];
   const hiddenById = new Map((hiddenArticles || []).map((a) => [String(a._id), a]));
   const hiddenGems = (hiddenRows || [])
@@ -151,7 +151,7 @@ async function computeReviewRankings() {
   ]);
   const contIds = (contRows || []).map((r) => r && r._id).filter(Boolean);
   const contArticles = contIds.length
-    ? await Article.find({ _id: { $in: contIds }, status: 'published' }).select('_id title gameTitle genre imageUrl releaseDate').lean()
+    ? await Article.find({ _id: { $in: contIds }, status: 'published' }).select('_id title gameTitle genre imageUrl releaseDate affiliateLink').lean()
     : [];
   const contById = new Map((contArticles || []).map((a) => [String(a._id), a]));
   const controversial = (contRows || [])

@@ -27,6 +27,11 @@
                 <h3 class="game-title"><%= a.gameTitle %></h3>
                 <p class="description">レビュー <%= item.count %>件 / 単純平均 ★<%= Number(item.avg || 0).toFixed(2) %></p>
                 <a href="/articles/<%= a._id %>#reviews" class="btn-read-more">短評レビューを見る</a>
+                <% if (a.affiliateLink) { %>
+                  <div style="margin-top:0.75rem;">
+                    <a href="<%= a.affiliateLink %>" target="_blank" rel="noopener noreferrer sponsored" class="btn-dlsite-small">購入ページへ</a>
+                  </div>
+                <% } %>
               </div>
             </article>
           <% }); %>
@@ -62,6 +67,11 @@
                 <h3 class="game-title"><%= a.gameTitle %></h3>
                 <p class="description">レビュー <%= item.count %>件</p>
                 <a href="/articles/<%= a._id %>#reviews" class="btn-read-more">短評レビューを見る</a>
+                <% if (a.affiliateLink) { %>
+                  <div style="margin-top:0.75rem;">
+                    <a href="<%= a.affiliateLink %>" target="_blank" rel="noopener noreferrer sponsored" class="btn-dlsite-small">購入ページへ</a>
+                  </div>
+                <% } %>
               </div>
             </article>
           <% }); %>
@@ -97,6 +107,11 @@
                 <h3 class="game-title"><%= a.gameTitle %></h3>
                 <p class="description">レビュー <%= item.count %>件 / 単純平均 ★<%= Number(item.avg || 0).toFixed(2) %></p>
                 <a href="/articles/<%= a._id %>#reviews" class="btn-read-more">短評レビューを見る</a>
+                <% if (a.affiliateLink) { %>
+                  <div style="margin-top:0.75rem;">
+                    <a href="<%= a.affiliateLink %>" target="_blank" rel="noopener noreferrer sponsored" class="btn-dlsite-small">購入ページへ</a>
+                  </div>
+                <% } %>
               </div>
             </article>
           <% }); %>
