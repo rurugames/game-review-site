@@ -101,106 +101,140 @@ router.get('/export', ensureAuth, ensureAdmin, async (req, res) => {
 
 // @desc    CSVから記事をインポート
 // @route   POST /csv/import
-router.post('/import', ensureAuth, ensureAdmin, upload.single('csvFile'), async (req, res) => {
+router.post('/import', ensureAuth, ensureAdmin, upload.any(), async (req, res) => {
   try {
-    if (!req.file) {
+    const uploadedFiles = (Array.isArray(req.files) ? req.files : []).slice();
+    if (!uploadedFiles.length) {
       return res.status(400).json({ error: 'ファイルが選択されていません' });
     }
 
-    const results = [];
-    const filepath = req.file.path;
+    // .csvのみ対象（大文字拡張子も許可）。取り込み順はファイル名（originalname）昇順。
+    const decorated = uploadedFiles.map((f, idx) => ({ f, idx }));
+    decorated.sort((a, b) => {
+      const an = String(a.f.originalname || '').toLowerCase();
+      const bn = String(b.f.originalname || '').toLowerCase();
+      const c = an.localeCompare(bn);
+      return c !== 0 ? c : (a.idx - b.idx);
+    });
 
-    // CSVファイルを読み込み（BOM対応）
-    fs.createReadStream(filepath)
-      .pipe(csv({ 
-        skipEmptyLines: true,
-        mapHeaders: ({ header }) => String(header || '').replace(/^\uFEFF/, '').trim() // BOM/空白を削除
-      }))
-      .on('data', (data) => results.push(data))
-      .on('end', async () => {
-        try {
-          let importCount = 0;
-          let errorCount = 0;
-          const errors = [];
+    let importCount = 0;
+    let errorCount = 0;
+    const errors = [];
 
-          for (const row of results) {
-            try {
-              // キー名を正規化（日本語ヘッダーに対応）
-              const normalizedRow = {
-                id: row['ID'] || row['id'],
-                title: row['タイトル'] || row['title'],
-                gameTitle: row['ゲームタイトル'] || row['gameTitle'],
-                description: row['説明'] || row['description'],
-                content: row['本文'] || row['content'],
-                genre: row['ジャンル'] || row['genre'],
-                rating: row['評価'] || row['rating'],
-                imageUrl: row['画像URL'] || row['imageUrl'],
-                status: row['ステータス'] || row['status'],
-                releaseDate: row['発売日'] || row['releaseDate'],
-                tags: row['タグ'] || row['tags'],
-                affiliateLink: row['アフィリエイトリンク'] || row['affiliateLink']
-              };
-              
-              // 必須フィールドチェック
-              if (!normalizedRow.title || !normalizedRow.gameTitle || !normalizedRow.content) {
-                errorCount++;
-                errors.push(`行スキップ: タイトル、ゲームタイトル、本文は必須です`);
-                continue;
-              }
-
-              // Markdownをそのまま保存（表示時に変換）
-              
-              // タグを配列に変換（カンマ区切り）
-              const tagsArray = normalizedRow.tags 
-                ? normalizedRow.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-                : [];
-
-              // 記事を作成
-              await Article.create({
-                title: normalizedRow.title,
-                gameTitle: normalizedRow.gameTitle,
-                description: normalizedRow.description || '',
-                content: normalizedRow.content, // Markdownのまま保存
-                genre: normalizedRow.genre || 'アドベンチャー',
-                rating: parseInt(normalizedRow.rating) || 3,
-                imageUrl: normalizedRow.imageUrl || '',
-                status: normalizedRow.status || 'draft',
-                releaseDate: normalizedRow.releaseDate ? new Date(normalizedRow.releaseDate) : null,
-                tags: tagsArray,
-                affiliateLink: normalizeAffiliateLink(normalizedRow.affiliateLink || '', { aid: DEFAULT_AID }) || '',
-                author: req.user.id
-              });
-
-              importCount++;
-            } catch (itemError) {
-              errorCount++;
-              errors.push(`エラー: ${row.title || row['タイトル']} - ${itemError.message}`);
-            }
-          }
-
-          // アップロードファイルを削除
-          fs.unlink(filepath, (err) => {
-            if (err) console.error('ファイル削除エラー:', err);
-          });
-
-          res.json({
-            success: true,
-            importCount,
-            errorCount,
-            errors: errors.slice(0, 10) // 最初の10件のエラーのみ返す
-          });
-        } catch (error) {
-          console.error('インポート処理エラー:', error);
-          res.status(500).json({ error: 'インポート処理に失敗しました' });
-        }
-      })
-      .on('error', (error) => {
-        console.error('CSV読み込みエラー:', error);
-        fs.unlink(filepath, (err) => {
+    const safeUnlink = (p) => {
+      try {
+        fs.unlink(p, (err) => {
           if (err) console.error('ファイル削除エラー:', err);
         });
-        res.status(500).json({ error: 'CSVファイルの読み込みに失敗しました' });
-      });
+      } catch (_) {}
+    };
+
+    const parseDateLoose = (s) => {
+      const raw = String(s || '').trim();
+      if (!raw) return null;
+      const d = new Date(raw);
+      if (!isNaN(d.getTime())) return d;
+      // YYYY-MM-DD 以外の軽いゆらぎを許容（YYYY/MM/DD）
+      const m = raw.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+      if (m) {
+        const y = Number(m[1]);
+        const mo = Number(m[2]);
+        const da = Number(m[3]);
+        const dd = new Date(Date.UTC(y, mo - 1, da));
+        return isNaN(dd.getTime()) ? null : dd;
+      }
+      return null;
+    };
+
+    const importOneCsv = async (file) => {
+      const originalname = String(file.originalname || '');
+      const ext = path.extname(originalname).toLowerCase();
+      if (ext !== '.csv') {
+        errorCount++;
+        errors.push(`SKIP: CSV以外のため無視しました: ${originalname}`);
+        safeUnlink(file.path);
+        return;
+      }
+
+      try {
+        const stream = fs.createReadStream(file.path)
+          .pipe(csv({
+            skipEmptyLines: true,
+            mapHeaders: ({ header }) => String(header || '').replace(/^\uFEFF/, '').trim(),
+          }));
+
+        for await (const row of stream) {
+          try {
+            // キー名を正規化（日本語ヘッダーに対応）
+            const normalizedRow = {
+              id: row['ID'] || row['id'],
+              title: row['タイトル'] || row['title'],
+              gameTitle: row['ゲームタイトル'] || row['gameTitle'],
+              description: row['説明'] || row['description'],
+              content: row['本文'] || row['content'],
+              genre: row['ジャンル'] || row['genre'],
+              rating: row['評価'] || row['rating'],
+              imageUrl: row['画像URL'] || row['imageUrl'],
+              status: row['ステータス'] || row['status'],
+              releaseDate: row['発売日'] || row['releaseDate'],
+              tags: row['タグ'] || row['tags'],
+              affiliateLink: row['アフィリエイトリンク'] || row['affiliateLink']
+            };
+
+            // 必須フィールドチェック
+            if (!normalizedRow.title || !normalizedRow.gameTitle || !normalizedRow.content) {
+              errorCount++;
+              errors.push(`行スキップ: 必須不足（タイトル/ゲームタイトル/本文）: ${originalname}`);
+              continue;
+            }
+
+            const tagsArray = normalizedRow.tags
+              ? String(normalizedRow.tags).split(',').map(tag => tag.trim()).filter(tag => tag)
+              : [];
+
+            const releaseDate = normalizedRow.releaseDate ? parseDateLoose(normalizedRow.releaseDate) : null;
+
+            await Article.create({
+              title: normalizedRow.title,
+              gameTitle: normalizedRow.gameTitle,
+              description: normalizedRow.description || '',
+              content: normalizedRow.content, // Markdownのまま保存
+              genre: normalizedRow.genre || 'アドベンチャー',
+              rating: parseInt(normalizedRow.rating) || 3,
+              imageUrl: normalizedRow.imageUrl || '',
+              status: normalizedRow.status || 'draft',
+              releaseDate,
+              tags: tagsArray,
+              affiliateLink: normalizeAffiliateLink(normalizedRow.affiliateLink || '', { aid: DEFAULT_AID }) || '',
+              author: req.user.id
+            });
+
+            importCount++;
+          } catch (itemError) {
+            errorCount++;
+            const title = row && (row.title || row['タイトル']) ? String(row.title || row['タイトル']) : '（不明）';
+            errors.push(`エラー: ${originalname} / ${title} - ${itemError.message}`);
+          }
+        }
+      } catch (e) {
+        errorCount++;
+        errors.push(`CSV読み込みエラー: ${originalname} - ${e.message || e}`);
+      } finally {
+        safeUnlink(file.path);
+      }
+    };
+
+    for (const { f } of decorated) {
+      // ファイル名昇順で順に取り込み（品質優先のため直列）
+      await importOneCsv(f);
+    }
+
+    res.json({
+      success: true,
+      importCount,
+      errorCount,
+      errors: errors.slice(0, 10)
+    });
   } catch (error) {
     console.error('インポートエラー:', error);
     res.status(500).json({ error: 'インポートに失敗しました' });

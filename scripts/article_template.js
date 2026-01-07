@@ -86,6 +86,7 @@ function buildResearchSection(research, variantKey) {
   const pitfalls = Array.isArray(research.pitfalls) ? research.pitfalls : [];
   const pros = Array.isArray(research.pros) ? research.pros : [];
   const cons = Array.isArray(research.cons) ? research.cons : [];
+  const reviewExcerpts = Array.isArray(research.reviewExcerpts) ? research.reviewExcerpts : [];
   const angles = research.angles && typeof research.angles === 'object' ? research.angles : null;
 
   const pick = (arr, max) => arr.filter((x) => x && typeof x === 'string').slice(0, max);
@@ -117,6 +118,12 @@ function buildResearchSection(research, variantKey) {
     lines.push('**感想の傾向（要点）**');
     for (const x of proPick) lines.push(`- 良い点: ${x}`);
     for (const x of conPick) lines.push(`- 気になる点: ${x}`);
+  }
+
+  const excerptPick = pick(reviewExcerpts, 3);
+  if (excerptPick.length) {
+    lines.push('**レビューコメントの引用（短い引用）**');
+    for (const x of excerptPick) lines.push(`- ${x}`);
   }
 
   if (angles) {
@@ -162,6 +169,54 @@ function buildContent(game, inferredGenre, tags, options = {}) {
   const updateInfoText = normalizeSpaces(game.updateInfoText);
   const updateHistory = Array.isArray(game.updateHistory) ? game.updateHistory : [];
 
+  const avgNum = typeof reviewAverage === 'number' ? reviewAverage : Number(reviewAverage);
+  const cntNum = typeof reviewCount === 'number' ? reviewCount : Number(reviewCount);
+
+  const containsToken = (hay, needle) => String(hay || '').toLowerCase().includes(String(needle || '').toLowerCase());
+  const anyToken = (hay, needles) => (Array.isArray(needles) ? needles : []).some((n) => containsToken(hay, n));
+
+  const pickOtherHints = () => {
+    const blocks = [];
+
+    // 作品形式・ファイル形式から、よくある“詰まりどころ”を具体化
+    const isInteractive = anyToken(workFormat, ['インタラクティブ', 'チョイス', '選択']);
+    const isApp = anyToken(fileFormat, ['アプリ', 'アプリケーション', 'exe']);
+
+    blocks.push('## 進め方のヒント（この作品の情報に寄せて）');
+
+    if (hasTrial) {
+      blocks.push('体験版がある作品は、まず体験版で「起動・操作・セーブの癖」だけ確認すると、購入後の迷いが減ります。');
+    }
+
+    if (isInteractive) {
+      blocks.push('「インタラクティブチョイス」系は、分岐の直前で“固定セーブ枠”を作るのが安定です。選択肢の前に1枠、回収用にもう1枠…の2点保存をルーチン化すると迷いが減ります。');
+    } else {
+      blocks.push('ジャンルが掴みにくい作品ほど、最初の10分は“設定を整える時間”にすると後が楽です（音量、キー配置、既読/スキップなど）。');
+    }
+
+    if (isApp) {
+      blocks.push('アプリケーション形式は、キー操作やコントローラー対応が作品ごとに違いがちです。紹介文やReadmeに操作説明がある場合は、最初にざっと目を通してから進めるとストレスが減ります。');
+    }
+
+    // 更新履歴/更新情報がある場合は「セーブ互換」を気にする導線
+    if (updateInfoText || updateHistory.length) {
+      blocks.push('更新情報/更新履歴が出ている作品は、差分追加や挙動変更が入ることがあります。回収を始める前に、更新履歴と同梱テキスト（差分・セーブ互換）を一度だけ確認しておくと安心です。');
+    }
+
+    // タグから「閲覧前の心構え」だけを丁寧に。具体的な性的描写は避ける。
+    const heavyTags = ['凌辱', '無理矢理', '拘束', '屈辱', '合意なし', '暴力', 'NTR'];
+    const hasHeavy = tags.some((t) => heavyTags.includes(t));
+    if (hasHeavy) {
+      blocks.push('タグに刺激の強い要素が含まれる場合は、苦手要素がないかだけ先に確認しておくと安心です。');
+    }
+
+    blocks.push('## 回収のコツ');
+    blocks.push('セーブ枠は「分岐前」「イベント前」「直近の進行用」の3系統で回すと、迷子になりにくく巻き戻しもラクです。');
+
+    // 内部見出しも \n\n で区切り、本文が長い場合に末尾からトリムしやすくする
+    return blocks.join('\n\n');
+  };
+
   const tagPreview = tags
     .filter((t) => t !== 'R18' && t !== 'PC' && t !== '同人ゲーム')
     .slice(0, 8)
@@ -173,8 +228,6 @@ function buildContent(game, inferredGenre, tags, options = {}) {
   sections.push(`『[${title}](${dlsiteUrl})』は${circle}によるR18向け同人作品です。発売日は${releaseDate}、価格は${priceLabel}。`);
 
   sections.push('## 作品情報（DLsite掲載の事実）');
-  const avgNum = typeof reviewAverage === 'number' ? reviewAverage : Number(reviewAverage);
-  const cntNum = typeof reviewCount === 'number' ? reviewCount : Number(reviewCount);
   const reviewLabel = (Number.isFinite(avgNum) || Number.isFinite(cntNum))
     ? `- レビュー: ${Number.isFinite(avgNum) ? `★${avgNum.toFixed(2)}` : ''}${Number.isFinite(cntNum) ? `（${cntNum}件）` : ''}`
     : null;
@@ -220,6 +273,27 @@ function buildContent(game, inferredGenre, tags, options = {}) {
     sections.push(researchSection);
   }
 
+  // レビュー本文は取得していないため、平均/件数などの客観情報から“読み解き方”だけ提示。
+  // 文字数が膨らみやすいので、ジャンル不明（その他）の場合に限定する。
+  if (inferredGenre === 'その他' && (Number.isFinite(avgNum) || Number.isFinite(cntNum))) {
+    const lines = ['## レビューの見方（DLsite）'];
+    if (Number.isFinite(cntNum)) {
+      lines.push(cntNum >= 50
+        ? '件数が多めなら、購入前に「操作性/テンポ/回収の導線」あたりを拾いやすいです。'
+        : (cntNum >= 10
+          ? '件数がある程度あるなら、気になるポイント（UI/作業感）を先に確認すると安心です。'
+          : '件数が少なめなら、説明文・タグ・体験版（あれば）を重視するとブレにくいです。'));
+    }
+    if (Number.isFinite(avgNum)) {
+      lines.push(avgNum >= 4.3
+        ? '平均が高めなら、まずは素直に相性チェックの候補に。'
+        : (avgNum >= 3.7
+          ? '平均が中〜高めなら、期待値を置きすぎずに当たり所を探すのがコツです。'
+          : '平均が控えめなら、合う/合わないの理由をレビューで探すと納得しやすいです。'));
+    }
+    sections.push(lines.join('\n'));
+  }
+
   const genreTips = {
     RPG: [
       '## 攻略の考え方（RPG向け）',
@@ -258,11 +332,7 @@ function buildContent(game, inferredGenre, tags, options = {}) {
       ].join('\n'),
     ].join('\n\n'),
     'その他': [
-      '## 進め方のヒント（汎用）',
-      [
-        'ジャンル情報が一意に取れない場合は、まずは同梱のReadmeや起動手順を確認し、推奨の遊び方（セーブ運用、回想/差分の入口など）を把握しましょう。',
-        'テキスト主体の作品は、最初に設定（ウィンドウ/フルスクリーン、音量、既読スキップ）を整えるだけで体験が大きく改善します。',
-      ].join('\n'),
+      pickOtherHints(),
     ].join('\n\n'),
   };
 

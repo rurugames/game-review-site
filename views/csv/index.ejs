@@ -18,16 +18,25 @@
     <!-- インポートセクション -->
     <div class="csv-section">
       <h2>📥 インポート</h2>
-      <p>CSVファイルから記事を一括インポートします</p>
+      <p>CSVフォルダ配下のCSVをファイル名昇順で一括インポートします</p>
       
       <form id="importForm" enctype="multipart/form-data">
         <div class="file-input-wrapper">
-          <input type="file" id="csvFile" name="csvFile" accept=".csv" required>
-          <label for="csvFile" class="file-label">
+          <input type="file" id="csvFolder" name="csvFolder" accept=".csv" webkitdirectory directory multiple>
+          <label for="csvFolder" class="file-label">
             <span class="file-icon">📁</span>
-            <span id="fileName">CSVファイルを選択</span>
+            <span id="fileName">CSVフォルダを選択</span>
           </label>
         </div>
+
+        <div class="file-input-wrapper">
+          <input type="file" id="csvSingle" name="csvSingle" accept=".csv">
+          <label for="csvSingle" class="file-label">
+            <span class="file-icon">📄</span>
+            <span>CSVファイルを選択（1つ）</span>
+          </label>
+        </div>
+
         <button type="submit" class="btn-primary">
           <span class="btn-icon">⬆️</span>
           インポート実行
@@ -279,17 +288,50 @@
 document.addEventListener('DOMContentLoaded', function() {
   const exportBtn = document.getElementById('exportBtn');
   const importForm = document.getElementById('importForm');
-  const csvFileInput = document.getElementById('csvFile');
+  const csvFolderInput = document.getElementById('csvFolder');
+  const csvSingleInput = document.getElementById('csvSingle');
   const fileName = document.getElementById('fileName');
   const importResult = document.getElementById('importResult');
 
-  // ファイル選択時
-  csvFileInput.addEventListener('change', function() {
-    if (this.files && this.files[0]) {
-      fileName.textContent = this.files[0].name;
-    } else {
-      fileName.textContent = 'CSVファイルを選択';
+  const setFolderLabel = () => {
+    const files = Array.from((csvFolderInput && csvFolderInput.files) || []);
+    const csvFiles = files.filter(f => String(f.name || '').toLowerCase().endsWith('.csv'));
+    if (files.length === 0) {
+      fileName.textContent = 'CSVフォルダを選択';
+      return;
     }
+    const first = files[0];
+    const rel = first && first.webkitRelativePath ? String(first.webkitRelativePath) : '';
+    const folderName = rel ? rel.split('/')[0] : '';
+    fileName.textContent = folderName
+      ? `${folderName}（CSV: ${csvFiles.length}件）`
+      : `選択済み（CSV: ${csvFiles.length}件）`;
+  };
+
+  const clearSingleIfFolderPicked = () => {
+    const files = Array.from((csvFolderInput && csvFolderInput.files) || []);
+    if (files.length > 0 && csvSingleInput) {
+      csvSingleInput.value = '';
+    }
+  };
+
+  const clearFolderIfSinglePicked = () => {
+    const files = Array.from((csvSingleInput && csvSingleInput.files) || []);
+    if (files.length > 0 && csvFolderInput) {
+      csvFolderInput.value = '';
+      fileName.textContent = 'CSVフォルダを選択';
+    }
+  };
+
+  // フォルダ選択時
+  csvFolderInput.addEventListener('change', function() {
+    clearSingleIfFolderPicked();
+    setFolderLabel();
+  });
+
+  // 単一ファイル選択時
+  csvSingleInput.addEventListener('change', function() {
+    clearFolderIfSinglePicked();
   });
 
   // エクスポート
@@ -328,8 +370,17 @@ document.addEventListener('DOMContentLoaded', function() {
   importForm.addEventListener('submit', async function(e) {
     e.preventDefault();
 
-    if (!csvFileInput.files || !csvFileInput.files[0]) {
-      alert('CSVファイルを選択してください');
+    const folderFiles = Array.from((csvFolderInput && csvFolderInput.files) || []);
+    const singleFiles = Array.from((csvSingleInput && csvSingleInput.files) || []);
+
+    // 優先: フォルダ選択（複数） > 単一ファイル
+    const chosenFiles = folderFiles.length > 0 ? folderFiles : singleFiles;
+    const csvFiles = chosenFiles
+      .filter(f => String(f.name || '').toLowerCase().endsWith('.csv'))
+      .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+
+    if (csvFiles.length === 0) {
+      alert('CSVフォルダ、またはCSVファイルを選択してください');
       return;
     }
 
@@ -340,7 +391,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     try {
       const formData = new FormData();
-      formData.append('csvFile', csvFileInput.files[0]);
+      for (const f of csvFiles) {
+        formData.append('csvFiles', f);
+      }
 
       const response = await fetch('/csv/import', {
         method: 'POST',
@@ -361,7 +414,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // フォームリセット
         importForm.reset();
-        fileName.textContent = 'CSVファイルを選択';
+        if (csvFolderInput) csvFolderInput.value = '';
+        if (csvSingleInput) csvSingleInput.value = '';
+        fileName.textContent = 'CSVフォルダを選択';
       } else {
         throw new Error(data.error || 'インポートに失敗しました');
       }

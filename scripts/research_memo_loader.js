@@ -109,6 +109,7 @@ function loadResearchMemo(workspaceRoot, rj) {
   const pitfalls = parseSectionBullets(block, '- 詰まりやすい点（仮説として）:');
   const pros = parseSectionBullets(block, '- 良かった点の傾向（複数サイトで共通するもののみ）:');
   const cons = parseSectionBullets(block, '- 気になった点の傾向（複数サイトで共通するもののみ）:');
+  const reviewExcerpts = parseSectionBullets(block, '- レビューコメントの引用（短い引用）:');
   const angles = parseAngleBullets(block);
 
   return {
@@ -118,6 +119,7 @@ function loadResearchMemo(workspaceRoot, rj) {
     pitfalls,
     pros,
     cons,
+    reviewExcerpts,
     angles,
   };
 }
