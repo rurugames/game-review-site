@@ -1,0 +1,109 @@
+<div class="hero">
+  <h1>みんなの評価（短評レビュー）</h1>
+  <p>サイト内の短評レビュー（★1〜5 / 200文字以内）から、作品の評判をまとめて確認できます。</p>
+</div>
+
+<section class="articles-section page-section" aria-label="今月の買ってよかった">
+  <div class="page-header">
+    <h2 class="section-title">今月の買ってよかった</h2>
+    <p class="section-lead"><%= monthLabel %>発売作品の中から、短評レビュー評価が高いものを表示します。</p>
+  </div>
+  <div class="panel">
+    <div class="panel-body">
+      <% if (monthlyBest && monthlyBest.length > 0) { %>
+        <div class="articles-grid">
+          <% monthlyBest.forEach(item => { %>
+            <% const a = item.article; %>
+            <article class="article-card">
+              <% if (a.imageUrl) { %>
+                <div class="article-image"><img src="<%= a.imageUrl %>" alt="<%= a.gameTitle || a.title %>"></div>
+              <% } %>
+              <div class="article-content">
+                <div class="article-meta">
+                  <span class="genre"><%= a.genre || 'ゲーム' %></span>
+                  <span class="rating">★<%= Number(item.score || 0).toFixed(2) %> / 5</span>
+                </div>
+                <h2><%= a.title %></h2>
+                <h3 class="game-title"><%= a.gameTitle %></h3>
+                <p class="description">レビュー <%= item.count %>件 / 単純平均 ★<%= Number(item.avg || 0).toFixed(2) %></p>
+                <a href="/articles/<%= a._id %>#reviews" class="btn-read-more">短評レビューを見る</a>
+              </div>
+            </article>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="no-articles"><p>今月のレビューがまだ十分に集まっていません。</p></div>
+      <% } %>
+    </div>
+  </div>
+</section>
+
+<section class="articles-section page-section" aria-label="隠れ名作">
+  <div class="page-header">
+    <h2 class="section-title">隠れ名作（件数少なめ）</h2>
+    <p class="section-lead">レビュー件数が少ないのに評価が高い作品です（参考：短評レビュー）。</p>
+  </div>
+  <div class="panel">
+    <div class="panel-body">
+      <% if (hiddenGems && hiddenGems.length > 0) { %>
+        <div class="articles-grid">
+          <% hiddenGems.forEach(item => { %>
+            <% const a = item.article; %>
+            <article class="article-card">
+              <% if (a.imageUrl) { %>
+                <div class="article-image"><img src="<%= a.imageUrl %>" alt="<%= a.gameTitle || a.title %>"></div>
+              <% } %>
+              <div class="article-content">
+                <div class="article-meta">
+                  <span class="genre"><%= a.genre || 'ゲーム' %></span>
+                  <span class="rating">★<%= Number(item.avg || 0).toFixed(2) %> / 5</span>
+                </div>
+                <h2><%= a.title %></h2>
+                <h3 class="game-title"><%= a.gameTitle %></h3>
+                <p class="description">レビュー <%= item.count %>件</p>
+                <a href="/articles/<%= a._id %>#reviews" class="btn-read-more">短評レビューを見る</a>
+              </div>
+            </article>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="no-articles"><p>まだ表示できるデータがありません。</p></div>
+      <% } %>
+    </div>
+  </div>
+</section>
+
+<section class="articles-section page-section" aria-label="賛否割れ">
+  <div class="page-header">
+    <h2 class="section-title">賛否割れ（合う人向け）</h2>
+    <p class="section-lead">評価が割れやすい作品です（短評レビューのばらつきが大きい）。</p>
+  </div>
+  <div class="panel">
+    <div class="panel-body">
+      <% if (controversial && controversial.length > 0) { %>
+        <div class="articles-grid">
+          <% controversial.forEach(item => { %>
+            <% const a = item.article; %>
+            <article class="article-card">
+              <% if (a.imageUrl) { %>
+                <div class="article-image"><img src="<%= a.imageUrl %>" alt="<%= a.gameTitle || a.title %>"></div>
+              <% } %>
+              <div class="article-content">
+                <div class="article-meta">
+                  <span class="genre"><%= a.genre || 'ゲーム' %></span>
+                  <span class="rating">ばらつき: <%= Number(item.stddev || 0).toFixed(2) %></span>
+                </div>
+                <h2><%= a.title %></h2>
+                <h3 class="game-title"><%= a.gameTitle %></h3>
+                <p class="description">レビュー <%= item.count %>件 / 単純平均 ★<%= Number(item.avg || 0).toFixed(2) %></p>
+                <a href="/articles/<%= a._id %>#reviews" class="btn-read-more">短評レビューを見る</a>
+              </div>
+            </article>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="no-articles"><p>まだ表示できるデータがありません。</p></div>
+      <% } %>
+    </div>
+  </div>
+</section>

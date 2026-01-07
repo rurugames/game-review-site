@@ -336,6 +336,7 @@ app.use('/auth', require('./routes/auth'));
 app.use('/articles', require('./routes/articles'));
 app.use('/videos', require('./routes/videos'));
 app.use('/comments', require('./routes/comments'));
+app.use('/reviews', require('./routes/reviews'));
 app.use('/users', require('./routes/users'));
 app.use('/events', require('./routes/events'));
 app.use('/generator', require('./routes/generator'));

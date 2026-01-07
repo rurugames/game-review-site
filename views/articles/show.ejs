@@ -322,6 +322,193 @@
   </div>
 </article>
 
+<!-- レビュー（短評）セクション -->
+<section class="comments-section" id="reviews">
+  <h2 class="comments-title">⭐ 短評レビュー（<%= (reviewSummary && reviewSummary.count) ? reviewSummary.count : 0 %>）</h2>
+
+  <div class="panel" style="margin-bottom:1rem;">
+    <div class="panel-body">
+      <% if (reviewSummary && reviewSummary.count && reviewSummary.count > 0) { %>
+        <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-start;">
+          <div>
+            <div style="font-size:1.1rem; font-weight:600;">総合評価</div>
+            <div style="margin-top:0.25rem;">
+              <strong>★<%= Number(reviewSummary.bayesScore ?? reviewSummary.avgRaw ?? 0).toFixed(2) %></strong> / 5
+              <span style="opacity:0.8;">（<%= reviewSummary.count %>件）</span>
+            </div>
+            <% if (reviewSummary.avgRaw != null && reviewSummary.bayesScore != null) { %>
+              <div style="opacity:0.8; font-size:0.95rem; margin-top:0.25rem;">
+                参考: 単純平均 ★<%= Number(reviewSummary.avgRaw).toFixed(2) %> / 5
+              </div>
+            <% } %>
+          </div>
+
+          <div>
+            <div style="font-size:1.1rem; font-weight:600;">星の内訳</div>
+            <div style="margin-top:0.25rem; line-height:1.6;">
+              <div>★★★★★: <%= (reviewSummary.stars && reviewSummary.stars[5]) ? reviewSummary.stars[5] : 0 %></div>
+              <div>★★★★☆: <%= (reviewSummary.stars && reviewSummary.stars[4]) ? reviewSummary.stars[4] : 0 %></div>
+              <div>★★★☆☆: <%= (reviewSummary.stars && reviewSummary.stars[3]) ? reviewSummary.stars[3] : 0 %></div>
+              <div>★★☆☆☆: <%= (reviewSummary.stars && reviewSummary.stars[2]) ? reviewSummary.stars[2] : 0 %></div>
+              <div>★☆☆☆☆: <%= (reviewSummary.stars && reviewSummary.stars[1]) ? reviewSummary.stars[1] : 0 %></div>
+            </div>
+          </div>
+
+          <% if ((reviewSummary.topProsTags && reviewSummary.topProsTags.length) || (reviewSummary.topConsTags && reviewSummary.topConsTags.length)) { %>
+            <div>
+              <div style="font-size:1.1rem; font-weight:600;">よく出るタグ</div>
+              <div style="margin-top:0.25rem; line-height:1.8;">
+                <% if (reviewSummary.topProsTags && reviewSummary.topProsTags.length) { %>
+                  <div><strong>良い点:</strong> <%= reviewSummary.topProsTags.join(' / ') %></div>
+                <% } %>
+                <% if (reviewSummary.topConsTags && reviewSummary.topConsTags.length) { %>
+                  <div><strong>注意点:</strong> <%= reviewSummary.topConsTags.join(' / ') %></div>
+                <% } %>
+              </div>
+            </div>
+          <% } %>
+        </div>
+      <% } else { %>
+        <p style="margin:0;">まだレビューがありません。最初の短評レビューを投稿してみましょう。</p>
+      <% } %>
+    </div>
+  </div>
+
+  <% if (user) { %>
+    <div class="comment-form-container">
+      <h3><%= (myReview ? 'あなたのレビュー（編集）' : '短評レビューを投稿' ) %></h3>
+      <form action="/reviews/<%= article._id %>" method="POST" class="comment-form">
+        <div class="form-group">
+          <label for="review-rating"><strong>評価（★1〜5）</strong></label>
+          <select id="review-rating" name="rating" required>
+            <% const selectedRating = myReview && myReview.rating ? Number(myReview.rating) : 5; %>
+            <% for (let i = 5; i >= 1; i--) { %>
+              <option value="<%= i %>" <%= (selectedRating === i) ? 'selected' : '' %>><%= '★'.repeat(i) + '☆'.repeat(5 - i) %></option>
+            <% } %>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="review-headline"><strong>短評（200文字以内）</strong></label>
+          <textarea id="review-headline" name="headline" rows="3" maxlength="200" placeholder="例: 雰囲気が最高、UIは好みが分かれる" required><%= myReview && myReview.headline ? myReview.headline : '' %></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="review-pros"><strong>良かった点タグ（任意・カンマ区切りで最大3つ）</strong></label>
+          <input id="review-pros" type="text" name="prosTags" value="<%= (myReview && myReview.prosTags && myReview.prosTags.length) ? myReview.prosTags.join(', ') : '' %>" placeholder="例: 一本道, テンポ良い, 世界観" />
+        </div>
+
+        <div class="form-group">
+          <label for="review-cons"><strong>注意点タグ（任意・カンマ区切りで最大3つ）</strong></label>
+          <input id="review-cons" type="text" name="consTags" value="<%= (myReview && myReview.consTags && myReview.consTags.length) ? myReview.consTags.join(', ') : '' %>" placeholder="例: 作業感, 難しい, UI癖" />
+        </div>
+
+        <div class="form-group" style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+          <div>
+            <label for="review-playtime"><strong>プレイ時間（任意）</strong></label>
+            <select id="review-playtime" name="playtimeBucket">
+              <% const pb = myReview && myReview.playtimeBucket ? String(myReview.playtimeBucket) : ''; %>
+              <option value="" <%= pb === '' ? 'selected' : '' %>>未選択</option>
+              <option value="lt1" <%= pb === 'lt1' ? 'selected' : '' %>>〜1時間</option>
+              <option value="1to5" <%= pb === '1to5' ? 'selected' : '' %>>1〜5時間</option>
+              <option value="5to20" <%= pb === '5to20' ? 'selected' : '' %>>5〜20時間</option>
+              <option value="20plus" <%= pb === '20plus' ? 'selected' : '' %>>20時間以上</option>
+            </select>
+          </div>
+
+          <label style="display:flex; align-items:center; gap:0.5rem;">
+            <input type="checkbox" name="spoiler" value="1" <%= (myReview && myReview.spoiler) ? 'checked' : '' %> />
+            ネタバレあり
+          </label>
+        </div>
+
+        <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
+          <button type="submit" class="btn-primary"><%= myReview ? '更新する' : '投稿する' %></button>
+
+          <% if (myReview && (myReview._id || myReview.id)) { %>
+            <form action="/reviews/<%= myReview._id || myReview.id %>?_method=DELETE" method="POST" style="display:inline;">
+              <button type="submit" class="btn-secondary" onclick="return confirm('レビューを削除しますか？')">削除</button>
+            </form>
+          <% } %>
+        </div>
+      </form>
+    </div>
+  <% } else { %>
+    <div class="comment-login-prompt">
+      <p>レビューを投稿するには<a href="/auth/google">ログイン</a>してください</p>
+    </div>
+  <% } %>
+
+  <div class="comments-list">
+    <% if (reviews && reviews.length > 0) { %>
+      <% reviews.forEach(r => { %>
+        <div class="comment-item" id="review-<%= r._id %>">
+          <div class="comment-header">
+            <img src="<%= r.author && r.author.image ? r.author.image : '' %>" alt="<%= (r.author && r.author.email && adminDisplayNames && adminDisplayNames[r.author.email]) ? adminDisplayNames[r.author.email] : (r.author && r.author.displayName ? r.author.displayName : 'ユーザー') %>" class="comment-avatar">
+            <div class="comment-meta">
+              <span class="comment-author"><%= (r.author && r.author.email && adminDisplayNames && adminDisplayNames[r.author.email]) ? adminDisplayNames[r.author.email] : (r.author && r.author.displayName ? r.author.displayName : 'ユーザー') %></span>
+              <span class="comment-date"><%= r.createdAt ? new Date(r.createdAt).toLocaleDateString('ja-JP') : '' %></span>
+            </div>
+          </div>
+
+          <div class="comment-content" style="display:flex; flex-direction:column; gap:0.35rem;">
+            <div>
+              <strong><%= '★'.repeat(Number(r.rating || 0)) + '☆'.repeat(5 - Number(r.rating || 0)) %></strong>
+              <% if (r.spoiler) { %>
+                <span style="opacity:0.75;">（ネタバレ）</span>
+              <% } %>
+            </div>
+            <div><%= r.headline %></div>
+
+            <% if ((r.prosTags && r.prosTags.length) || (r.consTags && r.consTags.length) || r.playtimeBucket) { %>
+              <div style="opacity:0.85; font-size:0.95rem;">
+                <% if (r.playtimeBucket) { %>
+                  <span>
+                    プレイ時間:
+                    <%= (r.playtimeBucket === 'lt1') ? '〜1時間'
+                      : (r.playtimeBucket === '1to5') ? '1〜5時間'
+                      : (r.playtimeBucket === '5to20') ? '5〜20時間'
+                      : (r.playtimeBucket === '20plus') ? '20時間以上'
+                      : '' %>
+                  </span>
+                  <span> / </span>
+                <% } %>
+                <% if (r.prosTags && r.prosTags.length) { %>
+                  <span><strong>良い点:</strong> <%= r.prosTags.join(' / ') %></span>
+                <% } %>
+                <% if (r.consTags && r.consTags.length) { %>
+                  <span><%= (r.prosTags && r.prosTags.length) ? ' / ' : '' %><strong>注意:</strong> <%= r.consTags.join(' / ') %></span>
+                <% } %>
+              </div>
+            <% } %>
+
+            <div style="display:flex; gap:0.5rem; align-items:center; flex-wrap:wrap; margin-top:0.25rem;">
+              <% const hc = (typeof r.helpfulCount === 'number') ? r.helpfulCount : (Array.isArray(r.helpfulBy) ? r.helpfulBy.length : 0); %>
+              <span style="opacity:0.8;">参考になった: <%= hc %></span>
+
+              <% if (user) { %>
+                <form action="/reviews/<%= r._id %>/helpful" method="POST" style="display:inline;">
+                  <button type="submit" class="btn-secondary"><%= r.viewerHasHelped ? '取り消す' : '参考になった' %></button>
+                </form>
+              <% } %>
+
+              <% if (user && ((r.author && r.author._id && r.author._id.toString() === user.id) || isAdmin)) { %>
+                <form action="/reviews/<%= r._id %>?_method=DELETE" method="POST" style="display:inline;">
+                  <button type="submit" class="btn-secondary" onclick="return confirm('レビューを削除しますか？')">削除</button>
+                </form>
+              <% } %>
+            </div>
+          </div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div class="no-comments">
+        <p>まだレビューがありません。</p>
+      </div>
+    <% } %>
+  </div>
+</section>
+
 <!-- コメントセクション -->
 <section class="comments-section">
   <h2 class="comments-title">💬 コメント (<%= (typeof commentCount !== 'undefined') ? commentCount : comments.length %>)</h2>

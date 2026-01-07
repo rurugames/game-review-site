@@ -15,6 +15,7 @@ const RelatedClick = require('../models/RelatedClick');
 const RelatedImpression = require('../models/RelatedImpression');
 const DailyArticleView = require('../models/DailyArticleView');
 const Comment = require('../models/Comment');
+const Review = require('../models/Review');
 const { isAdminEmail } = require('../lib/admin');
 const { normalizeAffiliateLink, DEFAULT_AID } = require('../lib/dlsiteAffiliate');
 
@@ -30,6 +31,150 @@ let rankingFetchTarget = 0;
 let rankingFetchPromise = null;
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 1日
 const { ensureAdmin } = require('../middleware/auth');
+
+// Review ranking cache (in-memory)
+const REVIEW_RANKING_TTL_MS = 10 * 60 * 1000;
+let reviewRankingCache = {
+  ts: 0,
+  monthKey: '',
+  monthLabel: '',
+  monthlyBest: [],
+  hiddenGems: [],
+  controversial: [],
+  globalAvg: 4.0,
+};
+
+function getJstMonthRange(now = new Date()) {
+  const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  const jst = new Date(now.getTime() + JST_OFFSET_MS);
+  const y = jst.getUTCFullYear();
+  const m0 = jst.getUTCMonth(); // 0-11
+  const startUtc = new Date(Date.UTC(y, m0, 1) - JST_OFFSET_MS);
+  const endUtc = new Date(Date.UTC(y, m0 + 1, 1) - JST_OFFSET_MS);
+  const monthKey = `${y}-${String(m0 + 1).padStart(2, '0')}`;
+  const monthLabel = `${y}年${String(m0 + 1).padStart(2, '0')}月`;
+  return { startUtc, endUtc, monthKey, monthLabel };
+}
+
+async function getGlobalReviewAvg() {
+  try {
+    const rows = await Review.aggregate([{ $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } }]);
+    const avg = rows && rows[0] && Number.isFinite(rows[0].avg) ? Number(rows[0].avg) : 4.0;
+    return avg;
+  } catch (_) {
+    return 4.0;
+  }
+}
+
+function bayesScore({ v, R, C, m = 10 }) {
+  const vv = Number(v) || 0;
+  const r = Number(R);
+  const c = Number(C);
+  if (!(vv > 0) || !Number.isFinite(r) || !Number.isFinite(c)) return Number.isFinite(c) ? c : null;
+  return ((vv / (vv + m)) * r) + ((m / (vv + m)) * c);
+}
+
+async function computeReviewRankings() {
+  const now = Date.now();
+  const { startUtc, endUtc, monthKey, monthLabel } = getJstMonthRange(new Date(now));
+  if (reviewRankingCache && (now - reviewRankingCache.ts) < REVIEW_RANKING_TTL_MS && reviewRankingCache.monthKey === monthKey) {
+    return reviewRankingCache;
+  }
+
+  const C = await getGlobalReviewAvg();
+
+  // 今月発売の作品（published）
+  const monthArticles = await Article.find({
+    status: 'published',
+    releaseDate: { $gte: startUtc, $lt: endUtc },
+  })
+    .select('_id title gameTitle genre imageUrl releaseDate')
+    .lean();
+  const monthIds = (monthArticles || []).map((a) => a && a._id).filter(Boolean);
+  const monthById = new Map((monthArticles || []).map((a) => [String(a._id), a]));
+
+  // 今月の買ってよかった（ベイズ補正 + 件数優先）
+  let monthlyBest = [];
+  if (monthIds.length > 0) {
+    const rows = await Review.aggregate([
+      { $match: { article: { $in: monthIds } } },
+      { $group: { _id: '$article', count: { $sum: 1 }, avg: { $avg: '$rating' } } },
+    ]);
+
+    monthlyBest = (rows || [])
+      .map((r) => {
+        const id = String(r._id);
+        const a = monthById.get(id);
+        if (!a) return null;
+        const v = Number(r.count) || 0;
+        const R = Number(r.avg);
+        const score = bayesScore({ v, R, C, m: 10 });
+        return {
+          article: a,
+          count: v,
+          avg: Number.isFinite(R) ? R : null,
+          score,
+        };
+      })
+      .filter(Boolean)
+      .sort((x, y) => (Number(y.score) - Number(x.score)) || (Number(y.count) - Number(x.count)) || String(x.article._id).localeCompare(String(y.article._id)))
+      .slice(0, 10);
+  }
+
+  // 隠れ名作: 件数少なめ（1〜3）で平均が高い
+  const hiddenRows = await Review.aggregate([
+    { $group: { _id: '$article', count: { $sum: 1 }, avg: { $avg: '$rating' } } },
+    { $match: { count: { $gte: 1, $lte: 3 }, avg: { $gte: 4.5 } } },
+    { $sort: { avg: -1, count: -1, _id: 1 } },
+    { $limit: 30 },
+  ]);
+  const hiddenIds = (hiddenRows || []).map((r) => r && r._id).filter(Boolean);
+  const hiddenArticles = hiddenIds.length
+    ? await Article.find({ _id: { $in: hiddenIds }, status: 'published' }).select('_id title gameTitle genre imageUrl releaseDate').lean()
+    : [];
+  const hiddenById = new Map((hiddenArticles || []).map((a) => [String(a._id), a]));
+  const hiddenGems = (hiddenRows || [])
+    .map((r) => {
+      const a = hiddenById.get(String(r._id));
+      if (!a) return null;
+      return { article: a, count: Number(r.count) || 0, avg: Number(r.avg) || 0 };
+    })
+    .filter(Boolean)
+    .slice(0, 10);
+
+  // 賛否割れ: ばらつきが大きい（stddev）かつ件数がある程度
+  const contRows = await Review.aggregate([
+    { $group: { _id: '$article', count: { $sum: 1 }, avg: { $avg: '$rating' }, stddev: { $stdDevPop: '$rating' } } },
+    { $match: { count: { $gte: 5 }, stddev: { $gte: 1.0 } } },
+    { $sort: { stddev: -1, count: -1, _id: 1 } },
+    { $limit: 30 },
+  ]);
+  const contIds = (contRows || []).map((r) => r && r._id).filter(Boolean);
+  const contArticles = contIds.length
+    ? await Article.find({ _id: { $in: contIds }, status: 'published' }).select('_id title gameTitle genre imageUrl releaseDate').lean()
+    : [];
+  const contById = new Map((contArticles || []).map((a) => [String(a._id), a]));
+  const controversial = (contRows || [])
+    .map((r) => {
+      const a = contById.get(String(r._id));
+      if (!a) return null;
+      return { article: a, count: Number(r.count) || 0, avg: Number(r.avg) || 0, stddev: Number(r.stddev) || 0 };
+    })
+    .filter(Boolean)
+    .slice(0, 10);
+
+  reviewRankingCache = {
+    ts: now,
+    monthKey,
+    monthLabel,
+    monthlyBest,
+    hiddenGems,
+    controversial,
+    globalAvg: C,
+  };
+
+  return reviewRankingCache;
+}
 
 // Contact form (simple in-memory rate limit)
 const contactRate = new Map();
@@ -306,6 +451,16 @@ router.get('/', async (req, res) => {
       </div>
     `;
 
+    // 短評レビューランキング（トップに少しだけ表示）
+    let reviewMonthlyBest = [];
+    try {
+      const rr = await computeReviewRankings();
+      reviewMonthlyBest = (rr.monthlyBest || []).slice(0, 5);
+    } catch (e) {
+      reviewMonthlyBest = [];
+      try { console.warn('review ranking compute failed (home):', e && e.message ? e.message : String(e)); } catch (_) {}
+    }
+
     // ホームではランキングは上位10件だけ表示（内部では最大100件取得してキャッシュ）
     const topRanking = Array.isArray(ranking) ? ranking.slice(0, 10) : [];
     const rankingStatus = makeStatus();
@@ -321,9 +476,29 @@ router.get('/', async (req, res) => {
       heroHtml,
       rankingStatus,
       rankingStatusFormatted,
+      reviewMonthlyBest,
       latestVideos,
       recommendedVideos,
       youtubeChannelId,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('サーバーエラーが発生しました');
+  }
+});
+
+// みんなの評価（短評レビュー）ランキング
+router.get('/review-ranking', async (req, res) => {
+  try {
+    const rr = await computeReviewRankings();
+
+    res.render('reviewRanking', {
+      title: 'みんなの評価',
+      metaDescription: 'サイト内の短評レビュー（★1〜5）を集計して、今月の高評価・隠れ名作・賛否割れ作品をまとめて表示します。',
+      monthLabel: rr.monthLabel,
+      monthlyBest: rr.monthlyBest,
+      hiddenGems: rr.hiddenGems,
+      controversial: rr.controversial,
     });
   } catch (err) {
     console.error(err);

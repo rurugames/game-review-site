@@ -72,6 +72,44 @@
   </div>
 </section>
 
+<% if (typeof reviewMonthlyBest !== 'undefined') { %>
+<section class="articles-section page-section" aria-label="みんなの評価">
+  <div class="page-header">
+    <h2 class="section-title">みんなの評価（短評レビュー）</h2>
+    <p class="section-lead">短評レビューから「買ってよかった」を探せます。<a href="/review-ranking">一覧を見る</a></p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-body">
+      <% if (reviewMonthlyBest && reviewMonthlyBest.length > 0) { %>
+        <div class="articles-grid">
+          <% reviewMonthlyBest.forEach(item => { %>
+            <% const a = item.article; %>
+            <article class="article-card">
+              <% if (a.imageUrl) { %>
+                <div class="article-image"><img src="<%= a.imageUrl %>" alt="<%= a.gameTitle || a.title %>"></div>
+              <% } %>
+              <div class="article-content">
+                <div class="article-meta">
+                  <span class="genre"><%= a.genre || 'ゲーム' %></span>
+                  <span class="rating">★<%= Number(item.score || 0).toFixed(2) %> / 5</span>
+                </div>
+                <h2><%= a.title %></h2>
+                <h3 class="game-title"><%= a.gameTitle %></h3>
+                <p class="description">レビュー <%= item.count %>件</p>
+                <a href="/articles/<%= a._id %>#reviews" class="btn-read-more">短評レビューを見る</a>
+              </div>
+            </article>
+          <% }); %>
+        </div>
+      <% } else { %>
+        <div class="no-articles"><p>レビューがまだ集まっていません。</p></div>
+      <% } %>
+    </div>
+  </div>
+</section>
+<% } %>
+
 <% if (latestVideos && latestVideos.length > 0) { %>
 <section class="articles-section page-section">
   <div class="page-header">

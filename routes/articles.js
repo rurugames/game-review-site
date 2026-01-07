@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const Article = require('../models/Article');
 const DailyArticleView = require('../models/DailyArticleView');
 const Comment = require('../models/Comment');
+const Review = require('../models/Review');
 const RelatedClick = require('../models/RelatedClick');
 const RelatedImpression = require('../models/RelatedImpression');
 const { ensureAuth, ensureAdmin } = require('../middleware/auth');
@@ -18,6 +20,28 @@ marked.setOptions({
 
 const RELATED_POSITION_ORDER_TTL_MS = 30 * 60 * 1000;
 const relatedPositionOrderCache = new Map();
+
+const REVIEW_GLOBAL_STATS_TTL_MS = 10 * 60 * 1000;
+let globalReviewStatsCache = { ts: 0, avg: 4.0, count: 0 };
+
+async function getGlobalReviewStats() {
+  const now = Date.now();
+  if (globalReviewStatsCache && (now - globalReviewStatsCache.ts) < REVIEW_GLOBAL_STATS_TTL_MS) {
+    return globalReviewStatsCache;
+  }
+
+  try {
+    const rows = await Review.aggregate([
+      { $group: { _id: null, avg: { $avg: '$rating' }, count: { $sum: 1 } } },
+    ]);
+    const avg = rows && rows[0] && Number.isFinite(rows[0].avg) ? Number(rows[0].avg) : 4.0;
+    const count = rows && rows[0] && Number.isFinite(rows[0].count) ? Number(rows[0].count) : 0;
+    globalReviewStatsCache = { ts: now, avg, count };
+    return globalReviewStatsCache;
+  } catch (_) {
+    return globalReviewStatsCache;
+  }
+}
 
 async function getRelatedPositionOrder(block, days = 30) {
   const key = `${block}|${days}`;
@@ -276,6 +300,108 @@ router.get('/:id', async (req, res) => {
       return { ...c, replies: repliesByParent.get(id) || [] };
     });
     const commentCount = (parentComments ? parentComments.length : 0) + (replyComments ? replyComments.length : 0);
+
+    // レビュー（短評）を取得
+    const reviewSummary = {
+      count: 0,
+      avgRaw: null,
+      bayesScore: null,
+      stars: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 },
+      topProsTags: [],
+      topConsTags: [],
+    };
+    let reviews = [];
+    let myReview = null;
+
+    try {
+      const aid = String(req.params.id || '').trim();
+      if (mongoose.Types.ObjectId.isValid(aid)) {
+        const articleObjId = new mongoose.Types.ObjectId(aid);
+
+        const [globalStats, summaryRows] = await Promise.all([
+          getGlobalReviewStats(),
+          Review.aggregate([
+            { $match: { article: articleObjId } },
+            {
+              $group: {
+                _id: '$article',
+                count: { $sum: 1 },
+                avg: { $avg: '$rating' },
+                s1: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } },
+                s2: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
+                s3: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
+                s4: { $sum: { $cond: [{ $eq: ['$rating', 4] }, 1, 0] } },
+                s5: { $sum: { $cond: [{ $eq: ['$rating', 5] }, 1, 0] } },
+              },
+            },
+          ]),
+        ]);
+
+        if (summaryRows && summaryRows[0]) {
+          const s = summaryRows[0];
+          const v = Number(s.count) || 0;
+          const R = Number(s.avg);
+          const C = Number(globalStats && globalStats.avg);
+          const m = 10;
+          reviewSummary.count = v;
+          reviewSummary.avgRaw = Number.isFinite(R) ? R : null;
+          reviewSummary.stars = {
+            1: Number(s.s1) || 0,
+            2: Number(s.s2) || 0,
+            3: Number(s.s3) || 0,
+            4: Number(s.s4) || 0,
+            5: Number(s.s5) || 0,
+          };
+          if (v > 0 && Number.isFinite(R) && Number.isFinite(C)) {
+            reviewSummary.bayesScore = ((v / (v + m)) * R) + ((m / (v + m)) * C);
+          } else if (Number.isFinite(C)) {
+            reviewSummary.bayesScore = C;
+          }
+        }
+
+        const [topPros, topCons] = await Promise.all([
+          Review.aggregate([
+            { $match: { article: articleObjId } },
+            { $unwind: '$prosTags' },
+            { $group: { _id: '$prosTags', c: { $sum: 1 } } },
+            { $sort: { c: -1, _id: 1 } },
+            { $limit: 3 },
+          ]),
+          Review.aggregate([
+            { $match: { article: articleObjId } },
+            { $unwind: '$consTags' },
+            { $group: { _id: '$consTags', c: { $sum: 1 } } },
+            { $sort: { c: -1, _id: 1 } },
+            { $limit: 3 },
+          ]),
+        ]);
+
+        reviewSummary.topProsTags = (topPros || []).map((r) => String(r._id || '')).filter(Boolean);
+        reviewSummary.topConsTags = (topCons || []).map((r) => String(r._id || '')).filter(Boolean);
+
+        const viewerId = req.user ? String(req.user.id || '') : '';
+        const [list, mine] = await Promise.all([
+          Review.find({ article: aid })
+            .populate('author')
+            .sort({ helpfulCount: -1, createdAt: -1, _id: -1 })
+            .limit(80)
+            .lean(),
+          viewerId
+            ? Review.findOne({ article: aid, author: viewerId }).lean()
+            : Promise.resolve(null),
+        ]);
+
+        reviews = (list || []).map((r) => {
+          const helped = viewerId && Array.isArray(r.helpfulBy) && r.helpfulBy.some((x) => String(x) === viewerId);
+          return { ...r, viewerHasHelped: !!helped };
+        });
+        myReview = mine;
+      }
+    } catch (e) {
+      reviews = [];
+      myReview = null;
+      try { console.warn('review fetch failed:', e && e.message ? e.message : String(e)); } catch (_) {}
+    }
     
     // 閲覧数を増加
     article.views += 1;
@@ -448,6 +574,9 @@ router.get('/:id', async (req, res) => {
       article: articleWithHtml,
       comments,
       commentCount,
+      reviewSummary,
+      reviews,
+      myReview,
       recommendedSameAttribute,
       recommendedSameDeveloper,
       relatedVideos,
