@@ -267,6 +267,20 @@ router.post('/', ensureAdmin, async (req, res) => {
 // 記事詳細
 router.get('/:id', async (req, res) => {
   try {
+    // レビュー投稿直後のフィードバック（1回だけ表示）
+    let reviewPostFeedback = null;
+    try {
+      const fb = req.session && req.session.reviewJustPosted ? req.session.reviewJustPosted : null;
+      if (fb && String(fb.articleId || '') === String(req.params.id || '')) {
+        reviewPostFeedback = {
+          action: String(fb.action || ''),
+          rating: Number(fb.rating) || null,
+          ts: Number(fb.ts) || null,
+        };
+        delete req.session.reviewJustPosted;
+      }
+    } catch (_) {}
+
     const article = await Article.findById(req.params.id)
       .populate('author');
     
@@ -577,6 +591,7 @@ router.get('/:id', async (req, res) => {
       reviewSummary,
       reviews,
       myReview,
+      reviewPostFeedback,
       recommendedSameAttribute,
       recommendedSameDeveloper,
       relatedVideos,

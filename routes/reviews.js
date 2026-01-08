@@ -62,6 +62,8 @@ router.post('/:articleId', ensureAuth, async (req, res) => {
       return res.status(400).send('短評は200文字以内で入力してください');
     }
 
+    const existed = await Review.exists({ article: articleId, author: req.user.id });
+
     await Review.updateOne(
       { article: articleId, author: req.user.id },
       {
@@ -84,6 +86,18 @@ router.post('/:articleId', ensureAuth, async (req, res) => {
       },
       { upsert: true }
     );
+
+    // 投稿直後のフィードバック表示用（記事詳細で1回だけ消費）
+    try {
+      if (req.session) {
+        req.session.reviewJustPosted = {
+          articleId,
+          action: existed ? 'updated' : 'created',
+          rating,
+          ts: Date.now(),
+        };
+      }
+    } catch (_) {}
 
     res.redirect(`/articles/${articleId}#reviews`);
   } catch (err) {

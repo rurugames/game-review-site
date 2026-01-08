@@ -369,14 +369,33 @@
           <% } %>
         </div>
       <% } else { %>
-        <p style="margin:0;">まだレビューがありません。最初の短評レビューを投稿してみましょう。</p>
+        <p style="margin:0;">まだ評価がありません。最初の評価を30秒で残してみましょう。</p>
       <% } %>
     </div>
   </div>
 
   <% if (user) { %>
     <div class="comment-form-container">
-      <h3><%= (myReview ? 'あなたのレビュー（編集）' : '短評レビューを投稿' ) %></h3>
+      <h3><%= (myReview ? 'あなたの評価（編集）' : '30秒で評価を残す' ) %></h3>
+
+      <% if (typeof reviewPostFeedback !== 'undefined' && reviewPostFeedback) { %>
+        <div class="panel" style="margin:0.75rem 0;">
+          <div class="panel-body">
+            <p style="margin:0; font-weight:600;">ありがとうございます。<%= (reviewPostFeedback.action === 'updated') ? '更新' : '投稿' %>が反映されました。</p>
+            <p style="margin:0.25rem 0 0; opacity:0.85;">
+              <% if (reviewPostFeedback.rating) { %>
+                あなたの評価: <strong><%= '★'.repeat(Number(reviewPostFeedback.rating)) + '☆'.repeat(5 - Number(reviewPostFeedback.rating)) %></strong>
+                <% if (reviewSummary && reviewSummary.count) { %>
+                  / 現在の総合評価: <strong>★<%= Number(reviewSummary.bayesScore ?? reviewSummary.avgRaw ?? 0).toFixed(2) %></strong>（<%= reviewSummary.count %>件）
+                <% } %>
+              <% } else { %>
+                あなたの評価が「みんなの評価」に反映されました。
+              <% } %>
+            </p>
+          </div>
+        </div>
+      <% } %>
+
       <form action="/reviews/<%= article._id %>" method="POST" class="comment-form">
         <div class="form-group">
           <label for="review-rating"><strong>評価（★1〜5）</strong></label>
@@ -390,6 +409,9 @@
 
         <div class="form-group">
           <label for="review-headline"><strong>短評（200文字以内）</strong></label>
+          <p style="margin:0.25rem 0 0.5rem; opacity:0.8; font-size:0.95rem;">
+            例: 「良かった点: テンポが良い / 注意点: UIにクセ」など、1行でOKです。
+          </p>
           <textarea id="review-headline" name="headline" rows="3" maxlength="200" placeholder="例: 雰囲気が最高、UIは好みが分かれる" required><%= myReview && myReview.headline ? myReview.headline : '' %></textarea>
         </div>
 
@@ -423,7 +445,7 @@
         </div>
 
         <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap;">
-          <button type="submit" class="btn-primary"><%= myReview ? '更新する' : '投稿する' %></button>
+          <button type="submit" class="btn-primary"><%= myReview ? '更新して反映' : '評価を反映' %></button>
 
           <% if (myReview && (myReview._id || myReview.id)) { %>
             <form action="/reviews/<%= myReview._id || myReview.id %>?_method=DELETE" method="POST" style="display:inline;">
