@@ -466,6 +466,95 @@ router.get('/:id', async (req, res) => {
       // 変換失敗は表示を止めない
     }
 
+    // 比較して買うための導線（同ジャンル高評価 / 同タグで最近レビュー増）
+    let compareTopByGenreReviews = [];
+    let compareTrendingByTags = [];
+
+    try {
+      const baseSelect = '_id title gameTitle imageUrl genre affiliateLink createdAt updatedAt';
+      const currentId = String(articleWithHtml._id || '').trim();
+      const currentObjId = mongoose.Types.ObjectId.isValid(currentId) ? new mongoose.Types.ObjectId(currentId) : null;
+
+      // 同ジャンル: 評価が高い（ベイズ補正）
+      const currentGenre = String(articleWithHtml.genre || '').trim();
+      if (currentObjId && currentGenre) {
+        const candidates = await Article.find({ status: 'published', _id: { $ne: currentObjId }, genre: currentGenre })
+          .select(baseSelect)
+          .limit(60)
+          .lean();
+
+        const ids = (candidates || []).map((a) => a && a._id).filter(Boolean);
+        if (ids.length) {
+          const [globalStats, rows] = await Promise.all([
+            getGlobalReviewStats(),
+            Review.aggregate([
+              { $match: { article: { $in: ids } } },
+              { $group: { _id: '$article', count: { $sum: 1 }, avg: { $avg: '$rating' } } },
+            ]),
+          ]);
+
+          const C = Number(globalStats && globalStats.avg);
+          const m = 10;
+          const scoreMap = new Map(
+            (rows || []).map((r) => {
+              const v = Number(r.count) || 0;
+              const R = Number(r.avg);
+              const bayes = (v > 0 && Number.isFinite(R) && Number.isFinite(C))
+                ? ((v / (v + m)) * R) + ((m / (v + m)) * C)
+                : (Number.isFinite(C) ? C : null);
+              return [String(r._id), { count: v, avg: Number.isFinite(R) ? R : null, bayesScore: bayes }];
+            })
+          );
+
+          compareTopByGenreReviews = (candidates || [])
+            .map((a) => {
+              const s = scoreMap.get(String(a._id)) || { count: 0, avg: null, bayesScore: null };
+              return { ...a, reviewCount: s.count, reviewAvg: s.avg, bayesScore: s.bayesScore };
+            })
+            .filter((a) => (a.reviewCount || 0) > 0)
+            .sort((a, b) => {
+              const sb = Number(b.bayesScore ?? -1);
+              const sa = Number(a.bayesScore ?? -1);
+              if (sb !== sa) return sb - sa;
+              return (Number(b.reviewCount) || 0) - (Number(a.reviewCount) || 0);
+            })
+            .slice(0, 6);
+        }
+      }
+
+      // 同タグ: 最近レビューが増えている（直近30日）
+      const tags = Array.isArray(articleWithHtml.tags) ? articleWithHtml.tags : [];
+      const currentTags = tags.map((t) => String(t || '').trim()).filter(Boolean).slice(0, 6);
+      if (currentObjId && currentTags.length) {
+        const candidates = await Article.find({ status: 'published', _id: { $ne: currentObjId }, tags: { $in: currentTags } })
+          .select(baseSelect)
+          .limit(80)
+          .lean();
+
+        const ids = (candidates || []).map((a) => a && a._id).filter(Boolean);
+        if (ids.length) {
+          const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          const rows = await Review.aggregate([
+            { $match: { article: { $in: ids }, createdAt: { $gte: since } } },
+            { $group: { _id: '$article', recentCount: { $sum: 1 } } },
+            { $sort: { recentCount: -1, _id: 1 } },
+            { $limit: 12 },
+          ]);
+
+          const recentMap = new Map((rows || []).map((r) => [String(r._id), Number(r.recentCount) || 0]));
+          compareTrendingByTags = (candidates || [])
+            .map((a) => ({ ...a, recentReviewCount: recentMap.get(String(a._id)) || 0 }))
+            .filter((a) => (a.recentReviewCount || 0) > 0)
+            .sort((a, b) => (Number(b.recentReviewCount) || 0) - (Number(a.recentReviewCount) || 0))
+            .slice(0, 6);
+        }
+      }
+    } catch (e) {
+      compareTopByGenreReviews = [];
+      compareTrendingByTags = [];
+      try { console.warn('compare blocks build failed:', e && e.message ? e.message : String(e)); } catch (_) {}
+    }
+
     // 記事末尾の回遊導線: 同属性のおすすめ / 同サークル(開発元)の他作
     const baseQuery = { status: 'published', _id: { $ne: article._id } };
     let recommendedSameAttribute = [];
@@ -592,6 +681,8 @@ router.get('/:id', async (req, res) => {
       reviews,
       myReview,
       reviewPostFeedback,
+      compareTopByGenreReviews,
+      compareTrendingByTags,
       recommendedSameAttribute,
       recommendedSameDeveloper,
       relatedVideos,

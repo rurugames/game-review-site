@@ -132,6 +132,82 @@
       </div>
     <% } %>
 
+    <% if ((compareTopByGenreReviews && compareTopByGenreReviews.length > 0) || (compareTrendingByTags && compareTrendingByTags.length > 0)) { %>
+      <section class="articles-section page-section" aria-label="比較して探す">
+        <div class="page-header">
+          <h2 class="section-title">比較して探す</h2>
+          <p class="section-lead">似た作品を並べて見て、買う判断をしやすくします。</p>
+        </div>
+        <div class="panel">
+          <div class="panel-body">
+            <% if (compareTopByGenreReviews && compareTopByGenreReviews.length > 0) { %>
+              <div style="margin-bottom:1.25rem;">
+                <h3 style="margin:0 0 0.25rem;">同ジャンルで評価が高い</h3>
+                <p style="margin:0 0 0.75rem; opacity:0.85;">短評レビューの評価（件数補正あり）が高い作品です。</p>
+                <div class="articles-grid">
+                  <% compareTopByGenreReviews.slice(0, 6).forEach(function(a){ %>
+                    <article class="article-card">
+                      <% if (a.imageUrl) { %>
+                        <div class="article-image">
+                          <img src="<%= a.imageUrl %>" alt="<%= a.gameTitle || a.title %>">
+                        </div>
+                      <% } %>
+                      <div class="article-content">
+                        <div class="article-meta">
+                          <span class="genre"><%= a.genre || 'ゲーム' %></span>
+                          <span class="date">レビュー <%= a.reviewCount || 0 %>件 / ★<%= Number(a.bayesScore ?? a.reviewAvg ?? 0).toFixed(2) %></span>
+                        </div>
+                        <h2><%= a.title %></h2>
+                        <h3 class="game-title"><%= a.gameTitle %></h3>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+                          <a href="/articles/<%= a._id %>" class="btn-read-more">比較する</a>
+                          <% if (a.affiliateLink) { %>
+                            <a href="<%= a.affiliateLink %>" target="_blank" rel="noopener noreferrer sponsored" class="btn-secondary" style="padding:0.5rem 1rem;">購入</a>
+                          <% } %>
+                        </div>
+                      </div>
+                    </article>
+                  <% }); %>
+                </div>
+              </div>
+            <% } %>
+
+            <% if (compareTrendingByTags && compareTrendingByTags.length > 0) { %>
+              <div>
+                <h3 style="margin:0 0 0.25rem;">同タグで最近レビューが増えている</h3>
+                <p style="margin:0 0 0.75rem; opacity:0.85;">直近30日で短評レビューが増えている作品です。</p>
+                <div class="articles-grid">
+                  <% compareTrendingByTags.slice(0, 6).forEach(function(a){ %>
+                    <article class="article-card">
+                      <% if (a.imageUrl) { %>
+                        <div class="article-image">
+                          <img src="<%= a.imageUrl %>" alt="<%= a.gameTitle || a.title %>">
+                        </div>
+                      <% } %>
+                      <div class="article-content">
+                        <div class="article-meta">
+                          <span class="genre"><%= a.genre || 'ゲーム' %></span>
+                          <span class="date">直近30日 +<%= a.recentReviewCount || 0 %></span>
+                        </div>
+                        <h2><%= a.title %></h2>
+                        <h3 class="game-title"><%= a.gameTitle %></h3>
+                        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+                          <a href="/articles/<%= a._id %>" class="btn-read-more">比較する</a>
+                          <% if (a.affiliateLink) { %>
+                            <a href="<%= a.affiliateLink %>" target="_blank" rel="noopener noreferrer sponsored" class="btn-secondary" style="padding:0.5rem 1rem;">購入</a>
+                          <% } %>
+                        </div>
+                      </div>
+                    </article>
+                  <% }); %>
+                </div>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      </section>
+    <% } %>
+
     <% if (relatedVideos && relatedVideos.length > 0) { %>
       <section class="articles-section page-section" aria-label="関連動画">
         <div class="page-header">
