@@ -17,6 +17,13 @@
   </div>
 
   <% const activeQueryText = (query && query.q) ? String(query.q).trim() : ''; %>
+
+  <% const selectedTagsValue = (typeof selectedTags !== 'undefined' && selectedTags && selectedTags.length)
+    ? selectedTags
+    : ((query && query.tags) ? String(query.tags).split(',').map(t => String(t || '').trim().replace(/^#/, '')).filter(Boolean) : []);
+  %>
+  <% const activeTags = Array.from(new Set(selectedTagsValue)).filter(Boolean); %>
+
   <form class="search-form" method="get" action="/articles" role="search" aria-label="記事検索">
     <% if (query) { %>
       <% Object.keys(query).forEach(function(k){
@@ -56,12 +63,6 @@
       <a class="per-button <%= (typeof per !== 'undefined' && per === opt) ? 'active' : '' %>" href="<%= buildQs({ per: opt, page: 1 }) %>"><%= opt %></a>
     <% }); %>
   </div>
-
-  <% const selectedTagsValue = (typeof selectedTags !== 'undefined' && selectedTags && selectedTags.length)
-    ? selectedTags
-    : ((query && query.tags) ? String(query.tags).split(',').map(t => String(t || '').trim().replace(/^#/, '')).filter(Boolean) : []);
-  %>
-  <% const activeTags = Array.from(new Set(selectedTagsValue)).filter(Boolean); %>
 
   <% const activeYear = (typeof selectedYear !== 'undefined' && selectedYear) ? Number(selectedYear) : ((query && query.year) ? parseInt(String(query.year), 10) : null); %>
   <% const activeMonth = (typeof selectedMonth !== 'undefined' && selectedMonth) ? Number(selectedMonth) : ((query && query.month) ? parseInt(String(query.month), 10) : null); %>
