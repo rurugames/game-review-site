@@ -392,6 +392,9 @@
                 あなたの評価が「みんなの評価」に反映されました。
               <% } %>
             </p>
+            <p style="margin:0.5rem 0 0;">
+              <a href="/review-ranking" class="btn-secondary" style="padding:0.25rem 0.5rem;">みんなの評価を見る</a>
+            </p>
           </div>
         </div>
       <% } %>
@@ -413,6 +416,9 @@
             例: 「良かった点: テンポが良い / 注意点: UIにクセ」など、1行でOKです。
           </p>
           <textarea id="review-headline" name="headline" rows="3" maxlength="200" placeholder="例: 雰囲気が最高、UIは好みが分かれる" required><%= myReview && myReview.headline ? myReview.headline : '' %></textarea>
+          <div style="margin-top:0.25rem; opacity:0.75; font-size:0.9rem;">
+            残り <span id="review-headline-remaining">200</span> 文字
+          </div>
         </div>
 
         <div class="form-group">
@@ -457,9 +463,26 @@
     </div>
   <% } else { %>
     <div class="comment-login-prompt">
-      <p>レビューを投稿するには<a href="/auth/google">ログイン</a>してください</p>
+      <p><a href="/auth/google">ログイン</a>すると、★と短評を30秒で残せます。</p>
     </div>
   <% } %>
+
+  <script>
+    (function () {
+      var ta = document.getElementById('review-headline');
+      var out = document.getElementById('review-headline-remaining');
+      if (!ta || !out) return;
+      var max = parseInt(ta.getAttribute('maxlength') || '200', 10);
+      if (!Number.isFinite(max) || max <= 0) max = 200;
+      var update = function () {
+        var len = (ta.value || '').length;
+        var remain = Math.max(0, max - len);
+        out.textContent = String(remain);
+      };
+      ta.addEventListener('input', update);
+      update();
+    })();
+  </script>
 
   <div class="comments-list">
     <% if (reviews && reviews.length > 0) { %>
