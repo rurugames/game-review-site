@@ -12,6 +12,28 @@
   </div>
 </div>
 
+<% 
+  // JST基準で「今月」を作る
+  const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  const _jst = new Date(Date.now() + JST_OFFSET_MS);
+  const _y = _jst.getUTCFullYear();
+  const _m = _jst.getUTCMonth() + 1;
+%>
+
+<section class="articles-section page-section" aria-label="クイック導線">
+  <div class="page-header">
+    <h2 class="section-title">最短で探す</h2>
+    <p class="section-lead">買ってよかったを見つけるための最短ルートです。</p>
+  </div>
+  <div class="panel">
+    <div class="panel-body" style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+      <a href="/review-ranking" class="btn-primary">みんなの評価を見る</a>
+      <a href="/articles?year=<%= _y %>&month=<%= _m %>" class="btn-secondary">今月の新作を見る</a>
+      <a href="/articles" class="btn-secondary">タグから探す</a>
+    </div>
+  </div>
+</section>
+
 <section class="articles-section page-section">
   <div class="page-header">
     <h2 class="section-title">最新記事</h2>

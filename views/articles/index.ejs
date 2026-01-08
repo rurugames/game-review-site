@@ -36,6 +36,15 @@
     <button type="submit">検索</button>
   </form>
 
+  <% if (typeof recommendedTags !== 'undefined' && recommendedTags && recommendedTags.length) { %>
+    <div class="per-toggle" aria-label="人気タグ">
+      <span class="per-label">人気タグ:</span>
+      <% recommendedTags.slice(0, 10).forEach(function(tag){ %>
+        <a class="per-button <%= activeTags.includes(tag) ? 'active' : '' %>" href="<%= buildQs({ tags: tag, tag: '', page: 1 }) %>">#<%= tag %></a>
+      <% }); %>
+    </div>
+  <% } %>
+
   <div class="filters-toggle-row">
     <button type="button" class="per-button filters-toggle" data-filters-toggle aria-controls="articles-filters" aria-expanded="false">フィルターを表示</button>
   </div>
@@ -229,7 +238,52 @@
     <% } %>
   <% } else { %>
     <div class="no-articles">
-      <p>まだ公開された記事がありません。</p>
+      <% const hasAnyFilter = !!(activeTags.length || activeQueryText || (activeYear && !isNaN(activeYear)) || (activeMonth && !isNaN(activeMonth)) || (activeRatings && activeRatings.length)); %>
+      <% if (hasAnyFilter) { %>
+        <p>条件に一致する記事が見つかりませんでした。</p>
+        <p style="opacity:0.85;">検索語やフィルターを少し緩めると見つかりやすいです。</p>
+        <div style="margin-top:0.5rem; display:flex; gap:0.5rem; flex-wrap:wrap;">
+          <a class="btn-secondary" href="/articles">条件をリセット</a>
+          <a class="btn-secondary" href="/review-ranking">みんなの評価を見る</a>
+        </div>
+
+        <% if ((typeof suggestDevelopers !== 'undefined' && suggestDevelopers && suggestDevelopers.length) || (typeof suggestGenres !== 'undefined' && suggestGenres && suggestGenres.length) || (typeof suggestTags !== 'undefined' && suggestTags && suggestTags.length)) { %>
+          <div class="panel" style="margin-top:1rem;">
+            <div class="panel-body">
+              <p class="section-lead" style="margin:0 0 0.75rem;">近い候補</p>
+
+              <% if (suggestDevelopers && suggestDevelopers.length) { %>
+                <div class="per-toggle" aria-label="候補: サークル名">
+                  <span class="per-label">サークル名:</span>
+                  <% suggestDevelopers.forEach(function(d){ %>
+                    <a class="per-button" href="<%= buildQs({ q: d, page: 1 }) %>"><%= d %></a>
+                  <% }); %>
+                </div>
+              <% } %>
+
+              <% if (suggestGenres && suggestGenres.length) { %>
+                <div class="per-toggle" aria-label="候補: ジャンル">
+                  <span class="per-label">ジャンル:</span>
+                  <% suggestGenres.forEach(function(g){ %>
+                    <a class="per-button" href="<%= buildQs({ q: g, page: 1 }) %>"><%= g %></a>
+                  <% }); %>
+                </div>
+              <% } %>
+
+              <% if (suggestTags && suggestTags.length) { %>
+                <div class="per-toggle" aria-label="候補: タグ">
+                  <span class="per-label">タグ:</span>
+                  <% suggestTags.forEach(function(t){ %>
+                    <a class="per-button" href="<%= buildQs({ tags: t, q: '', page: 1 }) %>">#<%= t %></a>
+                  <% }); %>
+                </div>
+              <% } %>
+            </div>
+          </div>
+        <% } %>
+      <% } else { %>
+        <p>まだ公開された記事がありません。</p>
+      <% } %>
     </div>
   <% } %>
 </section>

@@ -889,6 +889,50 @@ router.get('/', async (req, res) => {
     const totalPages = Math.max(1, Math.ceil(totalCount / per));
     if (page > totalPages) page = totalPages;
 
+    // 0件時の提案（検索語がある場合のみ）
+    let suggestDevelopers = [];
+    let suggestGenres = [];
+    let suggestTags = [];
+    try {
+      const rawQ = (req.query.q ?? '').toString().trim();
+      const q = rawQ.length > 80 ? rawQ.slice(0, 80) : rawQ;
+      if (totalCount === 0 && q) {
+        const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rx = new RegExp(escapeRegExp(q), 'i');
+
+        const [devRows, genreRows, tagRows] = await Promise.all([
+          Article.aggregate([
+            { $match: { status: 'published', developer: { $type: 'string', $ne: '', $regex: rx } } },
+            { $group: { _id: '$developer', count: { $sum: 1 } } },
+            { $sort: { count: -1, _id: 1 } },
+            { $limit: 5 },
+          ]),
+          Article.aggregate([
+            { $match: { status: 'published', genre: { $type: 'string', $ne: '', $regex: rx } } },
+            { $group: { _id: '$genre', count: { $sum: 1 } } },
+            { $sort: { count: -1, _id: 1 } },
+            { $limit: 5 },
+          ]),
+          Article.aggregate([
+            { $match: { status: 'published', tags: { $exists: true, $ne: [] } } },
+            { $unwind: '$tags' },
+            { $match: { tags: { $type: 'string', $ne: '', $regex: rx } } },
+            { $group: { _id: '$tags', count: { $sum: 1 } } },
+            { $sort: { count: -1, _id: 1 } },
+            { $limit: 8 },
+          ]),
+        ]);
+
+        suggestDevelopers = (devRows || []).map((r) => String(r._id || '')).filter(Boolean);
+        suggestGenres = (genreRows || []).map((r) => String(r._id || '')).filter(Boolean);
+        suggestTags = (tagRows || []).map((r) => String(r._id || '')).filter(Boolean);
+      }
+    } catch (_) {
+      suggestDevelopers = [];
+      suggestGenres = [];
+      suggestTags = [];
+    }
+
     const articles = await Article.find(articlesQuery)
       .populate('author')
       .sort(sortSpec)
@@ -919,6 +963,9 @@ router.get('/', async (req, res) => {
       availableMonths,
       selectedYear: hasValidYear ? selectedYear : null,
       selectedMonth: hasValidYear && hasValidMonth ? selectedMonth : null,
+      suggestDevelopers,
+      suggestGenres,
+      suggestTags,
       query: req.query
     });
   } catch (err) {
