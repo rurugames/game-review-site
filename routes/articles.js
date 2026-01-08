@@ -666,6 +666,29 @@ router.get('/:id', async (req, res) => {
       author: { '@type': 'Person', name: authorName },
       mainEntityOfPage: { '@type': 'WebPage', '@id': (res.locals && res.locals.canonicalUrl) ? res.locals.canonicalUrl : undefined }
     };
+
+    // 「結局買うべき？」の結論1行（現在値に基づく）
+    const scoreForDecision = Number(reviewSummary && (reviewSummary.bayesScore ?? reviewSummary.avgRaw));
+    const countForDecision = Number(reviewSummary && reviewSummary.count) || 0;
+    const scoreText = Number.isFinite(scoreForDecision) ? `★${scoreForDecision.toFixed(2)}` : '★-';
+    let purchaseConclusion = '';
+    if (countForDecision <= 0) {
+      purchaseConclusion = 'まだ評価が0件です。気になるなら買って自分の評価を残すのが一番早いです。';
+    } else if (!Number.isFinite(scoreForDecision)) {
+      purchaseConclusion = `評価は${countForDecision}件ありますが、集計値が取得できませんでした。短評を見て判断がおすすめです。`;
+    } else if (scoreForDecision >= 4.2 && countForDecision >= 10) {
+      purchaseConclusion = `${scoreText}（${countForDecision}件）。評価も件数も十分なので買い寄りです。`;
+    } else if (scoreForDecision >= 4.0 && countForDecision >= 5) {
+      purchaseConclusion = `${scoreText}（${countForDecision}件）。高評価なので買い候補です。`;
+    } else if (scoreForDecision >= 4.3 && countForDecision < 5) {
+      purchaseConclusion = `${scoreText}（${countForDecision}件）。かなり良さそうですが件数が少ないので、刺さりそうなら買いです。`;
+    } else if (scoreForDecision >= 3.6 && countForDecision >= 5) {
+      purchaseConclusion = `${scoreText}（${countForDecision}件）。好みが分かれそうなので、短評の注意点も見て判断がおすすめです。`;
+    } else if (countForDecision >= 5) {
+      purchaseConclusion = `${scoreText}（${countForDecision}件）。評価が伸びていないので慎重に、短評の注意点を確認してからがおすすめです。`;
+    } else {
+      purchaseConclusion = `${scoreText}（${countForDecision}件）。判断材料が少なめなので、短評を見て合いそうなら買いです。`;
+    }
     
     res.render('articles/show', {
       title,
@@ -678,6 +701,7 @@ router.get('/:id', async (req, res) => {
       comments,
       commentCount,
       reviewSummary,
+      purchaseConclusion,
       reviews,
       myReview,
       reviewPostFeedback,

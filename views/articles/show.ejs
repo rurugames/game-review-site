@@ -417,6 +417,19 @@
                 参考: 単純平均 ★<%= Number(reviewSummary.avgRaw).toFixed(2) %> / 5
               </div>
             <% } %>
+
+            <% if (typeof purchaseConclusion !== 'undefined' && purchaseConclusion) { %>
+              <div style="margin-top:0.5rem; line-height:1.6;">
+                <strong>結論:</strong> <%= purchaseConclusion %>
+              </div>
+              <% if (article && article.affiliateLink) { %>
+                <div style="margin-top:0.5rem;">
+                  <a href="<%= article.affiliateLink %>" target="_blank" rel="noopener noreferrer sponsored" class="btn-affiliate">
+                    🛒 購入ページへ
+                  </a>
+                </div>
+              <% } %>
+            <% } %>
           </div>
 
           <div>
@@ -446,6 +459,17 @@
         </div>
       <% } else { %>
         <p style="margin:0;">まだ評価がありません。最初の評価を30秒で残してみましょう。</p>
+
+        <% if (typeof purchaseConclusion !== 'undefined' && purchaseConclusion) { %>
+          <p style="margin:0.5rem 0 0; line-height:1.6;"><strong>結論:</strong> <%= purchaseConclusion %></p>
+          <% if (article && article.affiliateLink) { %>
+            <div style="margin-top:0.5rem;">
+              <a href="<%= article.affiliateLink %>" target="_blank" rel="noopener noreferrer sponsored" class="btn-affiliate">
+                🛒 購入ページへ
+              </a>
+            </div>
+          <% } %>
+        <% } %>
       <% } %>
     </div>
   </div>
