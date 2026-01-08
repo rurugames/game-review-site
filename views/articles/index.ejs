@@ -37,8 +37,9 @@
   </form>
 
   <% if (typeof recommendedTags !== 'undefined' && recommendedTags && recommendedTags.length) { %>
-    <div class="per-toggle" aria-label="人気タグ">
-      <span class="per-label">人気タグ:</span>
+    <div id="popular-tags" class="per-toggle" aria-label="人気タグ">
+      <span class="per-label">人気タグから:</span>
+      <span style="opacity:0.8;">（クリックで絞り込み）</span>
       <% recommendedTags.slice(0, 10).forEach(function(tag){ %>
         <a class="per-button <%= activeTags.includes(tag) ? 'active' : '' %>" href="<%= buildQs({ tags: tag, tag: '', page: 1 }) %>">#<%= tag %></a>
       <% }); %>
