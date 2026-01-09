@@ -1,6 +1,7 @@
 <div class="hero">
   <h1>みんなの評価（短評レビュー）</h1>
   <p>サイト内の短評レビュー（★1〜5 / 200文字以内）から、作品の評判をまとめて確認できます。</p>
+  <p style="opacity:0.8; margin-top:0.25rem;">※ 「総合★」は件数補正（ベイズ）です。件数が少ないと単純平均と差が出ます。</p>
 </div>
 
 <section class="articles-section page-section" aria-label="今月の買ってよかった">
@@ -21,7 +22,7 @@
               <div class="article-content">
                 <div class="article-meta">
                   <span class="genre"><%= a.genre || 'ゲーム' %></span>
-                  <span class="rating">★<%= Number(item.score || 0).toFixed(2) %> / 5</span>
+                  <span class="rating">総合★<%= Number(item.score || 0).toFixed(2) %>（<%= item.count %>件）</span>
                 </div>
                 <h2><%= a.title %></h2>
                 <h3 class="game-title"><%= a.gameTitle %></h3>
@@ -61,7 +62,7 @@
               <div class="article-content">
                 <div class="article-meta">
                   <span class="genre"><%= a.genre || 'ゲーム' %></span>
-                  <span class="rating">★<%= Number(item.avg || 0).toFixed(2) %> / 5</span>
+                  <span class="rating">単純平均★<%= Number(item.avg || 0).toFixed(2) %>（<%= item.count %>件）</span>
                 </div>
                 <h2><%= a.title %></h2>
                 <h3 class="game-title"><%= a.gameTitle %></h3>
@@ -101,7 +102,7 @@
               <div class="article-content">
                 <div class="article-meta">
                   <span class="genre"><%= a.genre || 'ゲーム' %></span>
-                  <span class="rating">ばらつき: <%= Number(item.stddev || 0).toFixed(2) %></span>
+                  <span class="rating">ばらつき: <%= Number(item.stddev || 0).toFixed(2) %>（<%= item.count %>件）</span>
                 </div>
                 <h2><%= a.title %></h2>
                 <h3 class="game-title"><%= a.gameTitle %></h3>

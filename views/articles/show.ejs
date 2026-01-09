@@ -416,6 +416,9 @@
               <div style="opacity:0.8; font-size:0.95rem; margin-top:0.25rem;">
                 参考: 単純平均 ★<%= Number(reviewSummary.avgRaw).toFixed(2) %> / 5
               </div>
+              <div style="opacity:0.75; font-size:0.9rem; margin-top:0.25rem; line-height:1.5;">
+                ※ 総合評価（上の★）は件数補正（ベイズ）です。件数が少ないと単純平均と差が出ます。
+              </div>
             <% } %>
 
             <% if (typeof purchaseConclusion !== 'undefined' && purchaseConclusion) { %>
