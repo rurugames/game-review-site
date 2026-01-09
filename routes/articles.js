@@ -534,18 +534,50 @@ router.get('/:id', async (req, res) => {
         const ids = (candidates || []).map((a) => a && a._id).filter(Boolean);
         if (ids.length) {
           const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-          const rows = await Review.aggregate([
-            { $match: { article: { $in: ids }, createdAt: { $gte: since } } },
-            { $group: { _id: '$article', recentCount: { $sum: 1 } } },
-            { $sort: { recentCount: -1, _id: 1 } },
-            { $limit: 12 },
+          const [globalStats, recentRows, totalRows] = await Promise.all([
+            getGlobalReviewStats(),
+            Review.aggregate([
+              { $match: { article: { $in: ids }, createdAt: { $gte: since } } },
+              { $group: { _id: '$article', recentCount: { $sum: 1 } } },
+              { $sort: { recentCount: -1, _id: 1 } },
+              { $limit: 12 },
+            ]),
+            Review.aggregate([
+              { $match: { article: { $in: ids } } },
+              { $group: { _id: '$article', count: { $sum: 1 }, avg: { $avg: '$rating' } } },
+            ]),
           ]);
 
-          const recentMap = new Map((rows || []).map((r) => [String(r._id), Number(r.recentCount) || 0]));
+          const recentMap = new Map((recentRows || []).map((r) => [String(r._id), Number(r.recentCount) || 0]));
+          const C = Number(globalStats && globalStats.avg);
+          const m = 10;
+          const scoreMap = new Map(
+            (totalRows || []).map((r) => {
+              const v = Number(r.count) || 0;
+              const R = Number(r.avg);
+              const bayes = (v > 0 && Number.isFinite(R) && Number.isFinite(C))
+                ? ((v / (v + m)) * R) + ((m / (v + m)) * C)
+                : (Number.isFinite(C) ? C : null);
+              return [String(r._id), { count: v, avg: Number.isFinite(R) ? R : null, bayesScore: bayes }];
+            })
+          );
+
           compareTrendingByTags = (candidates || [])
-            .map((a) => ({ ...a, recentReviewCount: recentMap.get(String(a._id)) || 0 }))
+            .map((a) => {
+              const recentReviewCount = recentMap.get(String(a._id)) || 0;
+              const s = scoreMap.get(String(a._id)) || { count: 0, avg: null, bayesScore: null };
+              return { ...a, recentReviewCount, reviewCount: s.count, reviewAvg: s.avg, bayesScore: s.bayesScore };
+            })
             .filter((a) => (a.recentReviewCount || 0) > 0)
-            .sort((a, b) => (Number(b.recentReviewCount) || 0) - (Number(a.recentReviewCount) || 0))
+            .sort((a, b) => {
+              const rb = Number(b.recentReviewCount) || 0;
+              const ra = Number(a.recentReviewCount) || 0;
+              if (rb !== ra) return rb - ra;
+              const sb = Number(b.bayesScore ?? -1);
+              const sa = Number(a.bayesScore ?? -1);
+              if (sb !== sa) return sb - sa;
+              return (Number(b.reviewCount) || 0) - (Number(a.reviewCount) || 0);
+            })
             .slice(0, 6);
         }
       }

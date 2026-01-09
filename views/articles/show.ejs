@@ -155,7 +155,7 @@
                       <div class="article-content">
                         <div class="article-meta">
                           <span class="genre"><%= a.genre || 'ゲーム' %></span>
-                          <span class="date">レビュー <%= a.reviewCount || 0 %>件 / ★<%= Number(a.bayesScore ?? a.reviewAvg ?? 0).toFixed(2) %></span>
+                          <span class="date">総合★<%= Number(a.bayesScore ?? a.reviewAvg ?? 0).toFixed(2) %>（<%= a.reviewCount || 0 %>件）</span>
                         </div>
                         <h2><%= a.title %></h2>
                         <h3 class="game-title"><%= a.gameTitle %></h3>
@@ -187,7 +187,7 @@
                       <div class="article-content">
                         <div class="article-meta">
                           <span class="genre"><%= a.genre || 'ゲーム' %></span>
-                          <span class="date">直近30日 +<%= a.recentReviewCount || 0 %></span>
+                          <span class="date">直近30日 +<%= a.recentReviewCount || 0 %> / 総合★<%= Number(a.bayesScore ?? a.reviewAvg ?? 0).toFixed(2) %>（<%= a.reviewCount || 0 %>件）</span>
                         </div>
                         <h2><%= a.title %></h2>
                         <h3 class="game-title"><%= a.gameTitle %></h3>
