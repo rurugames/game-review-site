@@ -13,6 +13,7 @@
      const dayOptions = [7, 30, 90];
 
      const hasDailyAccess = (typeof dailyAccessTrend !== 'undefined' && dailyAccessTrend && dailyAccessTrend.length > 0);
+     const hasReferrers = (typeof topReferrers !== 'undefined' && topReferrers && topReferrers.length > 0);
      const hasRelatedAnalytics = (
        (typeof relatedClicksByBlock !== 'undefined' && relatedClicksByBlock && relatedClicksByBlock.length > 0) ||
        (typeof relatedImpressionsByBlock !== 'undefined' && relatedImpressionsByBlock && relatedImpressionsByBlock.length > 0)
@@ -76,6 +77,9 @@
     <% if (hasDailyAccess) { %>
       <a class="per-button" href="#daily-access" data-tab="daily-access">日別アクセス</a>
     <% } %>
+    <% if (hasReferrers) { %>
+      <a class="per-button" href="#referrers" data-tab="referrers">流入元</a>
+    <% } %>
     <% if (hasRelatedAnalytics) { %>
       <a class="per-button" href="#related-analytics" data-tab="related-analytics">関連記事CTR</a>
       <a class="per-button" href="#related-daily-ctr">└ 日別CTR推移</a>
@@ -122,6 +126,52 @@
               <% }); %>
             </tbody>
           </table>
+          </div>
+        </div>
+      </div>
+    </section>
+  <% } %>
+
+  <% if (hasReferrers) { %>
+    <section id="referrers" class="page-section" aria-label="流入元" data-tabpanel="referrers">
+      <div class="page-header">
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+          <h2 class="section-title" style="margin:0;">流入元（直近<%= (typeof days !== 'undefined' && days) ? days : 30 %>日）</h2>
+          <button type="button" class="per-button section-toggle" data-section-toggle aria-expanded="true" aria-controls="referrers-body" title="表示/非表示">
+            <span class="caret">▼</span>
+          </button>
+        </div>
+        <p class="section-lead">あなたの記事詳細ページへの参照元（リファラ）です。主に「（直接）」「（内部遷移）」「外部ドメイン」が表示されます。</p>
+      </div>
+
+      <div id="referrers-body" data-section-body>
+        <div class="panel">
+          <div class="panel-body">
+            <div class="per-toggle" aria-label="集計期間切替" style="margin-bottom: 1rem;">
+              <span class="per-label">期間:</span>
+              <% dayOptions.forEach(function(opt){ %>
+                <a class="per-button <%= (typeof days !== 'undefined' && days === opt) ? 'active' : '' %>" href="<%= buildQs({ days: opt, page: 1 }) %>"><%= opt %>日</a>
+              <% }); %>
+            </div>
+
+            <table class="articles-table" style="margin-top:0.5rem;">
+              <thead>
+                <tr>
+                  <th>参照元</th>
+                  <th>アクセス数</th>
+                  <th>割合</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% topReferrers.forEach(function(r){ %>
+                  <tr>
+                    <td><%= r.label %></td>
+                    <td><%= r.views %></td>
+                    <td><%= (r.share * 100).toFixed(1) %>%</td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

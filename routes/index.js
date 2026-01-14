@@ -14,6 +14,7 @@ const crypto = require('crypto');
 const RelatedClick = require('../models/RelatedClick');
 const RelatedImpression = require('../models/RelatedImpression');
 const DailyArticleView = require('../models/DailyArticleView');
+const DailyArticleReferrer = require('../models/DailyArticleReferrer');
 const Comment = require('../models/Comment');
 const Review = require('../models/Review');
 const { isAdminEmail } = require('../lib/admin');
@@ -1191,6 +1192,31 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
     const viewsByDay = new Map((dailyViewsAgg || []).map((r) => [String(r._id), Number(r.views) || 0]));
     const dailyAccessTrend = daysList.map((day) => ({ day, views: viewsByDay.get(day) || 0 }));
 
+    // 流入元（参照元）上位（あなたの記事詳細ページへの流入）
+    let topReferrers = [];
+    try {
+      const refAgg = await DailyArticleReferrer.aggregate([
+        { $match: { author: new mongoose.Types.ObjectId(req.user.id), day: { $in: daysList } } },
+        { $group: { _id: { refType: '$refType', refHost: '$refHost' }, views: { $sum: '$views' } } },
+        { $sort: { views: -1, '_id.refType': 1, '_id.refHost': 1 } },
+        { $limit: 30 },
+      ]);
+      const total = (refAgg || []).reduce((sum, r) => sum + (Number(r.views) || 0), 0);
+      topReferrers = (refAgg || []).map((r) => {
+        const refType = (r && r._id && r._id.refType) ? String(r._id.refType) : 'direct';
+        const refHost = (r && r._id && r._id.refHost) ? String(r._id.refHost) : '';
+        const views = Number(r && r.views) || 0;
+        let label = '';
+        if (refType === 'direct') label = '（直接）';
+        else if (refType === 'internal') label = '（内部遷移）';
+        else label = refHost || '（不明）';
+        const share = total > 0 ? (views / total) : 0;
+        return { refType, refHost, label, views, share };
+      });
+    } catch (_) {
+      topReferrers = [];
+    }
+
     let relatedClicks = [];
     let relatedClicksByBlock = [];
     let relatedClicksByBlockPosition = [];
@@ -1677,6 +1703,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       totalPages,
       query: req.query,
       dailyAccessTrend,
+      topReferrers,
       recentComments,
       relatedClicks,
       relatedClicksByBlock,

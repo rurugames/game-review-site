@@ -3,6 +3,7 @@ const router = express.Router();
 const mongoose = require('mongoose');
 const Article = require('../models/Article');
 const DailyArticleView = require('../models/DailyArticleView');
+const DailyArticleReferrer = require('../models/DailyArticleReferrer');
 const Comment = require('../models/Comment');
 const Review = require('../models/Review');
 const RelatedClick = require('../models/RelatedClick');
@@ -429,6 +430,41 @@ router.get('/:id', async (req, res) => {
       if (authorId) {
         await DailyArticleView.updateOne(
           { day, article: article._id },
+          { $setOnInsert: { author: authorId, createdAt: new Date() }, $set: { updatedAt: new Date() }, $inc: { views: 1 } },
+          { upsert: true }
+        );
+      }
+    } catch (_) {
+      // 集計失敗は本表示を止めない
+    }
+
+    // 流入元（参照元）を日別に集計（ドメイン単位）
+    try {
+      const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
+      const day = new Date(Date.now() + JST_OFFSET_MS).toISOString().slice(0, 10);
+      const authorId = article && article.author && (article.author._id || article.author) ? (article.author._id || article.author) : null;
+      if (authorId) {
+        const rawRef = String(req.get('referer') || '').trim();
+        const reqHost = String(req.get('host') || '').trim().toLowerCase();
+
+        let refType = 'direct';
+        let refHost = '';
+        if (rawRef) {
+          try {
+            const u = new URL(rawRef);
+            refHost = String(u.hostname || '').trim().toLowerCase();
+            if (refHost) {
+              refType = (reqHost && refHost === reqHost) ? 'internal' : 'external';
+            }
+          } catch (_) {
+            // invalid referrer
+          }
+        }
+
+        if (refHost && refHost.length > 200) refHost = refHost.slice(0, 200);
+
+        await DailyArticleReferrer.updateOne(
+          { day, article: article._id, refType, refHost },
           { $setOnInsert: { author: authorId, createdAt: new Date() }, $set: { updatedAt: new Date() }, $inc: { views: 1 } },
           { upsert: true }
         );
