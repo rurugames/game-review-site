@@ -143,6 +143,18 @@ npm run start:detached:debug
 
 アプリケーションは `http://localhost:3000` で起動します。
 
+## Render Free のスリープ対策（任意）
+
+Render の Free プランは、一定時間アクセスがないとスリープ（停止）して、次のアクセス時にコールドスタートが発生することがあります。
+
+このリポジトリには、外部から定期的に `/healthz` を叩いてスリープしにくくするための GitHub Actions が入っています。
+
+1. Render の公開URLを確認（例: `https://xxxx.onrender.com`）
+2. GitHub リポジトリの Settings → Secrets and variables → Actions → New repository secret
+   - Name: `KEEPALIVE_URL`
+   - Value: `https://xxxx.onrender.com/healthz`
+3. Actions で "Render keep-alive" が 5分おきに動きます（無効化したい場合はワークフローをDisable、または schedule を削除）
+
 #### VS Code から起動（推奨）
 
 `.vscode/launch.json` を同梱しています。VS Code の「実行とデバッグ」から `Run Server (server.js)` を選ぶと、`.env` を読み込んで起動できます。

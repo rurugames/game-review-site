@@ -28,6 +28,25 @@ node -e "const dlsite = require('./services/dlsiteService'); dlsite.fetchGamesBy
 
 取得したゲーム情報のJSON配列を次のステップで使用します。
 
+**重要（R18のみを対象に抽出）**
+- `fetchGamesByMonth(年, 月)` の取得結果に **全年齢（一般向け）** が混在する場合があります。この記事生成・CSV出力の対象は **R18（成人向け）作品のみ** にしてください。
+- 判定は、取得JSON内の `ageRating`（年齢指定）を優先して使用し、`ageRating` が `全年齢` / `一般向け` のものは **除外** してください。
+- `ageRating` が欠けている/曖昧な場合は、**DLsite作品ページ**で年齢指定を確認し、R18でない作品は除外してください（不明のまま混ぜない）。
+
+フィルタ例（Node.js / コンソール確認用）:
+```javascript
+const dlsite = require('./services/dlsiteService');
+const games = await dlsite.fetchGamesByMonth({年}, {月});
+const r18Games = games.filter(g => {
+  const ar = String(g.ageRating ?? '').trim();
+  if (!ar) return false; // 不明は除外（必要なら作品ページ確認後に通す）
+  if (/全年齢|一般向け/.test(ar)) return false;
+  return /R\s*-?\s*18|18禁|成人向け/.test(ar);
+});
+console.log('all=', games.length, 'r18=', r18Games.length);
+console.log(JSON.stringify(r18Games, null, 2));
+```
+
 **重要（取得結果の別JSON保存）**
 - 取得したゲーム情報（全件）を、以下のファイルとして保存してください（create_file ツールで作成）：
   - 出力先: `c:\Users\hider\mytool\csvoutput\fetched_games_{年}-{月}.json`

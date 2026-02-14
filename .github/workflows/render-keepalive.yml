@@ -1,7 +1,17 @@
-name: Render keep-alive (disabled)
+name: Render keep-alive
 
 on:
+  schedule:
+    # GitHub Actions cron is minimum 5 minutes.
+    # Render Free のスリープ（アイドル停止）対策として定期的にアクセスする。
+    - cron: '*/5 * * * *'
   workflow_dispatch: {}
+
+permissions: {}
+
+concurrency:
+  group: render-keepalive
+  cancel-in-progress: true
 
 jobs:
   ping:
@@ -13,7 +23,7 @@ jobs:
           KEEPALIVE_URL: ${{ secrets.KEEPALIVE_URL }}
         run: |
           if [ -z "$KEEPALIVE_URL" ]; then
-            echo "KEEPALIVE_URL is not set. Add it as a GitHub Actions secret." >&2
-            exit 1
+            echo "KEEPALIVE_URL is not set. Add it as a GitHub Actions secret. (skip)" >&2
+            exit 0
           fi
-          curl -fsSL "$KEEPALIVE_URL" | head -c 200
+          curl -fsSL --max-time 15 --retry 3 --retry-delay 2 "$KEEPALIVE_URL" | head -c 200
