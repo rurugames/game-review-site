@@ -215,6 +215,25 @@ function getScrapeUrl(kind) {
   return String(process.env.FC2_SCRAPE_LATEST_URL || 'https://video.fc2.com/a/').trim();
 }
 
+function getCategoryScrapeUrl(categoryId) {
+  const id = safeText(categoryId);
+  if (!id) return '';
+
+  const tpl = safeText(process.env.FC2_SCRAPE_CATEGORY_URL_TEMPLATE || 'https://video.fc2.com/a/search/video/?category_id={id}');
+  if (!tpl) return '';
+
+  if (tpl.includes('{id}')) return tpl.replaceAll('{id}', encodeURIComponent(id));
+  // if template doesn't contain placeholder, treat it as base url and append param
+  try {
+    const u = new URL(tpl);
+    if (!u.searchParams.get('category_id')) u.searchParams.set('category_id', id);
+    return u.toString();
+  } catch (_) {
+    const sep = tpl.includes('?') ? '&' : '?';
+    return `${tpl}${sep}category_id=${encodeURIComponent(id)}`;
+  }
+}
+
 function isAdultContentUrl(u) {
   const s = String(u || '');
   return /^(https?:\/\/video\.fc2\.com)?\/a\/content\//.test(s) || /^https?:\/\/video\.fc2\.com\/a\/content\//.test(s);
@@ -228,80 +247,94 @@ async function fetchFromScrape(kind, { limit = 12, ttlMs = DEFAULT_TTL_MS, timeo
   const cached = getFromCache(cacheKey, ttlMs);
   if (cached) return cached;
 
-  return runWithInflight(cacheKey, async () => {
-    const resp = await axios.get(scrapeUrl, {
-      timeout: Math.max(1000, Number(timeoutMs) || 10000),
-      headers: {
-        Accept: 'text/html,application/xhtml+xml',
-        'Accept-Language': 'ja,en;q=0.8',
-        'User-Agent': 'mytool/1.0 (+https://example.invalid)',
-      },
-      validateStatus: () => true,
-    });
+  return runWithInflight(cacheKey, async () => fetchFromScrapeUrl(scrapeUrl, { limit, timeoutMs }));
+}
 
-    if (!resp || resp.status < 200 || resp.status >= 300) {
-      const err = new Error(`FC2 scrape request failed status=${resp && resp.status ? resp.status : 'unknown'}`);
-      err.code = 'FC2_SCRAPE_HTTP_ERROR';
-      err.httpStatus = resp && resp.status ? resp.status : null;
-      throw err;
+async function fetchFromScrapeUrl(scrapeUrl, { limit = 12, timeoutMs = 10000 } = {}) {
+  const resp = await axios.get(scrapeUrl, {
+    timeout: Math.max(1000, Number(timeoutMs) || 10000),
+    headers: {
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'ja,en;q=0.8',
+      'User-Agent': 'mytool/1.0 (+https://example.invalid)',
+    },
+    validateStatus: () => true,
+  });
+
+  if (!resp || resp.status < 200 || resp.status >= 300) {
+    const err = new Error(`FC2 scrape request failed status=${resp && resp.status ? resp.status : 'unknown'}`);
+    err.code = 'FC2_SCRAPE_HTTP_ERROR';
+    err.httpStatus = resp && resp.status ? resp.status : null;
+    throw err;
+  }
+
+  const html = String(resp.data || '');
+  const $ = cheerio.load(html);
+  const baseHref = safeText($('base').attr('href'));
+
+  /** @type {Map<string, any>} */
+  const byUrl = new Map();
+
+  $('a[href]').each((_, el) => {
+    const href = $(el).attr('href');
+    if (!href) return;
+    if (!isAdultContentUrl(href)) return;
+
+    const abs = stripUrlQueryHash(toAbsoluteUrl(href, scrapeUrl));
+    if (!abs || !abs.includes('/a/content/')) return;
+
+    const existing = byUrl.get(abs) || {
+      id: extractIdFromFc2ContentUrl(abs) || abs,
+      title: '',
+      _titleScore: 0,
+      _thumbScore: 0,
+      url: abs,
+      thumbnailUrl: '',
+      publishedAt: '',
+      publishedAtJp: '',
+      tags: [],
+    };
+
+    const textTitle = safeText($(el).text());
+    const attrTitle = safeText($(el).attr('title'));
+    const imgAlt = safeText($(el).find('img').attr('alt'));
+    const candidateTitle = textTitle || attrTitle || imgAlt;
+    const candScore = scoreTitleCandidate(candidateTitle);
+    if (candScore > (existing._titleScore || 0)) {
+      existing.title = safeText(candidateTitle);
+      existing._titleScore = candScore;
     }
 
-    const html = String(resp.data || '');
-    const $ = cheerio.load(html);
-    const baseHref = safeText($('base').attr('href'));
+    const thumbUrl = findBestThumbnailUrl($, el, scrapeUrl, baseHref);
+    const thumbScore = scoreThumbCandidate(thumbUrl);
+    if (thumbUrl && thumbScore > (existing._thumbScore || 0)) {
+      existing.thumbnailUrl = thumbUrl;
+      existing._thumbScore = thumbScore;
+    }
 
-    /** @type {Map<string, any>} */
-    const byUrl = new Map();
+    byUrl.set(abs, existing);
+  });
 
-    $('a[href]').each((_, el) => {
-      const href = $(el).attr('href');
-      if (!href) return;
-      if (!isAdultContentUrl(href)) return;
+  return Array.from(byUrl.values())
+    .map((v) => {
+      if (!v || typeof v !== 'object') return v;
+      const { _titleScore, _thumbScore, ...rest } = v;
+      return rest;
+    })
+    .filter((v) => v && v.title && v.url)
+    .slice(0, Math.max(0, Number(limit) || 0) || 12);
+}
 
-      const abs = stripUrlQueryHash(toAbsoluteUrl(href, scrapeUrl));
-      if (!abs || !abs.includes('/a/content/')) return;
+async function fetchCategoryAdultVideos({ categoryId, limit = 12, ttlMs = DEFAULT_TTL_MS, timeoutMs = 10000 } = {}) {
+  const scrapeUrl = getCategoryScrapeUrl(categoryId);
+  if (!scrapeUrl) return [];
 
-      const existing = byUrl.get(abs) || {
-        id: extractIdFromFc2ContentUrl(abs) || abs,
-        title: '',
-        _titleScore: 0,
-        _thumbScore: 0,
-        url: abs,
-        thumbnailUrl: '',
-        publishedAt: '',
-        publishedAtJp: '',
-        tags: [],
-      };
+  const cacheKey = `fc2:scrape:category:${safeText(categoryId)}:${scrapeUrl}:limit:${limit}`;
+  const cached = getFromCache(cacheKey, ttlMs);
+  if (cached) return cached;
 
-      const textTitle = safeText($(el).text());
-      const attrTitle = safeText($(el).attr('title'));
-      const imgAlt = safeText($(el).find('img').attr('alt'));
-      const candidateTitle = textTitle || attrTitle || imgAlt;
-      const candScore = scoreTitleCandidate(candidateTitle);
-      if (candScore > (existing._titleScore || 0)) {
-        existing.title = safeText(candidateTitle);
-        existing._titleScore = candScore;
-      }
-
-      const thumbUrl = findBestThumbnailUrl($, el, scrapeUrl, baseHref);
-      const thumbScore = scoreThumbCandidate(thumbUrl);
-      if (thumbUrl && thumbScore > (existing._thumbScore || 0)) {
-        existing.thumbnailUrl = thumbUrl;
-        existing._thumbScore = thumbScore;
-      }
-
-      byUrl.set(abs, existing);
-    });
-
-    const items = Array.from(byUrl.values())
-      .map((v) => {
-        if (!v || typeof v !== 'object') return v;
-        const { _titleScore, _thumbScore, ...rest } = v;
-        return rest;
-      })
-      .filter((v) => v && v.title && v.url)
-      .slice(0, Math.max(0, Number(limit) || 0) || 12);
-
+  return runWithInflight(cacheKey, async () => {
+    const items = await fetchFromScrapeUrl(scrapeUrl, { limit, timeoutMs });
     setCache(cacheKey, items);
     return items;
   });
@@ -449,4 +482,5 @@ async function fetchPopularAdultVideos({ limit = 12, ttlMs = DEFAULT_TTL_MS } = 
 module.exports = {
   fetchLatestAdultVideos,
   fetchPopularAdultVideos,
+  fetchCategoryAdultVideos,
 };
