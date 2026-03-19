@@ -155,8 +155,8 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
   const categoryIdAnimeEroge = getFc2AnimeErogeCategoryId();
 
   const fc2OuterPlayerTk = String(process.env.FC2_OUTERPLAYER_TK || 'TmpJeE1EWTJOemM9').trim();
-  const fc2OuterPlayerWidth = Math.max(200, Number(process.env.FC2_OUTERPLAYER_W || 560) || 560);
-  const fc2OuterPlayerHeight = Math.max(150, Number(process.env.FC2_OUTERPLAYER_H || 315) || 315);
+  const fc2OuterPlayerWidth = Math.max(240, Number(process.env.FC2_OUTERPLAYER_W || 640) || 640);
+  const fc2OuterPlayerHeight = Math.max(180, Number(process.env.FC2_OUTERPLAYER_H || 360) || 360);
   // NOTE: FC2の埋め込みコード例に合わせて d=57 をデフォルトにしています（ダイジェスト）。
   const fc2OuterPlayerDigestD = Math.max(1, Number(process.env.FC2_OUTERPLAYER_D || 57) || 57);
 

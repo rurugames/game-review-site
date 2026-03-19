@@ -1,4 +1,29 @@
 <section class="articles-section page-section">
+  <style>
+    .fc2-embed {
+      position: relative;
+      width: 100%;
+    }
+    .fc2-embed::before {
+      content: "";
+      display: block;
+      padding-top: 56.25%;
+    }
+    .fc2-embed .fc2-embed-inner {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .fc2-embed iframe,
+    .fc2-embed embed,
+    .fc2-embed object {
+      width: 100% !important;
+      height: 100% !important;
+    }
+  </style>
+
   <div class="page-header">
     <div class="channel-header">
       <div class="channel-brand">
@@ -8,7 +33,7 @@
           <p class="section-lead" style="margin: 0;">成人向け動画（18+）の紹介一覧です。</p>
           <div class="meta-row" style="margin-top: 0.35rem; flex-wrap: wrap;">
             <span class="tag">18+（年齢確認済）</span>
-            <span class="tag">外部サイトへ移動</span>
+            <span class="tag">ページ内で再生</span>
           </div>
           <% const __cacheAgeHours = cacheTs ? ((Date.now() - new Date(cacheTs).getTime()) / (1000 * 60 * 60)) : null; %>
           <% if (cacheTsJp) { %>
@@ -41,16 +66,18 @@
         <div class="panel">
           <div class="panel-body">
             <article class="post-card">
-              <div class="post-cover">
-                <script src="//static.fc2.com/video/js/outerplayer.min.js"
-                  url="<%= v.url %>"
-                  tk="<%= fc2OuterPlayerTk %>"
-                  tl="<%= v.title %>"
-                  d="<%= fc2OuterPlayerDigestD %>"
-                  w="<%= fc2OuterPlayerWidth %>"
-                  h="<%= fc2OuterPlayerHeight %>"
-                  suggest="on"
-                  charset="UTF-8"></script>
+              <div class="post-cover fc2-embed">
+                <div class="fc2-embed-inner">
+                  <script src="//static.fc2.com/video/js/outerplayer.min.js"
+                    url="<%= v.url %>"
+                    tk="<%= fc2OuterPlayerTk %>"
+                    tl="<%= v.title %>"
+                    d="<%= fc2OuterPlayerDigestD %>"
+                    w="<%= fc2OuterPlayerWidth %>"
+                    h="<%= fc2OuterPlayerHeight %>"
+                    suggest="on"
+                    charset="UTF-8"></script>
+                </div>
               </div>
               <div class="post-body">
                 <div class="meta-row">
@@ -95,16 +122,18 @@
         <div class="panel">
           <div class="panel-body">
             <article class="post-card">
-              <div class="post-cover">
-                <script src="//static.fc2.com/video/js/outerplayer.min.js"
-                  url="<%= v.url %>"
-                  tk="<%= fc2OuterPlayerTk %>"
-                  tl="<%= v.title %>"
-                  d="<%= fc2OuterPlayerDigestD %>"
-                  w="<%= fc2OuterPlayerWidth %>"
-                  h="<%= fc2OuterPlayerHeight %>"
-                  suggest="on"
-                  charset="UTF-8"></script>
+              <div class="post-cover fc2-embed">
+                <div class="fc2-embed-inner">
+                  <script src="//static.fc2.com/video/js/outerplayer.min.js"
+                    url="<%= v.url %>"
+                    tk="<%= fc2OuterPlayerTk %>"
+                    tl="<%= v.title %>"
+                    d="<%= fc2OuterPlayerDigestD %>"
+                    w="<%= fc2OuterPlayerWidth %>"
+                    h="<%= fc2OuterPlayerHeight %>"
+                    suggest="on"
+                    charset="UTF-8"></script>
+                </div>
               </div>
               <div class="post-body">
                 <div class="meta-row">
@@ -143,16 +172,18 @@
         <div class="panel">
           <div class="panel-body">
             <article class="post-card">
-              <div class="post-cover">
-                <script src="//static.fc2.com/video/js/outerplayer.min.js"
-                  url="<%= v.url %>"
-                  tk="<%= fc2OuterPlayerTk %>"
-                  tl="<%= v.title %>"
-                  d="<%= fc2OuterPlayerDigestD %>"
-                  w="<%= fc2OuterPlayerWidth %>"
-                  h="<%= fc2OuterPlayerHeight %>"
-                  suggest="on"
-                  charset="UTF-8"></script>
+              <div class="post-cover fc2-embed">
+                <div class="fc2-embed-inner">
+                  <script src="//static.fc2.com/video/js/outerplayer.min.js"
+                    url="<%= v.url %>"
+                    tk="<%= fc2OuterPlayerTk %>"
+                    tl="<%= v.title %>"
+                    d="<%= fc2OuterPlayerDigestD %>"
+                    w="<%= fc2OuterPlayerWidth %>"
+                    h="<%= fc2OuterPlayerHeight %>"
+                    suggest="on"
+                    charset="UTF-8"></script>
+                </div>
               </div>
               <div class="post-body">
                 <div class="meta-row">
