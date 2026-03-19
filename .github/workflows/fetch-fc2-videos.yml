@@ -27,7 +27,9 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: '1'
+        run: npm ci --omit=dev
 
       - name: Refresh FC2 cache
         env:
