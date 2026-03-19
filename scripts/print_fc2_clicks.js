@@ -90,10 +90,22 @@ async function main() {
   const rows = await DailyOutboundClick.aggregate([
     { $match: match },
     {
+      $addFields: {
+        groupKey: {
+          $cond: [
+            { $gt: [{ $strLenCP: { $ifNull: ['$videoId', ''] } }, 0] },
+            '$videoId',
+            '$url',
+          ],
+        },
+      },
+    },
+    {
       $group: {
-        _id: { section: '$section', url: '$url' },
+        _id: { section: '$section', key: '$groupKey', pos: '$pos' },
         count: { $sum: '$count' },
         lastTs: { $max: '$lastTs' },
+        anyUrl: { $first: '$url' },
       },
     },
     { $sort: { count: -1 } },
@@ -116,10 +128,13 @@ async function main() {
 
   for (const r of rows) {
     const sec = r && r._id ? r._id.section : '';
-    const url = r && r._id ? r._id.url : '';
+    const key = r && r._id ? r._id.key : '';
+    const pos = r && r._id ? r._id.pos : 0;
     const c = r && typeof r.count === 'number' ? r.count : 0;
     const last = r && r.lastTs ? new Date(r.lastTs).toISOString() : '';
-    console.log(`${pad(sec, 7)}  ${pad(c, 6)}  ${last}  ${url}`);
+    const posLabel = pos ? `#${pos}` : '';
+    const url = r && r.anyUrl ? r.anyUrl : '';
+    console.log(`${pad(sec, 7)}  ${pad(posLabel, 4)}  ${pad(c, 6)}  ${last}  ${key}  ${url}`);
   }
 }
 

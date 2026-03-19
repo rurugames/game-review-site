@@ -29,11 +29,11 @@
     </div>
 
     <div class="articles-grid modern-grid">
-      <% latestVideos.slice(0, 5).forEach(function(v){ %>
+      <% latestVideos.slice(0, 5).forEach(function(v, idx){ %>
         <div class="panel">
           <div class="panel-body">
             <article class="post-card">
-              <a class="post-cover" href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=latest" target="_blank" rel="noopener noreferrer nofollow">
+              <a class="post-cover" href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=latest&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow">
                 <% if (v.thumbnailUrl) { %>
                   <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
                 <% } else { %>
@@ -49,7 +49,7 @@
                   <% } %>
                 </div>
                 <h3 class="post-title">
-                  <a href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=latest" target="_blank" rel="noopener noreferrer nofollow"><%= v.title %></a>
+                  <a href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=latest&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow"><%= v.title %></a>
                 </h3>
                 <% if (v.tags && v.tags.length > 0) { %>
                   <div class="tags-row" style="margin-top:0.5rem; display:flex; gap:0.25rem; flex-wrap:wrap;">
@@ -73,11 +73,11 @@
     </div>
 
     <div class="articles-grid modern-grid">
-      <% popularVideos.slice(0, 5).forEach(function(v){ %>
+      <% popularVideos.slice(0, 5).forEach(function(v, idx){ %>
         <div class="panel">
           <div class="panel-body">
             <article class="post-card">
-              <a class="post-cover" href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=popular" target="_blank" rel="noopener noreferrer nofollow">
+              <a class="post-cover" href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=popular&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow">
                 <% if (v.thumbnailUrl) { %>
                   <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
                 <% } else { %>
@@ -93,7 +93,7 @@
                   <% } %>
                 </div>
                 <h3 class="post-title">
-                  <a href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=popular" target="_blank" rel="noopener noreferrer nofollow"><%= v.title %></a>
+                  <a href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=popular&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow"><%= v.title %></a>
                 </h3>
                 <% if (v.tags && v.tags.length > 0) { %>
                   <div class="tags-row" style="margin-top:0.5rem; display:flex; gap:0.25rem; flex-wrap:wrap;">

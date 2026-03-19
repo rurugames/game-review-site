@@ -51,6 +51,28 @@ function isAllowedDestination(u) {
   }
 }
 
+function extractFc2VideoIdFromUrl(u) {
+  try {
+    const url = new URL(u);
+    const host = String(url.hostname || '').toLowerCase();
+    if (host !== 'video.fc2.com') return '';
+    const p = String(url.pathname || '');
+    const m = p.match(/^\/(?:a\/content|content)\/([^\/\?#]+)(?:[\/\?#]|$)/);
+    return m && m[1] ? String(m[1]).trim() : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+function toPos(v) {
+  const n = Number(v);
+  if (!Number.isFinite(n)) return 0;
+  const i = Math.floor(n);
+  if (i < 0) return 0;
+  if (i > 50) return 50;
+  return i;
+}
+
 router.get('/', requireAdultConfirmed(), async (req, res) => {
   const destRaw = String(req.query.u || '').trim();
   if (!destRaw) return res.status(400).send('missing u');
@@ -68,6 +90,11 @@ router.get('/', requireAdultConfirmed(), async (req, res) => {
 
   const kind = safeText(req.query.k || 'unknown', 64) || 'unknown';
   const section = safeText(req.query.s || 'unknown', 64) || 'unknown';
+  const pos = toPos(req.query.pos);
+
+  const vidParam = safeText(req.query.vid || '', 128);
+  const extractedVid = extractFc2VideoIdFromUrl(dest);
+  const videoId = (vidParam || extractedVid || '').slice(0, 128);
 
   // Best-effort count; do not block redirect.
   try {
@@ -75,7 +102,11 @@ router.get('/', requireAdultConfirmed(), async (req, res) => {
       const date = getJstDateKey();
       DailyOutboundClick.updateOne(
         { kind, section, url: dest, date },
-        { $inc: { count: 1 }, $set: { lastTs: new Date() } },
+        {
+          $inc: { count: 1 },
+          $set: { lastTs: new Date(), videoId, pos },
+          $setOnInsert: { kind, section, url: dest, date, videoId, pos },
+        },
         { upsert: true }
       ).catch(() => {});
     }
