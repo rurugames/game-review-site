@@ -51,7 +51,7 @@ function maybeStartFc2BackgroundRefresh() {
 
   fc2RefreshInflight = Promise.resolve()
     .then(async () => {
-      const fetchLimit = getFc2FetchLimit(Number(process.env.FC2_PAGE_LIMIT || 10) || 10);
+      const fetchLimit = getFc2FetchLimit(Number(process.env.FC2_PAGE_LIMIT || 9) || 9);
       const categoryId = getFc2AnimeErogeCategoryId();
       const [latest, popular, animeEroge] = await Promise.all([
         fc2Api.fetchLatestAdultVideos({ limit: fetchLimit, ttlMs: 0 }),
@@ -151,7 +151,7 @@ router.get('/', async (req, res) => {
 
 router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
   const cacheMaxAgeMs = Math.max(60 * 1000, Number(process.env.FC2_CACHE_MAX_AGE_MS || 60 * 60 * 1000) || 60 * 60 * 1000);
-  const limit = Math.max(1, Math.min(25, Number(process.env.FC2_PAGE_LIMIT || 10) || 10));
+  const limit = Math.max(1, Math.min(25, Number(process.env.FC2_PAGE_LIMIT || 9) || 9));
   const categoryIdAnimeEroge = getFc2AnimeErogeCategoryId();
 
   const fc2OuterPlayerTk = String(process.env.FC2_OUTERPLAYER_TK || 'TmpJeE1EWTJOemM9').trim();
