@@ -120,9 +120,21 @@ function scoreThumbCandidate(u) {
   return score;
 }
 
-function findBestThumbnailUrl($, el, baseUrl) {
+function extractCssUrlFromStyle(styleValue) {
+  const s = safeText(styleValue);
+  if (!s) return '';
+  const m = s.match(/url\(([^)]+)\)/i);
+  if (!m || !m[1]) return '';
+  let u = String(m[1]).trim();
+  u = u.replace(/^['"]/, '').replace(/['"]$/, '').trim();
+  return safeText(u);
+}
+
+function findBestThumbnailUrl($, el, baseUrl, baseHref) {
   const candidates = [];
   const $el = $(el);
+
+  const baseForRelative = safeText(baseHref) || safeText(baseUrl);
 
   const pushFromImg = (img) => {
     try {
@@ -136,7 +148,15 @@ function findBestThumbnailUrl($, el, baseUrl) {
         $img.attr('data-lazy') ||
         $img.attr('src') ||
         '';
-      const abs = raw ? stripUrlQueryHash(toAbsoluteUrl(raw, baseUrl)) : '';
+      const abs = raw ? stripUrlQueryHash(toAbsoluteUrl(raw, baseForRelative)) : '';
+      if (abs) candidates.push(abs);
+    } catch (_) {}
+  };
+
+  const pushFromBgStyle = (styleValue) => {
+    try {
+      const raw = extractCssUrlFromStyle(styleValue);
+      const abs = raw ? stripUrlQueryHash(toAbsoluteUrl(raw, baseForRelative)) : '';
       if (abs) candidates.push(abs);
     } catch (_) {}
   };
@@ -144,12 +164,17 @@ function findBestThumbnailUrl($, el, baseUrl) {
   // 1) inside the link
   $el.find('img').each((_, img) => pushFromImg(img));
 
+  // 1b) background-image on the link or its children
+  pushFromBgStyle($el.attr('style'));
+  $el.find('[style*="background-image"]').each((_, bg) => pushFromBgStyle($(bg).attr('style')));
+
   // 2) nearby container (a few ancestors)
   let $p = $el;
   for (let i = 0; i < 3; i++) {
     $p = $p.parent();
     if (!$p || !$p.length) break;
     $p.find('img').slice(0, 4).each((_, img) => pushFromImg(img));
+    $p.find('[style*="background-image"]').slice(0, 4).each((_, bg) => pushFromBgStyle($(bg).attr('style')));
   }
 
   let best = { url: '', score: 0 };
@@ -223,6 +248,7 @@ async function fetchFromScrape(kind, { limit = 12, ttlMs = DEFAULT_TTL_MS, timeo
 
     const html = String(resp.data || '');
     const $ = cheerio.load(html);
+    const baseHref = safeText($('base').attr('href'));
 
     /** @type {Map<string, any>} */
     const byUrl = new Map();
@@ -257,7 +283,7 @@ async function fetchFromScrape(kind, { limit = 12, ttlMs = DEFAULT_TTL_MS, timeo
         existing._titleScore = candScore;
       }
 
-      const thumbUrl = findBestThumbnailUrl($, el, scrapeUrl);
+      const thumbUrl = findBestThumbnailUrl($, el, scrapeUrl, baseHref);
       const thumbScore = scoreThumbCandidate(thumbUrl);
       if (thumbUrl && thumbScore > (existing._thumbScore || 0)) {
         existing.thumbnailUrl = thumbUrl;

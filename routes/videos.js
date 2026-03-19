@@ -150,6 +150,7 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
   let cacheTsJp = '';
   let hasAnyCacheItems = false;
   let isAnyFresh = false;
+  let hasAnyMissingThumb = false;
 
   try {
     if (Fc2VideoCache) {
@@ -175,6 +176,11 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
         hasAnyCacheItems = true;
       }
 
+      try {
+        const anyMissing = (arr) => Array.isArray(arr) && arr.some((v) => v && !String(v.thumbnailUrl || '').trim());
+        hasAnyMissingThumb = anyMissing(latestVideos) || anyMissing(popularVideos);
+      } catch (_) {}
+
       const tsA = latestDoc && latestDoc.ts ? new Date(latestDoc.ts).getTime() : 0;
       const tsB = popularDoc && popularDoc.ts ? new Date(popularDoc.ts).getTime() : 0;
       const maxTs = Math.max(tsA, tsB);
@@ -194,7 +200,7 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
     // - If cache has items: render immediately; if stale, refresh in background.
     // - If no cache items: fetch synchronously for first view.
     if (hasAnyCacheItems) {
-      if (!isAnyFresh) {
+      if (!isAnyFresh || hasAnyMissingThumb) {
         maybeStartFc2BackgroundRefresh();
       }
     } else {
