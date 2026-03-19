@@ -30,6 +30,106 @@
     </div>
   <% } %>
 
+  <div class="page-header" style="margin-top: 1.25rem;">
+    <h2 class="section-title" style="font-size: 1.4rem;">カテゴリ：アニメ</h2>
+    <p class="section-lead">アニメ系（最大5件）</p>
+  </div>
+
+  <% if (animeVideos && animeVideos.length > 0) { %>
+    <div class="articles-grid modern-grid">
+      <% animeVideos.slice(0, 5).forEach(function(v, idx){ %>
+        <div class="panel">
+          <div class="panel-body">
+            <article class="post-card">
+              <a class="post-cover" href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=anime&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow">
+                <% if (v.thumbnailUrl) { %>
+                  <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
+                <% } else { %>
+                  <img src="/images/siteicon.png" alt="thumb" loading="lazy">
+                <% } %>
+              </a>
+              <div class="post-body">
+                <div class="meta-row">
+                  <span class="tag genre">FC2</span>
+                  <span class="tag">アニメ</span>
+                  <% if (v.publishedAtJp) { %>
+                    <span class="tag"><%= v.publishedAtJp %></span>
+                  <% } %>
+                </div>
+                <h3 class="post-title text-truncate-2">
+                  <a href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=anime&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow"><%= v.title %></a>
+                </h3>
+                <% if (v.tags && v.tags.length > 0) { %>
+                  <div class="tags-row" style="margin-top:0.5rem; display:flex; gap:0.25rem; flex-wrap:wrap;">
+                    <% v.tags.slice(0, 3).forEach(function(t){ %>
+                      <span class="tag"><%= t %></span>
+                    <% }); %>
+                  </div>
+                <% } %>
+              </div>
+            </article>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } else { %>
+    <div class="panel">
+      <div class="panel-body">
+        <p class="section-lead">該当する動画が見つかりませんでした。</p>
+      </div>
+    </div>
+  <% } %>
+
+  <div class="page-header" style="margin-top: 1.25rem;">
+    <h2 class="section-title" style="font-size: 1.4rem;">カテゴリ：エロゲ</h2>
+    <p class="section-lead">エロゲ系（最大5件）</p>
+  </div>
+
+  <% if (erogeVideos && erogeVideos.length > 0) { %>
+    <div class="articles-grid modern-grid">
+      <% erogeVideos.slice(0, 5).forEach(function(v, idx){ %>
+        <div class="panel">
+          <div class="panel-body">
+            <article class="post-card">
+              <a class="post-cover" href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=eroge&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow">
+                <% if (v.thumbnailUrl) { %>
+                  <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
+                <% } else { %>
+                  <img src="/images/siteicon.png" alt="thumb" loading="lazy">
+                <% } %>
+              </a>
+              <div class="post-body">
+                <div class="meta-row">
+                  <span class="tag genre">FC2</span>
+                  <span class="tag">エロゲ</span>
+                  <% if (v.publishedAtJp) { %>
+                    <span class="tag"><%= v.publishedAtJp %></span>
+                  <% } %>
+                </div>
+                <h3 class="post-title text-truncate-2">
+                  <a href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=eroge&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow"><%= v.title %></a>
+                </h3>
+                <% if (v.tags && v.tags.length > 0) { %>
+                  <div class="tags-row" style="margin-top:0.5rem; display:flex; gap:0.25rem; flex-wrap:wrap;">
+                    <% v.tags.slice(0, 3).forEach(function(t){ %>
+                      <span class="tag"><%= t %></span>
+                    <% }); %>
+                  </div>
+                <% } %>
+              </div>
+            </article>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } else { %>
+    <div class="panel">
+      <div class="panel-body">
+        <p class="section-lead">該当する動画が見つかりませんでした。</p>
+      </div>
+    </div>
+  <% } %>
+
   <% if (latestVideos && latestVideos.length > 0) { %>
     <div class="page-header" style="margin-top: 1.25rem;">
       <h2 class="section-title" style="font-size: 1.4rem;">新着</h2>

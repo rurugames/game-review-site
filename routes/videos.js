@@ -40,6 +40,47 @@ function getFc2FetchLimit(pageLimit) {
   return Math.max(min, Math.min(50, base));
 }
 
+function normalizeFc2TextForCategory(v) {
+  try {
+    const title = v && v.title ? String(v.title) : '';
+    const tags = v && Array.isArray(v.tags) ? v.tags.join(' ') : '';
+    return `${title} ${tags}`.replace(/\s+/g, ' ').trim();
+  } catch (_) {
+    return '';
+  }
+}
+
+function isFc2Anime(v) {
+  const s = normalizeFc2TextForCategory(v);
+  if (!s) return false;
+  return /(アニメ|同人アニメ|アニメーション|二次元|漫画|2D|3Dアニメ)/i.test(s);
+}
+
+function isFc2Eroge(v) {
+  const s = normalizeFc2TextForCategory(v);
+  if (!s) return false;
+  return /(エロゲ|エロゲー|同人ゲーム|ノベルゲーム|RPG|ADV|SLG|シミュ|シミュレーション|ゲーム)/i.test(s);
+}
+
+function buildFc2CategoryList(primary, secondary, predicate, limit) {
+  const out = [];
+  const seen = new Set();
+  const pushList = (arr) => {
+    for (const v of (arr || [])) {
+      if (!v) continue;
+      if (!predicate(v)) continue;
+      const key = String(v.id || v.url || '').trim();
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      out.push(v);
+      if (out.length >= limit) return;
+    }
+  };
+  pushList(primary);
+  if (out.length < limit) pushList(secondary);
+  return out;
+}
+
 function maybeStartFc2BackgroundRefresh() {
   if (!Fc2VideoCache) return;
   if (fc2RefreshInflight) return;
@@ -152,6 +193,11 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
   let isAnyFresh = false;
   let hasAnyMissingThumb = false;
 
+  /** @type {any[]} */
+  let animeVideos = [];
+  /** @type {any[]} */
+  let erogeVideos = [];
+
   try {
     if (Fc2VideoCache) {
       const now = Date.now();
@@ -252,9 +298,20 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
     } catch (_) {}
   }
 
+  try {
+    const catLimit = 5;
+    animeVideos = buildFc2CategoryList(latestVideos, popularVideos, isFc2Anime, catLimit);
+    erogeVideos = buildFc2CategoryList(latestVideos, popularVideos, isFc2Eroge, catLimit);
+  } catch (_) {
+    animeVideos = [];
+    erogeVideos = [];
+  }
+
   res.render('videos/fc2', {
     title: 'FC2動画',
     metaDescription: '成人向け（18+）FC2動画の新着・人気を一覧表示します。',
+    animeVideos,
+    erogeVideos,
     latestVideos,
     popularVideos,
     cacheTs,
