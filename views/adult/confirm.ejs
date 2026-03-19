@@ -1,0 +1,25 @@
+<section class="articles-section page-section">
+  <div class="page-header">
+    <h1 class="section-title">年齢確認</h1>
+    <p class="section-lead">この先は成人向けコンテンツ（18+）を含みます。</p>
+  </div>
+
+  <div class="panel">
+    <div class="panel-body">
+      <p class="section-lead" style="margin-top:0;">あなたは18歳以上ですか？</p>
+
+      <form method="POST" action="/adult/confirm" style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+        <input type="hidden" name="next" value="<%= nextPath %>">
+        <button type="submit" class="btn-primary">はい（18歳以上）</button>
+      </form>
+
+      <form method="POST" action="/adult/deny" style="margin-top:0.75rem;">
+        <button type="submit" class="btn-secondary">いいえ（トップへ戻る）</button>
+      </form>
+
+      <p class="section-lead" style="margin-top:1rem; font-size:0.95rem; opacity:0.9;">
+        ※年齢確認はブラウザのセッションに保存されます（一定時間で失効）。
+      </p>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,109 @@
+<section class="articles-section page-section">
+  <div class="page-header">
+    <div class="channel-header">
+      <div class="channel-brand">
+        <img src="/images/siteicon.png" alt="R18Hub" class="channel-icon" loading="lazy">
+        <div>
+          <h1 class="section-title" style="margin-bottom: 0.1rem;">FC2動画</h1>
+          <p class="section-lead" style="margin: 0;">成人向け動画（18+）の紹介一覧です。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if ((!latestVideos || latestVideos.length === 0) && (!popularVideos || popularVideos.length === 0)) { %>
+    <div class="panel">
+      <div class="panel-body">
+        <p class="section-lead">表示できる動画がありません。FC2 API設定（FC2_API_BASE_URL など）を確認してください。</p>
+      </div>
+    </div>
+  <% } %>
+
+  <% if (latestVideos && latestVideos.length > 0) { %>
+    <div class="page-header" style="margin-top: 1.25rem;">
+      <h2 class="section-title" style="font-size: 1.4rem;">新着</h2>
+      <p class="section-lead">最新（最大5件）</p>
+    </div>
+
+    <div class="articles-grid modern-grid">
+      <% latestVideos.slice(0, 5).forEach(function(v){ %>
+        <div class="panel">
+          <div class="panel-body">
+            <article class="post-card">
+              <a class="post-cover" href="<%= v.url %>" target="_blank" rel="noopener">
+                <% if (v.thumbnailUrl) { %>
+                  <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
+                <% } else { %>
+                  <img src="/images/siteicon.png" alt="thumb" loading="lazy">
+                <% } %>
+              </a>
+              <div class="post-body">
+                <div class="meta-row">
+                  <span class="tag genre">FC2</span>
+                  <span class="tag">#新着</span>
+                  <% if (v.publishedAtJp) { %>
+                    <span class="tag"><%= v.publishedAtJp %></span>
+                  <% } %>
+                </div>
+                <h3 class="post-title">
+                  <a href="<%= v.url %>" target="_blank" rel="noopener"><%= v.title %></a>
+                </h3>
+                <% if (v.tags && v.tags.length > 0) { %>
+                  <div class="tags-row" style="margin-top:0.5rem; display:flex; gap:0.25rem; flex-wrap:wrap;">
+                    <% v.tags.slice(0, 6).forEach(function(t){ %>
+                      <span class="tag"><%= t %></span>
+                    <% }); %>
+                  </div>
+                <% } %>
+              </div>
+            </article>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+
+  <% if (popularVideos && popularVideos.length > 0) { %>
+    <div class="page-header" style="margin-top: 1.25rem;">
+      <h2 class="section-title" style="font-size: 1.4rem;">人気</h2>
+      <p class="section-lead">人気（最大5件）</p>
+    </div>
+
+    <div class="articles-grid modern-grid">
+      <% popularVideos.slice(0, 5).forEach(function(v){ %>
+        <div class="panel">
+          <div class="panel-body">
+            <article class="post-card">
+              <a class="post-cover" href="<%= v.url %>" target="_blank" rel="noopener">
+                <% if (v.thumbnailUrl) { %>
+                  <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
+                <% } else { %>
+                  <img src="/images/siteicon.png" alt="thumb" loading="lazy">
+                <% } %>
+              </a>
+              <div class="post-body">
+                <div class="meta-row">
+                  <span class="tag genre">FC2</span>
+                  <span class="tag">#人気</span>
+                  <% if (v.publishedAtJp) { %>
+                    <span class="tag"><%= v.publishedAtJp %></span>
+                  <% } %>
+                </div>
+                <h3 class="post-title">
+                  <a href="<%= v.url %>" target="_blank" rel="noopener"><%= v.title %></a>
+                </h3>
+                <% if (v.tags && v.tags.length > 0) { %>
+                  <div class="tags-row" style="margin-top:0.5rem; display:flex; gap:0.25rem; flex-wrap:wrap;">
+                    <% v.tags.slice(0, 6).forEach(function(t){ %>
+                      <span class="tag"><%= t %></span>
+                    <% }); %>
+                  </div>
+                <% } %>
+              </div>
+            </article>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+</section>

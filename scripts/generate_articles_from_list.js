@@ -279,10 +279,11 @@ function main() {
   const per = Number(args.per ?? 5);
   const outPrefix = args.outPrefix;
   const backupDir = args.backupDir;
+  const noMove = Boolean(args.noMove);
 
-  if (!inJson || !ym || !cutoff || !outPrefix || !backupDir) {
+  if (!inJson || !ym || !cutoff || !outPrefix || (!backupDir && !noMove)) {
     throw new Error(
-      'Usage: node scripts/generate_articles_from_list.js --in <json> --ym YYYY-MM --cutoff YYYY-MM-DD --per 5 --outPrefix <prefix> --backupDir <dir>'
+      'Usage: node scripts/generate_articles_from_list.js --in <json> --ym YYYY-MM --cutoff YYYY-MM-DD --per 5 --outPrefix <prefix> --backupDir <dir> [--noMove]'
     );
   }
 
@@ -323,6 +324,22 @@ function main() {
     const out = `${outPrefix}_part${partNo}.csv`;
     writeCsv(out, parts[i]);
     written.push(out);
+  }
+
+  if (noMove) {
+    console.log('SUMMARY', {
+      ym,
+      cutoff,
+      input: inJson,
+      total: rows.length,
+      per,
+      parts: parts.length,
+      outPrefix,
+      noMove: true,
+    });
+    console.log('WRITTEN', written.length);
+    for (const p of written) console.log(p);
+    return;
   }
 
   const moved = [];

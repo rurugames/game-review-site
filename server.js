@@ -228,6 +228,7 @@ app.use(async (req, res, next) => {
     p.startsWith('/csv') ||
     p.startsWith('/generator') ||
     p.startsWith('/auth') ||
+    p.startsWith('/adult') ||
     p.startsWith('/comments') ||
     p.startsWith('/users') ||
     p.startsWith('/search') ||
@@ -285,7 +286,7 @@ app.get('/sitemap.xml', async (req, res) => {
     .replace(/'/g, '&apos;');
 
   try {
-    const staticPaths = ['/', '/ranking', '/videos', '/articles', '/help', '/contact'];
+    const staticPaths = ['/', '/ranking', '/videos', '/videos/fc2', '/articles', '/help', '/contact'];
     const urls = staticPaths.map((p) => ({ loc: `${siteUrl}${p}`, lastmod: null }));
 
     const articles = await Article.find({ status: 'published' })
@@ -332,6 +333,7 @@ app.get('/healthz', (req, res) => {
 
 // ルート
 app.use('/', require('./routes/index'));
+app.use('/adult', require('./routes/adult'));
 app.use('/auth', require('./routes/auth'));
 app.use('/articles', require('./routes/articles'));
 app.use('/videos', require('./routes/videos'));

@@ -2,6 +2,16 @@ const express = require('express');
 const router = express.Router();
 
 const youtubeApi = require('../services/youtubeDataApiService');
+const fc2Api = require('../services/fc2VideoApiService');
+const { requireAdultConfirmed } = require('../middleware/adultGate');
+
+let Fc2VideoCache = null;
+try {
+  // Optional: Mongo cache (if model exists / DB is connected)
+  Fc2VideoCache = require('../models/Fc2VideoCache');
+} catch (_) {
+  Fc2VideoCache = null;
+}
 
 router.get('/', async (req, res) => {
   const youtubeChannelId = process.env.YOUTUBE_CHANNEL_ID || '';
@@ -53,6 +63,104 @@ router.get('/', async (req, res) => {
     latestVideos,
     recommendedVideos,
     youtubeChannelId,
+  });
+});
+
+router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
+  const cacheMaxAgeMs = Math.max(60 * 1000, Number(process.env.FC2_CACHE_MAX_AGE_MS || 60 * 60 * 1000) || 60 * 60 * 1000);
+  const limit = Math.max(1, Math.min(25, Number(process.env.FC2_PAGE_LIMIT || 5) || 5));
+
+  /** @type {any[]} */
+  let latestVideos = [];
+  /** @type {any[]} */
+  let popularVideos = [];
+
+  let cacheHit = false;
+  let cacheTs = null;
+
+  try {
+    if (Fc2VideoCache) {
+      const now = Date.now();
+      const [latestDoc, popularDoc] = await Promise.all([
+        Fc2VideoCache.findOne({ key: 'latest' }).lean(),
+        Fc2VideoCache.findOne({ key: 'popular' }).lean(),
+      ]);
+
+      const isFresh = (doc) => {
+        if (!doc || !doc.ts) return false;
+        const ts = new Date(doc.ts).getTime();
+        if (!Number.isFinite(ts)) return false;
+        return now - ts <= cacheMaxAgeMs;
+      };
+
+      if (latestDoc && Array.isArray(latestDoc.items) && latestDoc.items.length > 0) {
+        latestVideos = latestDoc.items.slice(0, limit);
+      }
+      if (popularDoc && Array.isArray(popularDoc.items) && popularDoc.items.length > 0) {
+        popularVideos = popularDoc.items.slice(0, limit);
+      }
+
+      if (isFresh(latestDoc) || isFresh(popularDoc)) {
+        cacheHit = true;
+        const tsA = latestDoc && latestDoc.ts ? new Date(latestDoc.ts).getTime() : 0;
+        const tsB = popularDoc && popularDoc.ts ? new Date(popularDoc.ts).getTime() : 0;
+        const ts = Math.max(tsA, tsB);
+        cacheTs = ts ? new Date(ts) : null;
+      }
+    }
+  } catch (e) {
+    // cache is best-effort
+  }
+
+  try {
+    // If cache is missing or stale, try API
+    if (!cacheHit) {
+      const [latest, popular] = await Promise.all([
+        fc2Api.fetchLatestAdultVideos({ limit }),
+        fc2Api.fetchPopularAdultVideos({ limit }),
+      ]);
+      latestVideos = Array.isArray(latest) ? latest : [];
+      popularVideos = Array.isArray(popular) ? popular : [];
+
+      try {
+        if (Fc2VideoCache) {
+          const ts = new Date();
+          await Promise.all([
+            Fc2VideoCache.findOneAndUpdate(
+              { key: 'latest' },
+              { $set: { items: latestVideos, ts } },
+              { upsert: true, new: false }
+            ),
+            Fc2VideoCache.findOneAndUpdate(
+              { key: 'popular' },
+              { $set: { items: popularVideos, ts } },
+              { upsert: true, new: false }
+            ),
+          ]);
+        }
+      } catch (_) {}
+    }
+  } catch (e) {
+    // If API failed but cache had something, keep it; otherwise empty
+    try {
+      if (e && e.code === 'FC2_API_CONFIG_MISSING') {
+        console.warn('FC2 disabled: missing FC2_API_BASE_URL');
+      } else {
+        console.warn('FC2 API fetch failed:', {
+          message: e && e.message ? e.message : String(e),
+          code: e && e.code ? e.code : null,
+          httpStatus: e && e.httpStatus ? e.httpStatus : null,
+        });
+      }
+    } catch (_) {}
+  }
+
+  res.render('videos/fc2', {
+    title: 'FC2動画',
+    metaDescription: '成人向け（18+）FC2動画の新着・人気を一覧表示します。',
+    latestVideos,
+    popularVideos,
+    cacheTs,
   });
 });
 
