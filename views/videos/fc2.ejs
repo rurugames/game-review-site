@@ -30,6 +30,56 @@
     </div>
   <% } %>
 
+  <% if (typeof accountUploadsVideos !== 'undefined' && accountUploadsVideos && accountUploadsVideos.length > 0) { %>
+    <div class="page-header" style="margin-top: 1.25rem;">
+      <h2 class="section-title" style="font-size: 1.4rem;">あなたの投稿（最新）</h2>
+      <p class="section-lead">アップロード最新（最大9件）</p>
+    </div>
+
+    <div class="articles-grid modern-grid fc2-grid">
+      <% accountUploadsVideos.slice(0, 9).forEach(function(v, idx){ %>
+        <div class="panel">
+          <div class="panel-body">
+            <article class="post-card fc2-card">
+              <div class="post-cover fc2-embed">
+                <div class="fc2-embed-inner">
+                  <script src="//static.fc2.com/video/js/outerplayer.min.js"
+                    url="<%= v.url %>"
+                    tk="<%= fc2OuterPlayerTk %>"
+                    tl="<%= v.title %>"
+                    d="<%= fc2OuterPlayerDigestD %>"
+                    w="<%= fc2OuterPlayerWidth %>"
+                    h="<%= fc2OuterPlayerHeight %>"
+                    suggest="on"
+                    charset="UTF-8"></script>
+                </div>
+              </div>
+              <div class="post-body">
+                <div class="meta-row">
+                  <span class="tag genre">FC2</span>
+                  <span class="tag">あなたの投稿</span>
+                  <% if (v.publishedAtJp) { %>
+                    <span class="tag"><%= v.publishedAtJp %></span>
+                  <% } %>
+                </div>
+                <h3 class="post-title text-truncate-2">
+                  <a href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=uploads&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow"><%= v.title %></a>
+                </h3>
+                <% if (v.tags && v.tags.length > 0) { %>
+                  <div class="tags-row" style="margin-top:0.5rem; display:flex; gap:0.25rem; flex-wrap:wrap;">
+                    <% v.tags.slice(0, 3).forEach(function(t){ %>
+                      <span class="tag"><%= t %></span>
+                    <% }); %>
+                  </div>
+                <% } %>
+              </div>
+            </article>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  <% } %>
+
   <div class="page-header" style="margin-top: 1.25rem;">
     <h2 class="section-title" style="font-size: 1.4rem;">カテゴリ：アニメ・エロゲ</h2>
     <p class="section-lead">FC2カテゴリ検索（最大9件）</p>

@@ -45,6 +45,10 @@ function getFc2AnimeErogeCategoryId() {
   return v;
 }
 
+function getFc2AccountContentUrl() {
+  return String(process.env.FC2_ACCOUNT_CONTENT_URL || 'https://video.fc2.com/account/62106677/content').trim();
+}
+
 function maybeStartFc2BackgroundRefresh() {
   if (!Fc2VideoCache) return;
   if (fc2RefreshInflight) return;
@@ -53,7 +57,9 @@ function maybeStartFc2BackgroundRefresh() {
     .then(async () => {
       const fetchLimit = getFc2FetchLimit(Number(process.env.FC2_PAGE_LIMIT || 9) || 9);
       const categoryId = getFc2AnimeErogeCategoryId();
-      const [latest, popular, animeEroge] = await Promise.all([
+      const accountContentUrl = getFc2AccountContentUrl();
+      const [uploads, latest, popular, animeEroge] = await Promise.all([
+        accountContentUrl ? fc2Api.fetchAccountAdultVideos({ contentUrl: accountContentUrl, limit: fetchLimit, ttlMs: 0 }) : Promise.resolve([]),
         fc2Api.fetchLatestAdultVideos({ limit: fetchLimit, ttlMs: 0 }),
         fc2Api.fetchPopularAdultVideos({ limit: fetchLimit, ttlMs: 0 }),
         categoryId ? fc2Api.fetchCategoryAdultVideos({ categoryId, limit: fetchLimit, ttlMs: 0 }) : Promise.resolve([]),
@@ -61,6 +67,11 @@ function maybeStartFc2BackgroundRefresh() {
 
       const ts = new Date();
       await Promise.all([
+        Fc2VideoCache.findOneAndUpdate(
+          { key: 'account:uploads' },
+          { $set: { items: Array.isArray(uploads) ? uploads : [], ts } },
+          { upsert: true, new: false }
+        ),
         Fc2VideoCache.findOneAndUpdate(
           { key: 'latest' },
           { $set: { items: Array.isArray(latest) ? latest : [], ts } },
@@ -153,6 +164,7 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
   const cacheMaxAgeMs = Math.max(60 * 1000, Number(process.env.FC2_CACHE_MAX_AGE_MS || 60 * 60 * 1000) || 60 * 60 * 1000);
   const limit = Math.max(1, Math.min(25, Number(process.env.FC2_PAGE_LIMIT || 9) || 9));
   const categoryIdAnimeEroge = getFc2AnimeErogeCategoryId();
+  const accountContentUrl = getFc2AccountContentUrl();
 
   const fc2OuterPlayerTk = String(process.env.FC2_OUTERPLAYER_TK || 'TmpJeE1EWTJOemM9').trim();
   const fc2OuterPlayerWidth = Math.max(240, Number(process.env.FC2_OUTERPLAYER_W || 640) || 640);
@@ -174,10 +186,16 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
   /** @type {any[]} */
   let animeErogeVideos = [];
 
+  /** @type {any[]} */
+  let accountUploadsVideos = [];
+
+  let hasAnyMissingSection = false;
+
   try {
     if (Fc2VideoCache) {
       const now = Date.now();
-      const [latestDoc, popularDoc] = await Promise.all([
+      const [uploadsDoc, latestDoc, popularDoc] = await Promise.all([
+        Fc2VideoCache.findOne({ key: 'account:uploads' }).lean(),
         Fc2VideoCache.findOne({ key: 'latest' }).lean(),
         Fc2VideoCache.findOne({ key: 'popular' }).lean(),
       ]);
@@ -191,6 +209,10 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
         return now - ts <= cacheMaxAgeMs;
       };
 
+      if (uploadsDoc && Array.isArray(uploadsDoc.items) && uploadsDoc.items.length > 0) {
+        accountUploadsVideos = uploadsDoc.items.slice(0, limit);
+        hasAnyCacheItems = true;
+      }
       if (latestDoc && Array.isArray(latestDoc.items) && latestDoc.items.length > 0) {
         latestVideos = latestDoc.items.slice(0, limit);
         hasAnyCacheItems = true;
@@ -206,19 +228,22 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
 
       try {
         const anyMissing = (arr) => Array.isArray(arr) && arr.some((v) => v && !String(v.thumbnailUrl || '').trim());
-        hasAnyMissingThumb = anyMissing(latestVideos) || anyMissing(popularVideos) || anyMissing(animeErogeVideos);
+        hasAnyMissingThumb = anyMissing(accountUploadsVideos) || anyMissing(latestVideos) || anyMissing(popularVideos) || anyMissing(animeErogeVideos);
       } catch (_) {}
 
+      hasAnyMissingSection = Boolean(accountContentUrl && (!accountUploadsVideos || accountUploadsVideos.length === 0));
+
+      const tsU = uploadsDoc && uploadsDoc.ts ? new Date(uploadsDoc.ts).getTime() : 0;
       const tsA = latestDoc && latestDoc.ts ? new Date(latestDoc.ts).getTime() : 0;
       const tsB = popularDoc && popularDoc.ts ? new Date(popularDoc.ts).getTime() : 0;
       const tsC = catDoc && catDoc.ts ? new Date(catDoc.ts).getTime() : 0;
-      const maxTs = Math.max(tsA, tsB, tsC);
+      const maxTs = Math.max(tsU, tsA, tsB, tsC);
       if (maxTs) {
         cacheTs = new Date(maxTs);
         cacheTsJp = toJpDateTimeString(cacheTs);
       }
 
-      isAnyFresh = Boolean(isFresh(latestDoc) || isFresh(popularDoc) || isFresh(catDoc));
+      isAnyFresh = Boolean(isFresh(uploadsDoc) || isFresh(latestDoc) || isFresh(popularDoc) || isFresh(catDoc));
     }
   } catch (e) {
     // cache is best-effort
@@ -229,21 +254,24 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
     // - If cache has items: render immediately; if stale, refresh in background.
     // - If no cache items: fetch synchronously for first view.
     if (hasAnyCacheItems) {
-      if (!isAnyFresh || hasAnyMissingThumb) {
+      if (!isAnyFresh || hasAnyMissingThumb || hasAnyMissingSection) {
         maybeStartFc2BackgroundRefresh();
       }
     } else {
       const fetchLimit = getFc2FetchLimit(limit);
-      const [latest, popular, animeEroge] = await Promise.all([
+      const [uploads, latest, popular, animeEroge] = await Promise.all([
+        accountContentUrl ? fc2Api.fetchAccountAdultVideos({ contentUrl: accountContentUrl, limit: fetchLimit, ttlMs: 0 }) : Promise.resolve([]),
         fc2Api.fetchLatestAdultVideos({ limit: fetchLimit, ttlMs: 0 }),
         fc2Api.fetchPopularAdultVideos({ limit: fetchLimit, ttlMs: 0 }),
         categoryIdAnimeEroge ? fc2Api.fetchCategoryAdultVideos({ categoryId: categoryIdAnimeEroge, limit: fetchLimit, ttlMs: 0 }) : Promise.resolve([]),
       ]);
 
+      const uploadsArr = Array.isArray(uploads) ? uploads : [];
       const latestArr = Array.isArray(latest) ? latest : [];
       const popularArr = Array.isArray(popular) ? popular : [];
       const animeErogeArr = Array.isArray(animeEroge) ? animeEroge : [];
 
+      accountUploadsVideos = uploadsArr.slice(0, limit);
       latestVideos = latestArr.slice(0, limit);
       popularVideos = popularArr.slice(0, limit);
       animeErogeVideos = animeErogeArr.slice(0, limit);
@@ -255,6 +283,11 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
           cacheTsJp = toJpDateTimeString(ts);
 
           await Promise.all([
+            Fc2VideoCache.findOneAndUpdate(
+              { key: 'account:uploads' },
+              { $set: { items: uploadsArr, ts } },
+              { upsert: true, new: false }
+            ),
             Fc2VideoCache.findOneAndUpdate(
               { key: 'latest' },
               { $set: { items: latestArr, ts } },
@@ -291,10 +324,10 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
 
   try {
     if ((!animeErogeVideos || animeErogeVideos.length === 0) && categoryIdAnimeEroge) {
-      const fetchLimit = getFc2FetchLimit(10);
+      const fetchLimit = getFc2FetchLimit(limit);
       const fetched = await fc2Api.fetchCategoryAdultVideos({ categoryId: categoryIdAnimeEroge, limit: fetchLimit });
       const arr = Array.isArray(fetched) ? fetched : [];
-      animeErogeVideos = arr.slice(0, 10);
+      animeErogeVideos = arr.slice(0, limit);
       try {
         if (Fc2VideoCache && arr.length > 0) {
           const ts = new Date();
@@ -313,6 +346,7 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
   res.render('videos/fc2', {
     title: 'FC2動画',
     metaDescription: '成人向け（18+）FC2動画の新着・人気を一覧表示します。',
+    accountUploadsVideos,
     animeErogeVideos,
     latestVideos,
     popularVideos,

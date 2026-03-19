@@ -187,7 +187,7 @@ function findBestThumbnailUrl($, el, baseUrl, baseHref) {
 
 function extractIdFromFc2ContentUrl(u) {
   const s = String(u || '');
-  const m = s.match(/\/content\/([^/?#]+)/);
+  const m = s.match(/\/(?:a\/)?content\/([^/?#]+)/);
   return safeText(m ? m[1] : '');
 }
 
@@ -234,9 +234,19 @@ function getCategoryScrapeUrl(categoryId) {
   }
 }
 
+function getAccountContentScrapeUrl() {
+  return String(
+    process.env.FC2_ACCOUNT_CONTENT_URL ||
+      'https://video.fc2.com/account/62106677/content'
+  ).trim();
+}
+
 function isAdultContentUrl(u) {
   const s = String(u || '');
-  return /^(https?:\/\/video\.fc2\.com)?\/a\/content\//.test(s) || /^https?:\/\/video\.fc2\.com\/a\/content\//.test(s);
+  return (
+    /^(https?:\/\/video\.fc2\.com)?\/(?:a\/)?content\//.test(s) ||
+    /^https?:\/\/video\.fc2\.com\/(?:a\/)?content\//.test(s)
+  );
 }
 
 async function fetchFromScrape(kind, { limit = 12, ttlMs = DEFAULT_TTL_MS, timeoutMs = 10000 } = {}) {
@@ -281,7 +291,8 @@ async function fetchFromScrapeUrl(scrapeUrl, { limit = 12, timeoutMs = 10000 } =
     if (!isAdultContentUrl(href)) return;
 
     const abs = stripUrlQueryHash(toAbsoluteUrl(href, scrapeUrl));
-    if (!abs || !abs.includes('/a/content/')) return;
+    if (!abs || !abs.includes('/content/')) return;
+    if (!abs || !abs.includes('/content/')) return;
 
     const existing = byUrl.get(abs) || {
       id: extractIdFromFc2ContentUrl(abs) || abs,
@@ -330,6 +341,21 @@ async function fetchCategoryAdultVideos({ categoryId, limit = 12, ttlMs = DEFAUL
   if (!scrapeUrl) return [];
 
   const cacheKey = `fc2:scrape:category:${safeText(categoryId)}:${scrapeUrl}:limit:${limit}`;
+  const cached = getFromCache(cacheKey, ttlMs);
+  if (cached) return cached;
+
+  return runWithInflight(cacheKey, async () => {
+    const items = await fetchFromScrapeUrl(scrapeUrl, { limit, timeoutMs });
+    setCache(cacheKey, items);
+    return items;
+  });
+}
+
+async function fetchAccountAdultVideos({ contentUrl, limit = 12, ttlMs = DEFAULT_TTL_MS, timeoutMs = 10000 } = {}) {
+  const scrapeUrl = safeText(contentUrl) || getAccountContentScrapeUrl();
+  if (!scrapeUrl) return [];
+
+  const cacheKey = `fc2:scrape:account:${scrapeUrl}:limit:${limit}`;
   const cached = getFromCache(cacheKey, ttlMs);
   if (cached) return cached;
 
@@ -483,4 +509,5 @@ module.exports = {
   fetchLatestAdultVideos,
   fetchPopularAdultVideos,
   fetchCategoryAdultVideos,
+  fetchAccountAdultVideos,
 };
