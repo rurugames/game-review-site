@@ -6,6 +6,9 @@
         <div>
           <h1 class="section-title" style="margin-bottom: 0.1rem;">FC2動画</h1>
           <p class="section-lead" style="margin: 0;">成人向け動画（18+）の紹介一覧です。</p>
+          <% if (cacheTsJp) { %>
+            <p class="section-lead" style="margin: 0.25rem 0 0 0; font-size: 0.95rem;">最終更新: <%= cacheTsJp %></p>
+          <% } %>
         </div>
       </div>
     </div>
@@ -14,7 +17,7 @@
   <% if ((!latestVideos || latestVideos.length === 0) && (!popularVideos || popularVideos.length === 0)) { %>
     <div class="panel">
       <div class="panel-body">
-        <p class="section-lead">表示できる動画がありません。FC2 API設定（FC2_API_BASE_URL など）を確認してください。</p>
+        <p class="section-lead">現在表示できる動画がありません。しばらくしてから再読み込みしてください。</p>
       </div>
     </div>
   <% } %>

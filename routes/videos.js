@@ -13,6 +13,77 @@ try {
   Fc2VideoCache = null;
 }
 
+let fc2RefreshInflight = null;
+
+function toJpDateTimeString(d) {
+  if (!d) return '';
+  const dt = d instanceof Date ? d : new Date(d);
+  if (Number.isNaN(dt.getTime())) return '';
+  try {
+    return new Intl.DateTimeFormat('ja-JP', {
+      timeZone: 'Asia/Tokyo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(dt);
+  } catch (_) {
+    return dt.toISOString();
+  }
+}
+
+function getFc2FetchLimit(pageLimit) {
+  const envLimit = Number(process.env.FC2_FETCH_LIMIT || 25);
+  const base = Number.isFinite(envLimit) && envLimit > 0 ? envLimit : 25;
+  const min = Math.max(5, Number(pageLimit) || 5);
+  return Math.max(min, Math.min(50, base));
+}
+
+function maybeStartFc2BackgroundRefresh() {
+  if (!Fc2VideoCache) return;
+  if (fc2RefreshInflight) return;
+
+  fc2RefreshInflight = Promise.resolve()
+    .then(async () => {
+      const fetchLimit = getFc2FetchLimit(Number(process.env.FC2_PAGE_LIMIT || 5) || 5);
+      const [latest, popular] = await Promise.all([
+        fc2Api.fetchLatestAdultVideos({ limit: fetchLimit, ttlMs: 0 }),
+        fc2Api.fetchPopularAdultVideos({ limit: fetchLimit, ttlMs: 0 }),
+      ]);
+
+      const ts = new Date();
+      await Promise.all([
+        Fc2VideoCache.findOneAndUpdate(
+          { key: 'latest' },
+          { $set: { items: Array.isArray(latest) ? latest : [], ts } },
+          { upsert: true, new: false }
+        ),
+        Fc2VideoCache.findOneAndUpdate(
+          { key: 'popular' },
+          { $set: { items: Array.isArray(popular) ? popular : [], ts } },
+          { upsert: true, new: false }
+        ),
+      ]);
+    })
+    .catch((e) => {
+      try {
+        if (e && e.code === 'FC2_API_CONFIG_MISSING') {
+          console.warn('FC2 background refresh skipped: missing FC2_API_BASE_URL (scrape fallback may still work)');
+        } else {
+          console.warn('FC2 background refresh failed:', {
+            message: e && e.message ? e.message : String(e),
+            code: e && e.code ? e.code : null,
+            httpStatus: e && e.httpStatus ? e.httpStatus : null,
+          });
+        }
+      } catch (_) {}
+    })
+    .finally(() => {
+      fc2RefreshInflight = null;
+    });
+}
+
 router.get('/', async (req, res) => {
   const youtubeChannelId = process.env.YOUTUBE_CHANNEL_ID || '';
   const youtubeRecommendedPlaylistId = process.env.YOUTUBE_RECOMMENDED_PLAYLIST_ID || '';
@@ -75,8 +146,10 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
   /** @type {any[]} */
   let popularVideos = [];
 
-  let cacheHit = false;
   let cacheTs = null;
+  let cacheTsJp = '';
+  let hasAnyCacheItems = false;
+  let isAnyFresh = false;
 
   try {
     if (Fc2VideoCache) {
@@ -95,45 +168,63 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
 
       if (latestDoc && Array.isArray(latestDoc.items) && latestDoc.items.length > 0) {
         latestVideos = latestDoc.items.slice(0, limit);
+        hasAnyCacheItems = true;
       }
       if (popularDoc && Array.isArray(popularDoc.items) && popularDoc.items.length > 0) {
         popularVideos = popularDoc.items.slice(0, limit);
+        hasAnyCacheItems = true;
       }
 
-      if (isFresh(latestDoc) || isFresh(popularDoc)) {
-        cacheHit = true;
-        const tsA = latestDoc && latestDoc.ts ? new Date(latestDoc.ts).getTime() : 0;
-        const tsB = popularDoc && popularDoc.ts ? new Date(popularDoc.ts).getTime() : 0;
-        const ts = Math.max(tsA, tsB);
-        cacheTs = ts ? new Date(ts) : null;
+      const tsA = latestDoc && latestDoc.ts ? new Date(latestDoc.ts).getTime() : 0;
+      const tsB = popularDoc && popularDoc.ts ? new Date(popularDoc.ts).getTime() : 0;
+      const maxTs = Math.max(tsA, tsB);
+      if (maxTs) {
+        cacheTs = new Date(maxTs);
+        cacheTsJp = toJpDateTimeString(cacheTs);
       }
+
+      isAnyFresh = Boolean(isFresh(latestDoc) || isFresh(popularDoc));
     }
   } catch (e) {
     // cache is best-effort
   }
 
   try {
-    // If cache is missing or stale, try API
-    if (!cacheHit) {
+    // Cache-first UX:
+    // - If cache has items: render immediately; if stale, refresh in background.
+    // - If no cache items: fetch synchronously for first view.
+    if (hasAnyCacheItems) {
+      if (!isAnyFresh) {
+        maybeStartFc2BackgroundRefresh();
+      }
+    } else {
+      const fetchLimit = getFc2FetchLimit(limit);
       const [latest, popular] = await Promise.all([
-        fc2Api.fetchLatestAdultVideos({ limit }),
-        fc2Api.fetchPopularAdultVideos({ limit }),
+        fc2Api.fetchLatestAdultVideos({ limit: fetchLimit, ttlMs: 0 }),
+        fc2Api.fetchPopularAdultVideos({ limit: fetchLimit, ttlMs: 0 }),
       ]);
-      latestVideos = Array.isArray(latest) ? latest : [];
-      popularVideos = Array.isArray(popular) ? popular : [];
+
+      const latestArr = Array.isArray(latest) ? latest : [];
+      const popularArr = Array.isArray(popular) ? popular : [];
+
+      latestVideos = latestArr.slice(0, limit);
+      popularVideos = popularArr.slice(0, limit);
 
       try {
         if (Fc2VideoCache) {
           const ts = new Date();
+          cacheTs = ts;
+          cacheTsJp = toJpDateTimeString(ts);
+
           await Promise.all([
             Fc2VideoCache.findOneAndUpdate(
               { key: 'latest' },
-              { $set: { items: latestVideos, ts } },
+              { $set: { items: latestArr, ts } },
               { upsert: true, new: false }
             ),
             Fc2VideoCache.findOneAndUpdate(
               { key: 'popular' },
-              { $set: { items: popularVideos, ts } },
+              { $set: { items: popularArr, ts } },
               { upsert: true, new: false }
             ),
           ]);
@@ -161,6 +252,7 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
     latestVideos,
     popularVideos,
     cacheTs,
+    cacheTsJp,
   });
 });
 
