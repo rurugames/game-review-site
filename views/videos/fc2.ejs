@@ -6,8 +6,16 @@
         <div>
           <h1 class="section-title" style="margin-bottom: 0.1rem;">FC2動画</h1>
           <p class="section-lead" style="margin: 0;">成人向け動画（18+）の紹介一覧です。</p>
+          <div class="meta-row" style="margin-top: 0.35rem; flex-wrap: wrap;">
+            <span class="tag">18+（年齢確認済）</span>
+            <span class="tag">外部サイトへ移動</span>
+          </div>
+          <% const __cacheAgeHours = cacheTs ? ((Date.now() - new Date(cacheTs).getTime()) / (1000 * 60 * 60)) : null; %>
           <% if (cacheTsJp) { %>
             <p class="section-lead" style="margin: 0.25rem 0 0 0; font-size: 0.95rem;">最終更新: <%= cacheTsJp %></p>
+          <% } %>
+          <% if (__cacheAgeHours !== null && Number.isFinite(__cacheAgeHours) && __cacheAgeHours > 6) { %>
+            <p class="section-lead" style="margin: 0.15rem 0 0 0; font-size: 0.92rem;">更新が遅れています（表示はキャッシュ）</p>
           <% } %>
         </div>
       </div>
@@ -25,7 +33,7 @@
   <% if (latestVideos && latestVideos.length > 0) { %>
     <div class="page-header" style="margin-top: 1.25rem;">
       <h2 class="section-title" style="font-size: 1.4rem;">新着</h2>
-      <p class="section-lead">最新（最大5件）</p>
+      <p class="section-lead">追加順（最大5件）</p>
     </div>
 
     <div class="articles-grid modern-grid">
@@ -43,17 +51,17 @@
               <div class="post-body">
                 <div class="meta-row">
                   <span class="tag genre">FC2</span>
-                  <span class="tag">#新着</span>
+                  <span class="tag">新着（追加順）</span>
                   <% if (v.publishedAtJp) { %>
                     <span class="tag"><%= v.publishedAtJp %></span>
                   <% } %>
                 </div>
-                <h3 class="post-title">
+                <h3 class="post-title text-truncate-2">
                   <a href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=latest&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow"><%= v.title %></a>
                 </h3>
                 <% if (v.tags && v.tags.length > 0) { %>
                   <div class="tags-row" style="margin-top:0.5rem; display:flex; gap:0.25rem; flex-wrap:wrap;">
-                    <% v.tags.slice(0, 6).forEach(function(t){ %>
+                    <% v.tags.slice(0, 3).forEach(function(t){ %>
                       <span class="tag"><%= t %></span>
                     <% }); %>
                   </div>
@@ -69,7 +77,7 @@
   <% if (popularVideos && popularVideos.length > 0) { %>
     <div class="page-header" style="margin-top: 1.25rem;">
       <h2 class="section-title" style="font-size: 1.4rem;">人気</h2>
-      <p class="section-lead">人気（最大5件）</p>
+      <p class="section-lead">トレンド（最大5件）</p>
     </div>
 
     <div class="articles-grid modern-grid">
@@ -87,17 +95,17 @@
               <div class="post-body">
                 <div class="meta-row">
                   <span class="tag genre">FC2</span>
-                  <span class="tag">#人気</span>
+                  <span class="tag">人気（トレンド）</span>
                   <% if (v.publishedAtJp) { %>
                     <span class="tag"><%= v.publishedAtJp %></span>
                   <% } %>
                 </div>
-                <h3 class="post-title">
+                <h3 class="post-title text-truncate-2">
                   <a href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=popular&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow"><%= v.title %></a>
                 </h3>
                 <% if (v.tags && v.tags.length > 0) { %>
                   <div class="tags-row" style="margin-top:0.5rem; display:flex; gap:0.25rem; flex-wrap:wrap;">
-                    <% v.tags.slice(0, 6).forEach(function(t){ %>
+                    <% v.tags.slice(0, 3).forEach(function(t){ %>
                       <span class="tag"><%= t %></span>
                     <% }); %>
                   </div>
