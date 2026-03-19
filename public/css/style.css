@@ -2243,24 +2243,20 @@ body {
 .post-cover.fc2-embed {
   position: relative;
   width: 100%;
-}
-.post-cover.fc2-embed::before {
-  content: "";
-  display: block;
-  padding-top: 112.5%;
+  height: auto;
 }
 .post-cover.fc2-embed .fc2-embed-inner {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: relative;
   width: 100%;
-  height: 100%;
 }
 .post-cover.fc2-embed iframe,
 .post-cover.fc2-embed embed,
 .post-cover.fc2-embed object {
   width: 100% !important;
-  height: 100% !important;
+  max-width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 16 / 9;
+  display: block;
 }
 
 .fc2-grid {
