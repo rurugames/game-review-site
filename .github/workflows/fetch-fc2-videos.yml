@@ -1,0 +1,54 @@
+name: Fetch FC2 videos
+
+on:
+  schedule:
+    # Runs hourly (UTC). Choose a fixed minute to avoid collisions with other scheduled jobs.
+    - cron: '17 * * * *'
+  workflow_dispatch: {}
+
+permissions: {}
+
+concurrency:
+  group: fetch-fc2-videos
+  cancel-in-progress: true
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Refresh FC2 cache
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          FC2_FETCH_LIMIT: ${{ secrets.FC2_FETCH_LIMIT }}
+
+          # Optional (API mode)
+          FC2_API_BASE_URL: ${{ secrets.FC2_API_BASE_URL }}
+          FC2_API_KEY: ${{ secrets.FC2_API_KEY }}
+          FC2_API_AUTH_MODE: ${{ secrets.FC2_API_AUTH_MODE }}
+          FC2_API_KEY_HEADER: ${{ secrets.FC2_API_KEY_HEADER }}
+          FC2_API_KEY_PARAM: ${{ secrets.FC2_API_KEY_PARAM }}
+          FC2_API_LATEST_ENDPOINT: ${{ secrets.FC2_API_LATEST_ENDPOINT }}
+          FC2_API_POPULAR_ENDPOINT: ${{ secrets.FC2_API_POPULAR_ENDPOINT }}
+
+          # Optional (scrape fallback)
+          FC2_SCRAPE_LATEST_URL: ${{ secrets.FC2_SCRAPE_LATEST_URL }}
+          FC2_SCRAPE_POPULAR_URL: ${{ secrets.FC2_SCRAPE_POPULAR_URL }}
+        run: |
+          if [ -z "$MONGODB_URI" ]; then
+            echo "MONGODB_URI is not set. Add it as a GitHub Actions secret. (skip)" >&2
+            exit 0
+          fi
+          node scripts/fetch_fc2_videos.js
