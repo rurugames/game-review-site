@@ -229,6 +229,7 @@ app.use(async (req, res, next) => {
     p.startsWith('/generator') ||
     p.startsWith('/auth') ||
     p.startsWith('/adult') ||
+    p.startsWith('/out') ||
     p.startsWith('/comments') ||
     p.startsWith('/users') ||
     p.startsWith('/search') ||
@@ -343,6 +344,7 @@ app.use('/users', require('./routes/users'));
 app.use('/events', require('./routes/events'));
 app.use('/generator', require('./routes/generator'));
 app.use('/csv', require('./routes/csv'));
+app.use('/out', require('./routes/out'));
 
 // Socket.IO 初期化
 const io = new Server(server, { path: '/socket.io' });
