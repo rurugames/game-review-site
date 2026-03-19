@@ -156,7 +156,7 @@ router.get('/fc2', requireAdultConfirmed(), async (req, res) => {
 
   const fc2OuterPlayerTk = String(process.env.FC2_OUTERPLAYER_TK || 'TmpJeE1EWTJOemM9').trim();
   const fc2OuterPlayerWidth = Math.max(240, Number(process.env.FC2_OUTERPLAYER_W || 640) || 640);
-  const fc2OuterPlayerHeight = Math.max(180, Number(process.env.FC2_OUTERPLAYER_H || 360) || 360);
+  const fc2OuterPlayerHeight = Math.max(240, Number(process.env.FC2_OUTERPLAYER_H || 720) || 720);
   // NOTE: FC2の埋め込みコード例に合わせて d=57 をデフォルトにしています（ダイジェスト）。
   const fc2OuterPlayerDigestD = Math.max(1, Number(process.env.FC2_OUTERPLAYER_D || 57) || 57);
 
