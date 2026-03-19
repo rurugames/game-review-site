@@ -41,13 +41,17 @@
         <div class="panel">
           <div class="panel-body">
             <article class="post-card">
-              <a class="post-cover" href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=anime_eroge&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow">
-                <% if (v.thumbnailUrl) { %>
-                  <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
-                <% } else { %>
-                  <img src="/images/siteicon.png" alt="thumb" loading="lazy">
-                <% } %>
-              </a>
+              <div class="post-cover">
+                <script src="//static.fc2.com/video/js/outerplayer.min.js"
+                  url="<%= v.url %>"
+                  tk="<%= fc2OuterPlayerTk %>"
+                  tl="<%= v.title %>"
+                  d="<%= fc2OuterPlayerDigestD %>"
+                  w="<%= fc2OuterPlayerWidth %>"
+                  h="<%= fc2OuterPlayerHeight %>"
+                  suggest="on"
+                  charset="UTF-8"></script>
+              </div>
               <div class="post-body">
                 <div class="meta-row">
                   <span class="tag genre">FC2</span>
@@ -91,13 +95,17 @@
         <div class="panel">
           <div class="panel-body">
             <article class="post-card">
-              <a class="post-cover" href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=latest&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow">
-                <% if (v.thumbnailUrl) { %>
-                  <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
-                <% } else { %>
-                  <img src="/images/siteicon.png" alt="thumb" loading="lazy">
-                <% } %>
-              </a>
+              <div class="post-cover">
+                <script src="//static.fc2.com/video/js/outerplayer.min.js"
+                  url="<%= v.url %>"
+                  tk="<%= fc2OuterPlayerTk %>"
+                  tl="<%= v.title %>"
+                  d="<%= fc2OuterPlayerDigestD %>"
+                  w="<%= fc2OuterPlayerWidth %>"
+                  h="<%= fc2OuterPlayerHeight %>"
+                  suggest="on"
+                  charset="UTF-8"></script>
+              </div>
               <div class="post-body">
                 <div class="meta-row">
                   <span class="tag genre">FC2</span>
@@ -135,13 +143,17 @@
         <div class="panel">
           <div class="panel-body">
             <article class="post-card">
-              <a class="post-cover" href="/out?u=<%= encodeURIComponent(v.url) %>&k=fc2&s=popular&vid=<%= encodeURIComponent(v.id || '') %>&pos=<%= (idx + 1) %>" target="_blank" rel="noopener noreferrer nofollow">
-                <% if (v.thumbnailUrl) { %>
-                  <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" loading="lazy">
-                <% } else { %>
-                  <img src="/images/siteicon.png" alt="thumb" loading="lazy">
-                <% } %>
-              </a>
+              <div class="post-cover">
+                <script src="//static.fc2.com/video/js/outerplayer.min.js"
+                  url="<%= v.url %>"
+                  tk="<%= fc2OuterPlayerTk %>"
+                  tl="<%= v.title %>"
+                  d="<%= fc2OuterPlayerDigestD %>"
+                  w="<%= fc2OuterPlayerWidth %>"
+                  h="<%= fc2OuterPlayerHeight %>"
+                  suggest="on"
+                  charset="UTF-8"></script>
+              </div>
               <div class="post-body">
                 <div class="meta-row">
                   <span class="tag genre">FC2</span>
