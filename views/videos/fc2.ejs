@@ -22,6 +22,18 @@
       width: 100% !important;
       height: 100% !important;
     }
+
+    /* FC2埋め込みは横幅が重要なので、PCは2列固定（=プレイヤーを大きく） */
+    .fc2-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    @media (max-width: 900px) {
+      .fc2-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 
   <div class="page-header">
@@ -61,8 +73,8 @@
   </div>
 
   <% if (animeErogeVideos && animeErogeVideos.length > 0) { %>
-    <div class="articles-grid modern-grid">
-      <% animeErogeVideos.slice(0, 5).forEach(function(v, idx){ %>
+    <div class="articles-grid modern-grid fc2-grid">
+      <% animeErogeVideos.slice(0, 10).forEach(function(v, idx){ %>
         <div class="panel">
           <div class="panel-body">
             <article class="post-card">
@@ -117,8 +129,8 @@
       <p class="section-lead">追加順（最大5件）</p>
     </div>
 
-    <div class="articles-grid modern-grid">
-      <% latestVideos.slice(0, 5).forEach(function(v, idx){ %>
+    <div class="articles-grid modern-grid fc2-grid">
+      <% latestVideos.slice(0, 10).forEach(function(v, idx){ %>
         <div class="panel">
           <div class="panel-body">
             <article class="post-card">
@@ -167,8 +179,8 @@
       <p class="section-lead">トレンド（最大5件）</p>
     </div>
 
-    <div class="articles-grid modern-grid">
-      <% popularVideos.slice(0, 5).forEach(function(v, idx){ %>
+    <div class="articles-grid modern-grid fc2-grid">
+      <% popularVideos.slice(0, 10).forEach(function(v, idx){ %>
         <div class="panel">
           <div class="panel-body">
             <article class="post-card">
