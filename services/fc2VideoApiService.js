@@ -82,6 +82,84 @@ function stripUrlQueryHash(u) {
   }
 }
 
+function parseSrcsetBestUrl(srcset) {
+  const s = safeText(srcset);
+  if (!s) return '';
+  const parts = s
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+  let bestUrl = '';
+  let bestScore = -1;
+  for (const part of parts) {
+    const segs = part.split(/\s+/).filter(Boolean);
+    const url = segs[0] || '';
+    const desc = segs[1] || '';
+    let score = 0;
+    const mW = desc.match(/(\d+)w/i);
+    if (mW) score = Number(mW[1]) || 0;
+    const mX = desc.match(/(\d+(?:\.\d+)?)x/i);
+    if (!mW && mX) score = Math.floor((Number(mX[1]) || 0) * 1000);
+    if (score > bestScore) {
+      bestScore = score;
+      bestUrl = url;
+    }
+  }
+  return safeText(bestUrl);
+}
+
+function scoreThumbCandidate(u) {
+  const s = safeText(u).toLowerCase();
+  if (!s) return 0;
+  if (!/^https?:\/\//i.test(s)) return 0;
+  let score = 1;
+  if (/(thumb|thumbnail)/i.test(s)) score += 3;
+  if (/(jpg|jpeg|png|webp)(\?|#|$)/i.test(s)) score += 2;
+  if (/sprite|icon|logo/i.test(s)) score -= 4;
+  if (/siteicon/i.test(s)) score -= 4;
+  return score;
+}
+
+function findBestThumbnailUrl($, el, baseUrl) {
+  const candidates = [];
+  const $el = $(el);
+
+  const pushFromImg = (img) => {
+    try {
+      const $img = $(img);
+      const srcset = $img.attr('data-srcset') || $img.attr('srcset');
+      const srcsetUrl = parseSrcsetBestUrl(srcset);
+      const raw =
+        srcsetUrl ||
+        $img.attr('data-src') ||
+        $img.attr('data-original') ||
+        $img.attr('data-lazy') ||
+        $img.attr('src') ||
+        '';
+      const abs = raw ? stripUrlQueryHash(toAbsoluteUrl(raw, baseUrl)) : '';
+      if (abs) candidates.push(abs);
+    } catch (_) {}
+  };
+
+  // 1) inside the link
+  $el.find('img').each((_, img) => pushFromImg(img));
+
+  // 2) nearby container (a few ancestors)
+  let $p = $el;
+  for (let i = 0; i < 3; i++) {
+    $p = $p.parent();
+    if (!$p || !$p.length) break;
+    $p.find('img').slice(0, 4).each((_, img) => pushFromImg(img));
+  }
+
+  let best = { url: '', score: 0 };
+  for (const c of candidates) {
+    const sc = scoreThumbCandidate(c);
+    if (sc > best.score) best = { url: c, score: sc };
+  }
+  return best.url;
+}
+
 function extractIdFromFc2ContentUrl(u) {
   const s = String(u || '');
   const m = s.match(/\/content\/([^/?#]+)/);
@@ -161,6 +239,7 @@ async function fetchFromScrape(kind, { limit = 12, ttlMs = DEFAULT_TTL_MS, timeo
         id: extractIdFromFc2ContentUrl(abs) || abs,
         title: '',
         _titleScore: 0,
+        _thumbScore: 0,
         url: abs,
         thumbnailUrl: '',
         publishedAt: '',
@@ -178,10 +257,12 @@ async function fetchFromScrape(kind, { limit = 12, ttlMs = DEFAULT_TTL_MS, timeo
         existing._titleScore = candScore;
       }
 
-      const img = $(el).find('img').first();
-      const thumb = safeText(img.attr('data-src') || img.attr('data-original') || img.attr('src'));
-      const absThumb = thumb ? stripUrlQueryHash(toAbsoluteUrl(thumb, scrapeUrl)) : '';
-      if (absThumb && !existing.thumbnailUrl) existing.thumbnailUrl = absThumb;
+      const thumbUrl = findBestThumbnailUrl($, el, scrapeUrl);
+      const thumbScore = scoreThumbCandidate(thumbUrl);
+      if (thumbUrl && thumbScore > (existing._thumbScore || 0)) {
+        existing.thumbnailUrl = thumbUrl;
+        existing._thumbScore = thumbScore;
+      }
 
       byUrl.set(abs, existing);
     });
@@ -189,7 +270,7 @@ async function fetchFromScrape(kind, { limit = 12, ttlMs = DEFAULT_TTL_MS, timeo
     const items = Array.from(byUrl.values())
       .map((v) => {
         if (!v || typeof v !== 'object') return v;
-        const { _titleScore, ...rest } = v;
+        const { _titleScore, _thumbScore, ...rest } = v;
         return rest;
       })
       .filter((v) => v && v.title && v.url)

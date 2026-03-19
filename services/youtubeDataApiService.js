@@ -63,16 +63,32 @@ function mapFeedEntryToVideo(entry) {
     (Array.isArray(mediaThumb) && mediaThumb[0] && mediaThumb[0]['@_url']) ||
     '';
 
+  const derivedThumb = videoId ? `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : '';
+  const bestThumb = derivedThumb || safeText(thumbUrl);
+
   return {
     id: videoId,
     title,
     publishedAt,
     publishedAtJp: toJpDateString(publishedAt),
-    thumbnailUrl: safeText(thumbUrl),
+    thumbnailUrl: bestThumb,
     description: mediaDescription,
     shortDescription: mediaDescription.length > 140 ? mediaDescription.slice(0, 140) + '…' : mediaDescription,
     url: videoId ? `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}` : '',
   };
+}
+
+function pickBestApiThumbnail(thumbnails, videoId) {
+  const t = thumbnails || {};
+  const url =
+    (t.maxres && t.maxres.url) ||
+    (t.standard && t.standard.url) ||
+    (t.high && t.high.url) ||
+    (t.medium && t.medium.url) ||
+    (t.default && t.default.url) ||
+    '';
+  const derived = videoId ? `https://i.ytimg.com/vi/${encodeURIComponent(videoId)}/hqdefault.jpg` : '';
+  return safeText(url || derived);
 }
 
 async function fetchVideosFromFeed(feedUrl, { limit = 12, ttlMs = DEFAULT_TTL_MS, timeoutMs = 8000 } = {}) {
@@ -143,7 +159,7 @@ function mapSearchItemToVideo(item) {
   const publishedAt = normalizeSpaces(snippet && snippet.publishedAt);
   const description = normalizeSpaces(snippet && snippet.description);
   const thumbnails = (snippet && snippet.thumbnails) || {};
-  const thumb = (thumbnails.high && thumbnails.high.url) || (thumbnails.medium && thumbnails.medium.url) || (thumbnails.default && thumbnails.default.url) || '';
+  const thumb = pickBestApiThumbnail(thumbnails, videoId);
 
   return {
     id: videoId,
@@ -165,7 +181,7 @@ function mapPlaylistItemToVideo(item) {
   const publishedAt = normalizeSpaces(snippet && snippet.publishedAt);
   const description = normalizeSpaces(snippet && snippet.description);
   const thumbnails = (snippet && snippet.thumbnails) || {};
-  const thumb = (thumbnails.high && thumbnails.high.url) || (thumbnails.medium && thumbnails.medium.url) || (thumbnails.default && thumbnails.default.url) || '';
+  const thumb = pickBestApiThumbnail(thumbnails, videoId);
 
   return {
     id: videoId,
