@@ -196,13 +196,26 @@ function mapPlaylistItemToVideo(item) {
 }
 
 function assertApiKey() {
-  const key = process.env.YOUTUBE_API_KEY;
-  if (!key) {
+  const raw = process.env.YOUTUBE_API_KEY;
+  const key = typeof raw === 'string' ? raw.trim() : raw;
+  const cleaned =
+    typeof key === 'string' && ((key.startsWith('"') && key.endsWith('"')) || (key.startsWith("'") && key.endsWith("'")))
+      ? key.slice(1, -1).trim()
+      : key;
+  if (!cleaned) {
     const err = new Error('Missing env YOUTUBE_API_KEY');
     err.code = 'YOUTUBE_API_KEY_MISSING';
     throw err;
   }
-  return key;
+  return cleaned;
+}
+
+async function safeFetchVideosFromFeed(feedUrl, { limit } = {}) {
+  try {
+    return await fetchVideosFromFeed(feedUrl, { limit });
+  } catch (_) {
+    return [];
+  }
 }
 
 function extractYoutubeApiErrorDetails(error) {
@@ -286,7 +299,7 @@ async function fetchLatestVideosByChannel(channelId, { limit = 12, ttlMs = DEFAU
     if (cached) return cached;
 
     if (Date.now() < quotaExceededUntilTs) {
-      const feedVideos = await fetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
+      const feedVideos = await safeFetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
       return feedVideos;
     }
 
@@ -294,7 +307,7 @@ async function fetchLatestVideosByChannel(channelId, { limit = 12, ttlMs = DEFAU
       // search.list はクォータ消費が大きいので uploads プレイリスト経由で取得する
       const uploadsPlaylistId = await fetchUploadsPlaylistIdByChannel(channelId);
       if (!uploadsPlaylistId) {
-        return await fetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
+        return await safeFetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
       }
 
       const data = await youtubeGet('playlistItems', {
@@ -310,12 +323,12 @@ async function fetchLatestVideosByChannel(channelId, { limit = 12, ttlMs = DEFAU
     } catch (e) {
       if (isQuotaExceededError(e)) {
         quotaExceededUntilTs = Date.now() + QUOTA_COOLDOWN_MS;
-        return await fetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
+        return await safeFetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
       }
       if (e && e.code === 'YOUTUBE_API_KEY_MISSING') {
-        return await fetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
+        return await safeFetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
       }
-      throw e;
+      return await safeFetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
     }
   });
 }
@@ -330,7 +343,7 @@ async function fetchPopularVideosByChannel(channelId, { limit = 12, ttlMs = DEFA
 
     if (Date.now() < quotaExceededUntilTs) {
       // RSSでは人気順を取得できないため、最新動画を代用
-      return await fetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
+      return await safeFetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
     }
 
     try {
@@ -338,7 +351,7 @@ async function fetchPopularVideosByChannel(channelId, { limit = 12, ttlMs = DEFA
       // uploads プレイリストから多めに取得し、ルート側で重複除外しておすすめとして使う。
       const uploadsPlaylistId = await fetchUploadsPlaylistIdByChannel(channelId);
       if (!uploadsPlaylistId) {
-        const feedVideos = await fetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
+        const feedVideos = await safeFetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
         setCache(cacheKey, feedVideos);
         return feedVideos;
       }
@@ -356,12 +369,12 @@ async function fetchPopularVideosByChannel(channelId, { limit = 12, ttlMs = DEFA
     } catch (e) {
       if (isQuotaExceededError(e)) {
         quotaExceededUntilTs = Date.now() + QUOTA_COOLDOWN_MS;
-        return await fetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
+        return await safeFetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
       }
       if (e && e.code === 'YOUTUBE_API_KEY_MISSING') {
-        return await fetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
+        return await safeFetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
       }
-      throw e;
+      return await safeFetchVideosFromFeed(feedUrlForChannel(channelId), { limit });
     }
   });
 }
@@ -375,7 +388,7 @@ async function fetchVideosByPlaylist(playlistId, { limit = 12, ttlMs = DEFAULT_T
     if (cached) return cached;
 
     if (Date.now() < quotaExceededUntilTs) {
-      return await fetchVideosFromFeed(feedUrlForPlaylist(playlistId), { limit });
+      return await safeFetchVideosFromFeed(feedUrlForPlaylist(playlistId), { limit });
     }
 
     try {
@@ -392,12 +405,12 @@ async function fetchVideosByPlaylist(playlistId, { limit = 12, ttlMs = DEFAULT_T
     } catch (e) {
       if (isQuotaExceededError(e)) {
         quotaExceededUntilTs = Date.now() + QUOTA_COOLDOWN_MS;
-        return await fetchVideosFromFeed(feedUrlForPlaylist(playlistId), { limit });
+        return await safeFetchVideosFromFeed(feedUrlForPlaylist(playlistId), { limit });
       }
       if (e && e.code === 'YOUTUBE_API_KEY_MISSING') {
-        return await fetchVideosFromFeed(feedUrlForPlaylist(playlistId), { limit });
+        return await safeFetchVideosFromFeed(feedUrlForPlaylist(playlistId), { limit });
       }
-      throw e;
+      return await safeFetchVideosFromFeed(feedUrlForPlaylist(playlistId), { limit });
     }
   });
 }

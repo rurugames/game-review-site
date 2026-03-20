@@ -5,6 +5,15 @@ const youtubeApi = require('../services/youtubeDataApiService');
 const fc2Api = require('../services/fc2VideoApiService');
 const { requireAdultConfirmed } = require('../middleware/adultGate');
 
+function cleanEnvValue(v) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  if ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'"))) {
+    return s.slice(1, -1).trim();
+  }
+  return s;
+}
+
 let Fc2VideoCache = null;
 try {
   // Optional: Mongo cache (if model exists / DB is connected)
@@ -108,8 +117,8 @@ function maybeStartFc2BackgroundRefresh() {
 }
 
 router.get('/', async (req, res) => {
-  const youtubeChannelId = process.env.YOUTUBE_CHANNEL_ID || '';
-  const youtubeRecommendedPlaylistId = process.env.YOUTUBE_RECOMMENDED_PLAYLIST_ID || '';
+  const youtubeChannelId = cleanEnvValue(process.env.YOUTUBE_CHANNEL_ID);
+  const youtubeRecommendedPlaylistId = cleanEnvValue(process.env.YOUTUBE_RECOMMENDED_PLAYLIST_ID);
 
   let latestVideos = [];
   let recommendedVideos = [];
