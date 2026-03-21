@@ -38,7 +38,18 @@ function isAllowedDestination(u) {
     const url = new URL(u);
     if (url.protocol !== 'https:' && url.protocol !== 'http:') return false;
     const host = String(url.hostname || '').toLowerCase();
-    const allowed = new Set(['video.fc2.com', 'adult.contents.fc2.com', 'contents.fc2.com']);
+    const allowed = new Set([
+      // FC2
+      'video.fc2.com',
+      'adult.contents.fc2.com',
+      'contents.fc2.com',
+      // FANZA / DMM (common affiliate + destination hosts)
+      'www.dmm.co.jp',
+      'r18.dmm.co.jp',
+      'al.dmm.co.jp',
+      'fanza.co.jp',
+      'www.fanza.co.jp',
+    ]);
     if (!allowed.has(host)) return false;
     // Default: allow only FC2 video content pages
     if (host === 'video.fc2.com') {

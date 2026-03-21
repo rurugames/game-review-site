@@ -194,6 +194,18 @@ app.use(async (req, res, next) => {
     res.locals.displayName = getAdminDisplayNameByEmail(req.user.email) || req.user.displayName;
   }
 
+  // Adult gate state (used for ads / adult-only blocks)
+  try {
+    res.locals.isAdultConfirmed = !!(req.session && req.session.adultConfirmed);
+  } catch (_) {
+    res.locals.isAdultConfirmed = false;
+  }
+
+  // Affiliate banner config (optional)
+  res.locals.fanzaBannerUrl = String(process.env.FANZA_BANNER_URL || '').trim();
+  res.locals.fanzaBannerImgUrl = String(process.env.FANZA_BANNER_IMG_URL || '').trim();
+  res.locals.fanzaBannerAlt = String(process.env.FANZA_BANNER_ALT || 'FANZA').trim();
+
   // 未読返信通知（自分のコメントに付いた返信）
   res.locals.notificationCount = 0;
   if (req.user) {
