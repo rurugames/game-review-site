@@ -2,20 +2,6 @@ const express = require('express');
 const router = express.Router();
 const GalleryImage = require('../models/GalleryImage');
 
-// デバッグ: DB接続先とドキュメント数を返す（確認後に削除）
-router.get('/debug-count', async (req, res) => {
-  try {
-    const mongoose = require('mongoose');
-    const db = mongoose.connection.db;
-    const dbName = db ? db.databaseName : 'unknown';
-    const total = await GalleryImage.countDocuments();
-    const published = await GalleryImage.countDocuments({ status: 'published' });
-    res.json({ dbName, total, published });
-  } catch (e) {
-    res.status(500).json({ error: String(e.message) });
-  }
-});
-
 // ギャラリートップページ取得
 router.get('/', async (req, res) => {
   try {
