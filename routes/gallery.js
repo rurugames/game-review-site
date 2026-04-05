@@ -314,6 +314,10 @@ router.get('/:id', async (req, res) => {
       ? image.likes.some(uid => String(uid) === String(req.user._id))
       : false;
 
+    const bookmarked = req.user
+      ? (image.bookmarks && image.bookmarks.some(uid => String(uid) === String(req.user._id)))
+      : false;
+
     const randomVideo = await fetchOneRandomVideo();
 
     res.render('gallery-detail', {
@@ -321,6 +325,7 @@ router.get('/:id', async (req, res) => {
       image,
       comments,
       liked,
+      bookmarked,
       queryError: req.query.error === '1',
       randomVideo,
       user: req.user
@@ -351,6 +356,30 @@ router.post('/:id/like', ensureAuth, async (req, res) => {
   } catch (err) {
     console.error('Like Error:', err);
     res.status(500).json({ error: 'いいねの処理に失敗しました' });
+  }
+});
+
+// ブックマークトグル（ログイン必須、JSON API）
+router.post('/:id/bookmark', ensureAuth, async (req, res) => {
+  try {
+    const image = await GalleryImage.findById(req.params.id);
+    if (!image) return res.status(404).json({ error: '画像が見つかりません' });
+
+    const userId = req.user._id;
+    if (!image.bookmarks) image.bookmarks = [];
+    const alreadyBookmarked = image.bookmarks.some(uid => String(uid) === String(userId));
+
+    if (alreadyBookmarked) {
+      image.bookmarks = image.bookmarks.filter(uid => String(uid) !== String(userId));
+    } else {
+      image.bookmarks.push(userId);
+    }
+    await image.save();
+
+    res.json({ bookmarked: !alreadyBookmarked, bookmarkCount: image.bookmarks.length });
+  } catch (err) {
+    console.error('Bookmark Error:', err);
+    res.status(500).json({ error: 'ブックマークの処理に失敗しました' });
   }
 });
 

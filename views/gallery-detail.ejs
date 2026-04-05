@@ -68,23 +68,36 @@
     border-radius: 8px;
     border: 1px solid #eee;
   }
-  .btn-like {
+  .btn-like,
+  .btn-bookmark {
     display: inline-flex;
     align-items: center;
     gap: 6px;
     padding: 10px 22px;
-    border: 2px solid #e05c8a;
+    border: 2px solid;
     border-radius: 24px;
     background: white;
-    color: #e05c8a;
     font-size: 16px;
     font-weight: bold;
     cursor: pointer;
     transition: background 0.2s, color 0.2s;
   }
+  .btn-like {
+    border-color: #e05c8a;
+    color: #e05c8a;
+  }
   .btn-like:hover,
   .btn-like.liked {
     background: #e05c8a;
+    color: white;
+  }
+  .btn-bookmark {
+    border-color: #3b82f6;
+    color: #3b82f6;
+  }
+  .btn-bookmark:hover,
+  .btn-bookmark.bookmarked {
+    background: #3b82f6;
     color: white;
   }
   .like-count {
@@ -343,22 +356,39 @@
   </div>
 
   <!-- いいねボタン -->
-  <div class="gd-like-section">
-    <% if (user) { %>
-      <button
-        class="btn-like <%= liked ? 'liked' : '' %>"
-        id="like-btn"
-        data-image-id="<%= image._id %>"
-      >
-        ♥ <span id="like-label"><%= liked ? 'いいね済み' : 'いいね' %></span>
-      </button>
-      <span class="like-count" id="like-count"><%= image.likes ? image.likes.length : 0 %></span>
-      <span style="color:#aaa;font-size:13px;">いいね</span>
-    <% } else { %>
-      <span class="btn-like" style="cursor:default;opacity:0.6;">♥ いいね</span>
-      <span class="like-count"><%= image.likes ? image.likes.length : 0 %></span>
-      <span class="like-hint">（<a href="/auth/google" style="color:#e05c8a;">ログイン</a>するといいねできます）</span>
-    <% } %>
+  <div class="gd-like-section" style="display:flex; gap: 20px;">
+    <div>
+      <% if (user) { %>
+        <button
+          class="btn-like <%= liked ? 'liked' : '' %>"
+          id="like-btn"
+          data-image-id="<%= image._id %>"
+        >
+          ♥ <span id="like-label"><%= liked ? 'いいね済み' : 'いいね' %></span>
+        </button>
+        <span class="like-count" id="like-count"><%= image.likes ? image.likes.length : 0 %></span>
+        <span style="color:#aaa;font-size:13px;">いいね</span>
+      <% } else { %>
+        <span class="btn-like" style="cursor:default;opacity:0.6;">♥ いいね</span>
+        <span class="like-count"><%= image.likes ? image.likes.length : 0 %></span>
+        <span class="like-hint">（<a href="/auth/google" style="color:#e05c8a;">ログイン</a>するといいね等できます）</span>
+      <% } %>
+    </div>
+    
+    <!-- ブックマークボタン -->
+    <div>
+      <% if (user) { %>
+        <button
+          class="btn-bookmark <%= bookmarked ? 'bookmarked' : '' %>"
+          id="bookmark-btn"
+          data-image-id="<%= image._id %>"
+        >
+          🔖 <span id="bookmark-label"><%= bookmarked ? 'ブックマーク中' : 'ブックマーク' %></span>
+        </button>
+      <% } else { %>
+        <span class="btn-bookmark" style="cursor:default;opacity:0.6;">🔖 ブックマーク</span>
+      <% } %>
+    </div>
   </div>
 
   <!-- コメントセクション -->
@@ -455,6 +485,26 @@ if (likeBtn) {
       document.getElementById('like-count').textContent = data.likeCount;
       document.getElementById('like-label').textContent = data.liked ? 'いいね済み' : 'いいね';
       likeBtn.classList.toggle('liked', data.liked);
+    } catch (e) {
+      console.error(e);
+    }
+  });
+}
+
+// ブックマークボタン（Ajax）
+const bookmarkBtn = document.getElementById('bookmark-btn');
+if (bookmarkBtn) {
+  bookmarkBtn.addEventListener('click', async () => {
+    const imageId = bookmarkBtn.dataset.imageId;
+    try {
+      const res = await fetch(`/gallery/${imageId}/bookmark`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (res.status === 401) {
+        alert('ブックマークにはログインが必要です');
+        return;
+      }
+      const data = await res.json();
+      document.getElementById('bookmark-label').textContent = data.bookmarked ? 'ブックマーク中' : 'ブックマーク';
+      bookmarkBtn.classList.toggle('bookmarked', data.bookmarked);
     } catch (e) {
       console.error(e);
     }

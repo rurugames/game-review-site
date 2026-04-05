@@ -42,11 +42,19 @@ const galleryImageSchema = new mongoose.Schema({
   likes: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  }],
+  bookmarks: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   }]
 });
 
 galleryImageSchema.virtual('likeCount').get(function () {
   return this.likes ? this.likes.length : 0;
+});
+
+galleryImageSchema.virtual('bookmarkCount').get(function () {
+  return this.bookmarks ? this.bookmarks.length : 0;
 });
 
 module.exports = mongoose.model('GalleryImage', galleryImageSchema);

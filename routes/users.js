@@ -5,6 +5,7 @@ const router = express.Router();
 const Comment = require('../models/Comment');
 const User = require('../models/User');
 const Review = require('../models/Review');
+const GalleryImage = require('../models/GalleryImage');
 const { ensureAuth } = require('../middleware/auth');
 const { isAdminEmail } = require('../lib/admin');
 
@@ -84,6 +85,11 @@ router.get('/:id', ensureAuth, async (req, res) => {
       .populate('article', 'title gameTitle genre imageUrl affiliateLink')
       .lean();
 
+    // 自分のブックマーク画像一覧
+    const bookmarkedImages = await GalleryImage.find({ bookmarks: uid })
+      .sort({ createdAt: -1 })
+      .lean();
+
     // 既読化: 自分のページ閲覧時のみ、未読返信を既読化（表示は「既読化前」の状態で出す）
     if (String(req.user.id) === String(userId) && parentIds.length) {
       setImmediate(async () => {
@@ -102,6 +108,7 @@ router.get('/:id', ensureAuth, async (req, res) => {
       commentThreads,
       unreadRepliesCount,
       myReviews,
+      bookmarkedImages,
     });
   } catch (err) {
     console.error(err);
