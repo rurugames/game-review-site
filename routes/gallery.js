@@ -190,10 +190,13 @@ router.get('/', async (req, res) => {
       { $sort: { _id: 1 } }
     ]);
 
+    const randomVideo = await fetchOneRandomVideo();
+
     res.render('gallery', {
       title: 'ギャラリー',
       folders,
-      user: req.user
+      user: req.user,
+      randomVideo
     });
   } catch (err) {
     console.error('Gallery Folder List Error:', err);
@@ -230,6 +233,8 @@ router.get('/series/:folder', async (req, res) => {
       });
     }
 
+    const randomVideo = await fetchOneRandomVideo();
+
     res.render('gallery-series', {
       title: folder + ' - ギャラリー',
       folder,
@@ -237,7 +242,8 @@ router.get('/series/:folder', async (req, res) => {
       likedSet,
       currentPage: page,
       totalPages,
-      user: req.user
+      user: req.user,
+      randomVideo
     });
   } catch (err) {
     console.error('Gallery Series Error:', err);

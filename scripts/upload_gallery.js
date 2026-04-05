@@ -131,7 +131,7 @@ const processUploads = async () => {
 
     // 採番カウンタ
     const counters = await initCounters(GalleryImage);
-    console.log(`カウンタ初期値: アニメ=${counters.anime}, ゲーム=${counters.game}`);
+    console.log(`[Init] DBから各フォルダの採番カウンタを初期化しました`);
 
     let added = 0, skipped = 0, errors = 0;
 
@@ -156,22 +156,19 @@ const processUploads = async () => {
         const publicUrl = `${PUBLIC_BASE}/${r2Key}`;
         console.log(`  R2アップロード完了: ${publicUrl}`);
 
-        // メタデータ: Copilotエージェント → OpenAI Vision → フォルダ名フォールバック
         let title, tags;
         const metaKey = agentAnalysis[r2Key] ? r2Key : (agentAnalysis[fileName] ? fileName : null);
         if (metaKey) {
-          ({ title, tags } = buildMeta(agentAnalysis[metaKey], counters));
-          if (folderName && !tags.includes(folderName)) tags = [folderName, ...tags];
+          const analysis = agentAnalysis[metaKey];
+          ({ title, tags } = buildMeta(analysis, counters, folderName));
           console.log(`  [Meta] title="${title}" tags=${JSON.stringify(tags)}`);
         } else if (hasAI) {
           const analysis = await analyzeImage(fileBuffer, contentType);
-          console.log(`  [AI] type=${analysis.type}, char=${analysis.characterName}, series=${analysis.seriesName}`);
-          ({ title, tags } = buildMeta(analysis, counters));
-          if (folderName && !tags.includes(folderName)) tags = [folderName, ...tags];
+          console.log(`  [AI] type=${analysis.type}`);
+          ({ title, tags } = buildMeta(analysis, counters, folderName));
           await sleep(500);
         } else {
-          title = folderName || `アニメ${++counters.anime}`;
-          tags = folderName ? [folderName] : ['アニメ'];
+          ({ title, tags } = buildMeta({ type: 'normal' }, counters, folderName));
         }
 
         // DB 登録
@@ -180,8 +177,9 @@ const processUploads = async () => {
         added++;
 
         // ローカルファイル削除
-        fs.unlinkSync(localPath);
-        console.log(`  ローカルファイル削除完了`);
+        // ローカルファイルは削除せずに残す
+        // fs.unlinkSync(localPath);
+        // console.log(`  ローカルファイル削除完了`);
 
       } catch (err) {
         console.error(`  [Error] ${err.message}`);
@@ -189,22 +187,10 @@ const processUploads = async () => {
       }
     }
 
-    // 空になったサブフォルダを削除
-    const entries = fs.readdirSync(UPLOADS_DIR, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const subDir = path.join(UPLOADS_DIR, entry.name);
-        if (fs.readdirSync(subDir).length === 0) {
-          fs.rmdirSync(subDir);
-          console.log(`\n[Clean] 空フォルダ削除: ${entry.name}`);
-        }
-      }
-    }
-
     // .metadata.json を削除
     if (fs.existsSync(METADATA_FILE)) {
       fs.unlinkSync(METADATA_FILE);
-      console.log('[Clean] .metadata.json を削除しました');
+      console.log('\n[Clean] .metadata.json を削除しました');
     }
 
     console.log(`\n完了 — 追加: ${added} 件 / スキップ（既登録）: ${skipped} 件 / エラー: ${errors} 件`);

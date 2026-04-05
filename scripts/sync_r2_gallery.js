@@ -109,7 +109,7 @@ async function run() {
   }
 
   const counters = await initCounters(GalleryImage);
-  console.log(`カウンタ初期値: アニメ=${counters.anime}, ゲーム=${counters.game}`);
+  console.log(`[Init] DBから各フォルダの採番カウンタを初期化しました`);
 
   let added = 0;
   let skipped = 0;
@@ -124,11 +124,8 @@ async function run() {
 
     if (agentAnalysis[key]) {
       // Copilotエージェントの解析結果を使用
-      ({ title, tags } = buildMeta(agentAnalysis[key], counters));
-      // フォルダ名（シリーズ名）を必ずタグの先頭に追加
-      if (folderName && !tags.includes(folderName)) {
-        tags = [folderName, ...tags];
-      }
+      const a = agentAnalysis[key];
+      ({ title, tags } = buildMeta(a, counters, folderName));
       console.log(`  [Meta] ${key}: title="${title}" tags=${JSON.stringify(tags)}`);
     } else if (hasAI) {
       try {
@@ -136,21 +133,15 @@ async function run() {
         const imageBuffer = await downloadFromR2(bucket, key);
         const mimeType = mimeFromExt(ext);
         const analysis = await analyzeImage(imageBuffer, mimeType);
-        console.log(`  [AI] ${key}: type=${analysis.type}, char=${analysis.characterName}, series=${analysis.seriesName}`);
-        ({ title, tags } = buildMeta(analysis, counters));
-        if (folderName && !tags.includes(folderName)) {
-          tags = [folderName, ...tags];
-        }
+        console.log(`  [AI] ${key}: type=${analysis.type}`);
+        ({ title, tags } = buildMeta(analysis, counters, folderName));
         await sleep(500);
       } catch (err) {
         console.warn(`  [AI] ${key} 解析失敗、フォールバック: ${err.message}`);
-        title = folderName || `アニメ${++counters.anime}`;
-        tags = folderName ? [folderName] : ['アニメ'];
+        ({ title, tags } = buildMeta({ type: 'normal' }, counters, folderName));
       }
     } else {
-      // フォルダ名をタイトルに使用（フォルダがない場合は連番）
-      title = folderName || `アニメ${++counters.anime}`;
-      tags = folderName ? [folderName] : ['アニメ'];
+      ({ title, tags } = buildMeta({ type: 'normal' }, counters, folderName));
     }
 
     try {

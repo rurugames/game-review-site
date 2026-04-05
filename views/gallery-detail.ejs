@@ -293,7 +293,11 @@
 
 <div class="gd-container">
   <div class="gd-back">
-    <a href="/gallery">← ギャラリー一覧に戻る</a>
+    <a href="/gallery">← ギャラリートップに戻る</a>
+    <% if (image.tags && image.tags.length > 0) { %>
+      <span style="margin: 0 10px; color: #ccc;">|</span>
+      <a href="/gallery/series/<%= encodeURIComponent(image.tags[0]) %>">← <%= image.tags[0] %> の画像一覧に戻る</a>
+    <% } %>
   </div>
 
   <!-- おすすめ動画（上部） -->

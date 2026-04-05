@@ -117,6 +117,61 @@
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     }
   }
+
+  /* おすすめ動画ウィジェット */
+  .rec-video-widget {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: #1a1a2e;
+    border-radius: 10px;
+    padding: 14px;
+    margin: 40px auto 20px;
+    max-width: 800px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.2s;
+  }
+  .rec-video-widget:hover { background: #22223b; }
+  .rec-video-thumb {
+    width: 140px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .rec-video-thumb img {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+    aspect-ratio: 16/9;
+  }
+  .rec-video-body { flex: 1; min-width: 0; }
+  .rec-video-label {
+    font-size: 11px;
+    color: #ff4e6a;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  .rec-video-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .rec-video-date {
+    font-size: 11px;
+    color: #999;
+    margin-top: 6px;
+  }
+  @media (max-width: 480px) {
+    .rec-video-thumb { width: 100px; }
+  }
 </style>
 
 <div class="gs-container">
@@ -171,5 +226,23 @@
         <a href="?page=<%= currentPage + 1 %>">次のページ</a>
       <% } %>
     </div>
+  <% } %>
+
+  <!-- おすすめ動画（下部） -->
+  <% if (typeof randomVideo !== 'undefined' && randomVideo) { %>
+    <a href="<%= randomVideo.url %>" target="_blank" rel="noopener" class="rec-video-widget" style="color: inherit;">
+      <div class="rec-video-thumb">
+        <% if (randomVideo.thumbnailUrl) { %>
+          <img src="<%= randomVideo.thumbnailUrl %>" alt="<%= randomVideo.title %>" loading="lazy">
+        <% } else { %>
+          <img src="/images/siteicon.png" alt="thumb" loading="lazy">
+        <% } %>
+      </div>
+      <div class="rec-video-body">
+        <div class="rec-video-label">▶ おすすめ動画</div>
+        <div class="rec-video-title"><%= randomVideo.title %></div>
+        <div class="rec-video-date"><%= randomVideo.publishedAtJp || '' %></div>
+      </div>
+    </a>
   <% } %>
 </div>
