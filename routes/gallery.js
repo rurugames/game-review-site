@@ -190,11 +190,18 @@ router.get('/', async (req, res) => {
       { $sort: { _id: 1 } }
     ]);
 
+    // 最新画像5件の取得
+    const latestImages = await GalleryImage.find({ status: 'published' })
+      .sort({ uploadDate: -1 })
+      .limit(5)
+      .lean();
+
     const randomVideo = await fetchOneRandomVideo();
 
     res.render('gallery', {
       title: 'ギャラリー',
       folders,
+      latestImages,
       user: req.user,
       randomVideo
     });

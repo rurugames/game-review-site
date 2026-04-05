@@ -48,6 +48,8 @@
   }
   .series-info {
     padding: 12px 14px;
+    background: #fff;
+    color: #222;
   }
   .series-name {
     font-size: 15px;
@@ -124,12 +126,92 @@
   @media (max-width: 480px) {
     .rec-video-thumb { width: 100px; }
   }
+
+  /* 最新画像ウィジェット */
+  .latest-images-section {
+    margin-bottom: 40px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid #eee;
+  }
+  .latest-images-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 20px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .latest-images-grid {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+    scrollbar-width: thin;
+  }
+  .latest-images-grid::-webkit-scrollbar {
+    height: 8px;
+  }
+  .latest-images-grid::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+  }
+  .latest-image-card {
+    flex: 0 0 180px;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    text-decoration: none;
+    transition: transform 0.2s;
+  }
+  .latest-image-card:hover {
+    transform: translateY(-3px);
+  }
+  .latest-image-img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    display: block;
+  }
+  .latest-image-info {
+    padding: 10px;
+    background: #fff;
+    font-size: 13px;
+    color: #555;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 </style>
 
 <div class="gallery-container">
   <div class="gallery-header">
     <h1>ギャラリー</h1>
     <p>アニメ・ゲームキャラクターイラスト</p>
+  </div>
+
+  <!-- 最新画像セクション -->
+  <% if (typeof latestImages !== 'undefined' && latestImages && latestImages.length > 0) { %>
+    <div class="latest-images-section">
+      <div class="latest-images-title">
+        <span style="color: #ff4e6a;">✨</span> 最新の追加画像
+      </div>
+      <div class="latest-images-grid">
+        <% latestImages.forEach(function(img) { %>
+          <a href="/gallery/<%= img._id %>" class="latest-image-card">
+            <img src="<%= img.r2Url %>" alt="<%= img.title || '画像' %>" class="latest-image-img" loading="lazy">
+            <div class="latest-image-info" title="<%= img.title || '名称未設定' %>">
+              <%= img.title || '名称未設定' %>
+            </div>
+          </a>
+        <% }); %>
+      </div>
+    </div>
+  <% } %>
+
+  <div class="latest-images-title" style="margin-bottom: 20px; margin-top: 20px;">
+    <span style="color: #ff4e6a;">📁</span> タイトル別
   </div>
 
   <div class="series-grid">
