@@ -34,7 +34,15 @@ const galleryImageSchema = new mongoose.Schema({
   uploadDate: {
     type: Date,
     default: Date.now
-  }
+  },
+  likes: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
+});
+
+galleryImageSchema.virtual('likeCount').get(function () {
+  return this.likes ? this.likes.length : 0;
 });
 
 module.exports = mongoose.model('GalleryImage', galleryImageSchema);

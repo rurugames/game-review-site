@@ -63,6 +63,21 @@
     margin-right: 4px;
     margin-bottom: 4px;
   }
+  .gallery-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: #888;
+    padding: 0 10px 10px;
+  }
+  .like-count-badge {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #e05c8a;
+    font-weight: bold;
+  }
   .pagination {
     margin-top: 30px;
     display: flex;
@@ -100,8 +115,7 @@
     <% if (images && images.length > 0) { %>
       <% images.forEach(function(img) { %>
         <div class="gallery-item">
-          <!-- TODO: 必要であれば詳細ページへのリンクにする -->
-          <a href="<%= img.r2Url %>" target="_blank" class="gallery-image-wrapper">
+          <a href="/gallery/<%= img._id %>" class="gallery-image-wrapper">
             <img src="<%= img.r2Url %>" alt="<%= img.title %>" class="gallery-image" loading="lazy">
           </a>
           <div class="gallery-info">
@@ -113,6 +127,11 @@
                 <% }); %>
               </div>
             <% } %>
+          </div>
+          <div class="gallery-footer">
+            <span class="like-count-badge">
+              ♥ <%= img.likes ? img.likes.length : 0 %>
+            </span>
           </div>
         </div>
       <% }); %>

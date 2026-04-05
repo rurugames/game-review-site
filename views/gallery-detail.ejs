@@ -1,0 +1,374 @@
+<style>
+  .gd-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .gd-back {
+    margin-bottom: 16px;
+    font-size: 13px;
+  }
+  .gd-back a {
+    color: #666;
+    text-decoration: none;
+  }
+  .gd-back a:hover { text-decoration: underline; }
+
+  /* 画像 */
+  .gd-image-wrap {
+    text-align: center;
+    margin-bottom: 20px;
+    background: #111;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .gd-image-wrap img {
+    max-width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+  }
+
+  /* タイトル・メタ */
+  .gd-meta {
+    margin-bottom: 16px;
+  }
+  .gd-title {
+    font-size: 22px;
+    font-weight: bold;
+    margin: 0 0 8px 0;
+    color: #222;
+  }
+  .gd-tags {
+    font-size: 13px;
+    color: #777;
+    margin-bottom: 8px;
+  }
+  .gd-tag {
+    display: inline-block;
+    background: #f0f0f0;
+    border-radius: 4px;
+    padding: 2px 8px;
+    margin-right: 6px;
+    margin-bottom: 4px;
+  }
+  .gd-desc {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.6;
+  }
+
+  /* いいねボタン */
+  .gd-like-section {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin: 20px 0;
+    padding: 16px;
+    background: #fafafa;
+    border-radius: 8px;
+    border: 1px solid #eee;
+  }
+  .btn-like {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 22px;
+    border: 2px solid #e05c8a;
+    border-radius: 24px;
+    background: white;
+    color: #e05c8a;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .btn-like:hover,
+  .btn-like.liked {
+    background: #e05c8a;
+    color: white;
+  }
+  .like-count {
+    font-size: 18px;
+    font-weight: bold;
+    color: #e05c8a;
+  }
+  .like-hint {
+    font-size: 12px;
+    color: #aaa;
+  }
+
+  /* コメントセクション */
+  .gd-comments {
+    margin-top: 30px;
+  }
+  .gd-comments h2 {
+    font-size: 18px;
+    margin-bottom: 16px;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 8px;
+    color: #333;
+  }
+  .comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .comment-item {
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    background: #fafafa;
+    border-radius: 8px;
+    border: 1px solid #eee;
+  }
+  .comment-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+  .comment-avatar-placeholder {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #ddd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #888;
+    flex-shrink: 0;
+  }
+  .comment-body {
+    flex: 1;
+    min-width: 0;
+  }
+  .comment-author {
+    font-size: 13px;
+    font-weight: bold;
+    color: #444;
+    margin-bottom: 4px;
+  }
+  .comment-text {
+    font-size: 14px;
+    color: #333;
+    line-height: 1.6;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+  .comment-date {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 4px;
+  }
+  .comment-delete-form {
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .btn-del-comment {
+    background: none;
+    border: none;
+    color: #ccc;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 4px;
+  }
+  .btn-del-comment:hover { color: #e05c8a; }
+
+  /* コメント投稿フォーム */
+  .comment-form-wrap {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .comment-form-wrap textarea {
+    width: 100%;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 14px;
+    resize: vertical;
+    min-height: 80px;
+    font-family: inherit;
+  }
+  .comment-form-wrap textarea:focus {
+    outline: none;
+    border-color: #e05c8a;
+  }
+  .comment-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .btn-post-comment {
+    padding: 8px 20px;
+    background: #e05c8a;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .btn-post-comment:hover { background: #c94878; }
+  .comment-char-count {
+    font-size: 12px;
+    color: #aaa;
+    margin-top: 4px;
+    text-align: right;
+  }
+  .login-prompt {
+    text-align: center;
+    padding: 20px;
+    background: #fafafa;
+    border-radius: 8px;
+    border: 1px solid #eee;
+    color: #666;
+    font-size: 14px;
+  }
+  .login-prompt a {
+    color: #e05c8a;
+    font-weight: bold;
+  }
+</style>
+
+<div class="gd-container">
+  <div class="gd-back">
+    <a href="/gallery">← ギャラリー一覧に戻る</a>
+  </div>
+
+  <!-- 画像表示 -->
+  <div class="gd-image-wrap">
+    <img src="<%= image.r2Url %>" alt="<%= image.title %>">
+  </div>
+
+  <!-- タイトル・説明 -->
+  <div class="gd-meta">
+    <h1 class="gd-title"><%= image.title %></h1>
+    <% if (image.tags && image.tags.length > 0) { %>
+      <div class="gd-tags">
+        <% image.tags.forEach(function(tag) { %>
+          <span class="gd-tag">#<%= tag %></span>
+        <% }); %>
+      </div>
+    <% } %>
+    <% if (image.description) { %>
+      <p class="gd-desc"><%= image.description %></p>
+    <% } %>
+  </div>
+
+  <!-- いいねボタン -->
+  <div class="gd-like-section">
+    <% if (user) { %>
+      <button
+        class="btn-like <%= liked ? 'liked' : '' %>"
+        id="like-btn"
+        data-image-id="<%= image._id %>"
+      >
+        ♥ <span id="like-label"><%= liked ? 'いいね済み' : 'いいね' %></span>
+      </button>
+      <span class="like-count" id="like-count"><%= image.likes ? image.likes.length : 0 %></span>
+      <span style="color:#aaa;font-size:13px;">いいね</span>
+    <% } else { %>
+      <span class="btn-like" style="cursor:default;opacity:0.6;">♥ いいね</span>
+      <span class="like-count"><%= image.likes ? image.likes.length : 0 %></span>
+      <span class="like-hint">（<a href="/auth/google" style="color:#e05c8a;">ログイン</a>するといいねできます）</span>
+    <% } %>
+  </div>
+
+  <!-- コメントセクション -->
+  <div class="gd-comments" id="comments">
+    <h2>コメント（<%= comments.length %>件）</h2>
+
+    <% if (typeof queryError !== 'undefined' && queryError) { %>
+      <p style="color:#e05c8a;font-size:13px;margin-bottom:12px;">コメントの投稿に失敗しました（500文字以内で入力してください）。</p>
+    <% } %>
+
+    <div class="comment-list">
+      <% if (comments.length === 0) { %>
+        <p style="color:#aaa;text-align:center;padding:20px;">まだコメントはありません。最初のコメントを投稿してみましょう！</p>
+      <% } else { %>
+        <% comments.forEach(function(c) { %>
+          <div class="comment-item">
+            <% if (c.author && c.author.profilePhoto) { %>
+              <img src="<%= c.author.profilePhoto %>" alt="" class="comment-avatar">
+            <% } else { %>
+              <div class="comment-avatar-placeholder">👤</div>
+            <% } %>
+            <div class="comment-body">
+              <div class="comment-author"><%= c.author ? c.author.displayName : '不明なユーザー' %></div>
+              <div class="comment-text"><%= c.content %></div>
+              <div class="comment-date"><%= c.createdAt.toLocaleString('ja-JP') %></div>
+            </div>
+            <% if (user && c.author && String(c.author._id) === String(user._id)) { %>
+              <form class="comment-delete-form" method="POST" action="/gallery/comment/<%= c._id %>/delete"
+                onsubmit="return confirm('このコメントを削除しますか？')">
+                <button type="submit" class="btn-del-comment" title="削除">🗑</button>
+              </form>
+            <% } %>
+          </div>
+        <% }); %>
+      <% } %>
+    </div>
+
+    <!-- コメント投稿フォーム -->
+    <% if (user) { %>
+      <div class="comment-form-wrap">
+        <form method="POST" action="/gallery/<%= image._id %>/comment" id="comment-form">
+          <textarea
+            name="content"
+            placeholder="コメントを入力… (最大500文字)"
+            maxlength="500"
+            id="comment-textarea"
+            required
+          ></textarea>
+          <div class="comment-char-count"><span id="char-count">0</span> / 500</div>
+          <div class="comment-form-actions">
+            <button type="submit" class="btn-post-comment">投稿する</button>
+          </div>
+        </form>
+      </div>
+    <% } else { %>
+      <div class="login-prompt">
+        <a href="/auth/google">Googleログイン</a> するとコメントを投稿できます
+      </div>
+    <% } %>
+  </div>
+</div>
+
+<script>
+// いいねボタン（Ajax）
+const likeBtn = document.getElementById('like-btn');
+if (likeBtn) {
+  likeBtn.addEventListener('click', async () => {
+    const imageId = likeBtn.dataset.imageId;
+    try {
+      const res = await fetch(`/gallery/${imageId}/like`, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (res.status === 401) {
+        alert('いいねにはログインが必要です');
+        return;
+      }
+      const data = await res.json();
+      document.getElementById('like-count').textContent = data.likeCount;
+      document.getElementById('like-label').textContent = data.liked ? 'いいね済み' : 'いいね';
+      likeBtn.classList.toggle('liked', data.liked);
+    } catch (e) {
+      console.error(e);
+    }
+  });
+}
+
+// 文字数カウント
+const textarea = document.getElementById('comment-textarea');
+const charCount = document.getElementById('char-count');
+if (textarea && charCount) {
+  textarea.addEventListener('input', () => {
+    charCount.textContent = textarea.value.length;
+  });
+}
+</script>
