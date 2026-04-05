@@ -427,13 +427,6 @@ router.get('/', async (req, res) => {
       try { console.warn('review ranking compute failed (home):', e && e.message ? e.message : String(e)); } catch (_) {}
     }
 
-    // ホームではランキングは上位10件だけ表示（内部では最大100件取得してキャッシュ）
-    const topRanking = Array.isArray(ranking) ? ranking.slice(0, 10) : [];
-    const rankingStatus = makeStatus();
-    const rankingStatusFormatted = {
-      lastUpdatedStr: rankingStatus.cacheTime ? formatJp(rankingStatus.cacheTime) : null,
-      nextUpdateStr: rankingStatus.nextUpdate ? formatJp(rankingStatus.nextUpdate) : null
-    };
     res.render('index', {
       title: 'トップ',
       metaDescription: '成人向け同人PCゲームの最新記事・人気ランキング・おすすめ動画をまとめてチェックできます。',
