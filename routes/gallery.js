@@ -251,6 +251,49 @@ router.get('/series/:folder', async (req, res) => {
   }
 });
 
+// タグ別一覧ページ
+router.get('/tag/:tag', async (req, res) => {
+  try {
+    const tag = req.params.tag;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 20;
+    const skip = (page - 1) * limit;
+
+    const query = { status: 'published', tags: tag };
+
+    const [images, total] = await Promise.all([
+      GalleryImage.find(query).sort({ uploadDate: -1 }).skip(skip).limit(limit),
+      GalleryImage.countDocuments(query),
+    ]);
+    const totalPages = Math.ceil(total / limit);
+
+    const likedSet = new Set();
+    if (req.user) {
+      images.forEach(img => {
+        if (img.likes && img.likes.some(uid => String(uid) === String(req.user._id))) {
+          likedSet.add(String(img._id));
+        }
+      });
+    }
+
+    const randomVideo = await fetchOneRandomVideo();
+
+    res.render('gallery-tag', {
+      title: '#' + tag + ' - ギャラリー',
+      tag,
+      images,
+      likedSet,
+      currentPage: page,
+      totalPages,
+      user: req.user,
+      randomVideo
+    });
+  } catch (err) {
+    console.error('Gallery Tag Error:', err);
+    res.status(500).send('エラーが発生しました。');
+  }
+});
+
 // 画像詳細ページ
 router.get('/:id', async (req, res) => {
   try {

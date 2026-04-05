@@ -176,11 +176,11 @@
 
 <div class="gs-container">
   <div class="gs-breadcrumb">
-    <a href="/gallery">ギャラリー</a> &rsaquo; <%= folder %>
+    <a href="/gallery">ギャラリー</a> &rsaquo; #<%= tag %>
   </div>
 
   <div class="gs-header">
-    <h1><%= folder %></h1>
+    <h1>#<%= tag %></h1>
     <p><%= images.length > 0 ? `${images.length} 件表示中` : '' %></p>
   </div>
 
@@ -195,8 +195,8 @@
             <h3 class="gallery-title" title="<%= img.title %>"><%= img.title %></h3>
             <% if (img.tags && img.tags.length > 0) { %>
               <div class="gallery-tags">
-                <% img.tags.forEach(function(tag) { %>
-                  <a href="/gallery/tag/<%= encodeURIComponent(tag) %>" class="gallery-tag" style="text-decoration: none;">#<%= tag %></a>
+                <% img.tags.forEach(function(t) { %>
+                  <a href="/gallery/tag/<%= encodeURIComponent(t) %>" class="gallery-tag" style="text-decoration: none;">#<%= t %></a>
                 <% }); %>
               </div>
             <% } %>
@@ -210,7 +210,7 @@
       <% }); %>
     <% } else { %>
       <div style="grid-column: 1 / -1; text-align: center; padding: 60px;">
-        <p>このシリーズの画像がありません。</p>
+        <p>このタグの画像がありません。</p>
         <a href="/gallery" style="color:#555; text-decoration:underline;">← ギャラリーに戻る</a>
       </div>
     <% } %>
