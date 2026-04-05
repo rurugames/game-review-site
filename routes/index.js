@@ -366,6 +366,11 @@ router.get('/', async (req, res) => {
       .sort({ releaseDate: -1, createdAt: -1, _id: -1 })
       .limit(10);
 
+    const GalleryImage = require('../models/GalleryImage');
+    const latestGalleryImages = await GalleryImage.find({ status: 'published' })
+      .sort({ uploadDate: -1 })
+      .limit(5);
+
     // YouTube Data API v3
     const youtubeChannelId = process.env.YOUTUBE_CHANNEL_ID || '';
     const youtubeRecommendedPlaylistId = process.env.YOUTUBE_RECOMMENDED_PLAYLIST_ID || '';
@@ -431,6 +436,7 @@ router.get('/', async (req, res) => {
       title: 'トップ',
       metaDescription: '成人向け同人PCゲームの最新記事・人気ランキング・おすすめ動画をまとめてチェックできます。',
       articles,
+      latestGalleryImages,
       heroHtml,
       reviewMonthlyBest,
       latestVideos,

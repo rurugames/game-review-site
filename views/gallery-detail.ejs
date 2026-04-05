@@ -336,6 +336,7 @@
     <% if (image.description) { %>
       <p class="gd-desc"><%= image.description %></p>
     <% } %>
+    <p class="gd-date" style="font-size: 13px; color: #888; margin: 12px 0 0;">アップロード日：<%= new Date(image.uploadDate).toLocaleString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) %></p>
   </div>
 
   <!-- いいねボタン -->

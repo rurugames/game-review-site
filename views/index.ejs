@@ -12,6 +12,24 @@
   </div>
 </div>
 
+<% if (typeof latestGalleryImages !== 'undefined' && latestGalleryImages && latestGalleryImages.length > 0) { %>
+<section class="gallery-section page-section">
+  <div class="page-header" style="justify-content: space-between; display: flex; align-items: center;">
+    <h2 class="section-title">新着ギャラリー画像</h2>
+    <a href="/gallery" class="btn-more">ギャラリーへ</a>
+  </div>
+  <div class="panel">
+    <div class="panel-body" style="display: flex; gap: 8px; overflow-x: auto; padding: 12px;">
+      <% latestGalleryImages.forEach(img => { %>
+        <a href="/gallery/<%= img._id %>" style="flex: 0 0 calc(20% - 7px); min-width: 120px; aspect-ratio: 1; display: block; overflow: hidden; border-radius: 4px;">
+          <img src="<%= img.r2Url %>" alt="<%= img.title %>" style="width: 100%; height: 100%; object-fit: cover;" loading="lazy">
+        </a>
+      <% }) %>
+    </div>
+  </div>
+</section>
+<% } %>
+
 <% 
   // JST基準で「今月」を作る
   const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
