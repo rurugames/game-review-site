@@ -2,6 +2,32 @@ const express = require('express');
 const router = express.Router();
 const GalleryImage = require('../models/GalleryImage');
 const GalleryComment = require('../models/GalleryComment');
+const youtubeApi = require('../services/youtubeDataApiService');
+
+function cleanEnvValue(v) {
+  const s = String(v || '').trim();
+  if (!s) return '';
+  return s.replace(/^["']|["']$/g, '');
+}
+
+async function fetchOneRandomVideo() {
+  try {
+    const youtubeChannelId = cleanEnvValue(process.env.YOUTUBE_CHANNEL_ID);
+    const youtubeRecommendedPlaylistId = cleanEnvValue(process.env.YOUTUBE_RECOMMENDED_PLAYLIST_ID);
+    if (!youtubeChannelId) return null;
+
+    let videos = [];
+    if (youtubeRecommendedPlaylistId) {
+      videos = await youtubeApi.fetchVideosByPlaylist(youtubeRecommendedPlaylistId, { limit: 25 });
+    } else {
+      videos = await youtubeApi.fetchPopularVideosByChannel(youtubeChannelId, { limit: 25 });
+    }
+    if (!videos || videos.length === 0) return null;
+    return videos[Math.floor(Math.random() * videos.length)];
+  } catch (e) {
+    return null;
+  }
+}
 
 function ensureAuth(req, res, next) {
   if (req.isAuthenticated()) return next();
@@ -63,12 +89,15 @@ router.get('/:id', async (req, res) => {
       ? image.likes.some(uid => String(uid) === String(req.user._id))
       : false;
 
+    const randomVideo = await fetchOneRandomVideo();
+
     res.render('gallery-detail', {
       title: image.title,
       image,
       comments,
       liked,
       queryError: req.query.error === '1',
+      randomVideo,
       user: req.user
     });
   } catch (err) {
