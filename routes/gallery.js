@@ -297,7 +297,11 @@ router.get('/tag/:tag', async (req, res) => {
 // 画像詳細ページ
 router.get('/:id', async (req, res) => {
   try {
-    const image = await GalleryImage.findById(req.params.id);
+    const image = await GalleryImage.findByIdAndUpdate(
+      req.params.id,
+      { $inc: { views: 1 } },
+      { new: true }
+    );
     if (!image || image.status !== 'published') {
       return res.status(404).send('画像が見つかりません。');
     }

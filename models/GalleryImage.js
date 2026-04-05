@@ -31,6 +31,10 @@ const galleryImageSchema = new mongoose.Schema({
     enum: ['draft', 'published'],
     default: 'published'
   },
+  views: {
+    type: Number,
+    default: 0
+  },
   uploadDate: {
     type: Date,
     default: Date.now
