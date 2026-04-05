@@ -21,16 +21,6 @@ const { isAdminEmail } = require('../lib/admin');
 const { normalizeAffiliateLink, DEFAULT_AID } = require('../lib/dlsiteAffiliate');
 
 // キャッシュ設定
-let rankingCache = null;
-let rankingCacheTime = null;
-let rankingFetchInProgress = false;
-let rankingFetchLastError = null;
-let rankingFetchLastStarted = null;
-let rankingFetchLastFinished = null;
-let rankingFetchProgress = 0;
-let rankingFetchTarget = 0;
-let rankingFetchPromise = null;
-const CACHE_DURATION = 24 * 60 * 60 * 1000; // 1日
 const { ensureAdmin } = require('../middleware/auth');
 
 // Review ranking cache (in-memory)
@@ -418,32 +408,7 @@ router.get('/', async (req, res) => {
       } catch (_) {}
     }
     
-    // ランキング取得（キャッシュ優先）。キャッシュ未取得時はバックグラウンドで取得を開始し即時レンダリングする。
-    let ranking = [];
-    const now = Date.now();
-
-    if (rankingCache && rankingCacheTime && (now - rankingCacheTime < CACHE_DURATION)) {
-      // キャッシュ有効
-      ranking = rankingCache;
-      console.log('ランキングキャッシュ使用');
-    } else {
-      // キャッシュが無ければ、既に取得中でなければバックグラウンドで取得を開始
-      if (!rankingFetchInProgress) {
-        // fire-and-forget のバックグラウンド取得（startRankingFetch が重複を防ぐ）
-        console.log('ランキングのバックグラウンド取得を開始します');
-        startRankingFetch(100)
-          .then((fetched) => {
-            console.log('ランキングのバックグラウンド取得が完了しました:', (fetched || []).length, '件');
-          })
-          .catch((bgErr) => {
-            console.error('ランキングのバックグラウンド取得でエラー:', bgErr);
-          });
-      } else {
-        console.log('ランキング取得は既にバックグラウンドで進行中');
-      }
-      // 現時点ではキャッシュが無いため空配列を表示
-      ranking = rankingCache || [];
-    }
+    
     
     const heroHtml = `
       <div class="hero">
@@ -473,10 +438,7 @@ router.get('/', async (req, res) => {
       title: 'トップ',
       metaDescription: '成人向け同人PCゲームの最新記事・人気ランキング・おすすめ動画をまとめてチェックできます。',
       articles,
-      ranking: topRanking,
       heroHtml,
-      rankingStatus,
-      rankingStatusFormatted,
       reviewMonthlyBest,
       latestVideos,
       recommendedVideos,
@@ -653,230 +615,6 @@ router.post('/contact', async function(req, res) {
   } finally {
     try { clearInFlight(inflightKey); } catch (_) {}
   }
-});
-
-// 人気ランキング専用ページ
-router.get('/ranking', async (req, res) => {
-  try {
-    let ranking = [];
-    const now = Date.now();
-    let isLoading = false;
-    if (rankingCache && rankingCacheTime && (now - rankingCacheTime < CACHE_DURATION)) {
-      ranking = rankingCache;
-      console.log('ランキングキャッシュ使用 (/ranking)');
-    } else if (rankingFetchInProgress) {
-      // 既に取得中でキャッシュが空 → ローディング画面を返す
-      console.log('ランキングは取得中のためローディング画面を表示します (/ranking)');
-      isLoading = true;
-      ranking = rankingCache || [];
-    } else {
-      try {
-        ranking = await startRankingFetch(100) || [];
-      } catch (error) {
-        rankingFetchLastError = String(error || error.message || error);
-        console.error('ランキング取得失敗 (/ranking):', error);
-        ranking = rankingCache || [];
-      }
-    }
-
-    const heroHtml = `
-      <div class="hero">
-        <h1>人気ランキング TOP10</h1>
-        <p>DLsite の人気ランキング上位を一覧で表示します。</p>
-      </div>
-    `;
-
-    // 件数制御 + ページネーション
-    const allowed = [10, 30, 50, 100];
-    let per = parseInt(req.query.per, 10) || 10;
-    if (!allowed.includes(per)) per = 10;
-    let page = parseInt(req.query.page, 10) || 1;
-    if (page < 1) page = 1;
-
-    const totalCount = Array.isArray(ranking) ? ranking.length : 0;
-    const totalPages = Math.max(1, Math.ceil(totalCount / per));
-    if (page > totalPages) page = totalPages;
-
-    const start = (page - 1) * per;
-    const limitedRankingRaw = Array.isArray(ranking) ? ranking.slice(start, start + per) : [];
-    const limitedRanking = attachAffiliateUrls(limitedRankingRaw);
-
-    const rankingStatus = makeStatus();
-    const rankingStatusFormatted = {
-      lastUpdatedStr: rankingStatus.cacheTime ? formatJp(rankingStatus.cacheTime) : null,
-      nextUpdateStr: rankingStatus.nextUpdate ? formatJp(rankingStatus.nextUpdate) : null
-    };
-    res.render('ranking', {
-      title: '人気ランキング',
-      metaDescription: 'DLsiteの人気ランキング上位を一覧で表示します。',
-      ranking: limitedRanking,
-      heroHtml,
-      per,
-      totalCount,
-      page,
-      totalPages,
-      query: req.query,
-      isLoading,
-      rankingStatus,
-      rankingStatusFormatted
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).send('サーバーエラーが発生しました');
-  }
-});
-
-// 部分レンダリング: ランキング表示用の HTML 断片を返す（非同期差し替え用）
-router.get('/ranking/partial', async (req, res) => {
-  try {
-    // same per/page handling as /ranking
-    const allowed = [10, 30, 50, 100];
-    let per = parseInt(req.query.per, 10) || 10;
-    if (!allowed.includes(per)) per = 10;
-    let page = parseInt(req.query.page, 10) || 1;
-
-    const now = Date.now();
-    if (!(rankingCache && rankingCacheTime && (now - rankingCacheTime < CACHE_DURATION))) {
-      // nothing cached yet
-      return res.status(204).send();
-    }
-
-    const ranking = rankingCache || [];
-    const totalCount = Array.isArray(ranking) ? ranking.length : 0;
-    const totalPages = Math.max(1, Math.ceil(totalCount / per));
-    if (page < 1) page = 1;
-    if (page > totalPages) page = totalPages;
-    const start = (page - 1) * per;
-    const limitedRankingRaw = Array.isArray(ranking) ? ranking.slice(start, start + per) : [];
-    const limitedRanking = attachAffiliateUrls(limitedRankingRaw);
-
-    // render partial template and return HTML
-    const ejs = require('ejs');
-    const path = require('path');
-    const partialPath = path.join(__dirname, '..', 'views', 'partials', 'rankingList.ejs');
-    const rankingStatus = makeStatus();
-    const rankingStatusFormatted = {
-      lastUpdatedStr: rankingStatus.cacheTime ? formatJp(rankingStatus.cacheTime) : null,
-      nextUpdateStr: rankingStatus.nextUpdate ? formatJp(rankingStatus.nextUpdate) : null
-    };
-    const html = await ejs.renderFile(partialPath, { ranking: limitedRanking, per, totalCount, page, totalPages, query: req.query, rankingStatus, rankingStatusFormatted });
-    res.setHeader('Content-Type', 'text/html; charset=utf-8');
-    res.send(html);
-  } catch (e) {
-    console.error('ranking partial error', e && e.message ? e.message : e);
-    res.status(500).send('部分レンダリングに失敗しました');
-  }
-});
-
-// ランキング取得ステータス（簡易API）
-router.get('/ranking-status', (req, res) => {
-  res.json({
-    inProgress: !!rankingFetchInProgress,
-    lastStarted: rankingFetchLastStarted ? new Date(rankingFetchLastStarted).toISOString() : null,
-    lastFinished: rankingFetchLastFinished ? new Date(rankingFetchLastFinished).toISOString() : null,
-    lastError: rankingFetchLastError || null,
-    cachedCount: Array.isArray(rankingCache) ? rankingCache.length : 0,
-    cacheTime: rankingCacheTime ? new Date(rankingCacheTime).toISOString() : null,
-    progress: {
-      fetched: rankingFetchProgress || 0,
-      target: rankingFetchTarget || 0
-    }
-  });
-});
-
-// helper for socket initial status
-function makeStatus() {
-  return {
-    inProgress: !!rankingFetchInProgress,
-    lastStarted: rankingFetchLastStarted ? new Date(rankingFetchLastStarted).toISOString() : null,
-    lastFinished: rankingFetchLastFinished ? new Date(rankingFetchLastFinished).toISOString() : null,
-    lastError: rankingFetchLastError || null,
-    cachedCount: Array.isArray(rankingCache) ? rankingCache.length : 0,
-    cacheTime: rankingCacheTime ? new Date(rankingCacheTime).toISOString() : null,
-    nextUpdate: (rankingCacheTime ? new Date(rankingCacheTime + CACHE_DURATION).toISOString() : null),
-    progress: { fetched: rankingFetchProgress || 0, target: rankingFetchTarget || 0 }
-  };
-}
-
-// Format timestamp to JST human readable string 'YYYY年MM月DD日 HH:mm:ss'
-function formatJp(ts) {
-  try {
-    if (!ts) return null;
-    const d = new Date(ts);
-    const utc = d.getTime() + (d.getTimezoneOffset() * 60000);
-    const jst = new Date(utc + (9 * 60 * 60 * 1000));
-    const Y = jst.getFullYear();
-    const M = String(jst.getMonth() + 1).padStart(2, '0');
-    const D = String(jst.getDate()).padStart(2, '0');
-    const hh = String(jst.getHours()).padStart(2, '0');
-    const mm = String(jst.getMinutes()).padStart(2, '0');
-    const ss = String(jst.getSeconds()).padStart(2, '0');
-    return `${Y}年${M}月${D}日 ${hh}:${mm}:${ss}`;
-  } catch (e) {
-    return String(ts || '');
-  }
-}
-
-// expose for server.js to call on new socket
-exports.getRankingStatus = makeStatus;
-
-// expose helper to get rendered partial HTML for cached ranking (or null)
-exports.getRankingPartialHtml = async function(per = 10, page = 1) {
-  try {
-    const now = Date.now();
-    if (!(rankingCache && rankingCacheTime && (now - rankingCacheTime < CACHE_DURATION))) return null;
-    const ranking = rankingCache || [];
-    const totalCount = Array.isArray(ranking) ? ranking.length : 0;
-    const totalPages = Math.max(1, Math.ceil(totalCount / per));
-    if (page < 1) page = 1;
-    if (page > totalPages) page = totalPages;
-    const start = (page - 1) * per;
-    const limitedRanking = Array.isArray(ranking) ? ranking.slice(start, start + per) : [];
-    const ejs = require('ejs');
-    const path = require('path');
-    const partialPath = path.join(__dirname, '..', 'views', 'partials', 'rankingList.ejs');
-    // For helper use (emit on socket connect), prefer to render only the limited set and present its total as limited length
-    const rankingStatus = makeStatus();
-    const rankingStatusFormatted = {
-      lastUpdatedStr: rankingStatus.cacheTime ? formatJp(rankingStatus.cacheTime) : null,
-      nextUpdateStr: rankingStatus.nextUpdate ? formatJp(rankingStatus.nextUpdate) : null
-    };
-    const html = await ejs.renderFile(partialPath, { ranking: limitedRanking, per, totalCount: limitedRanking.length, page, totalPages: Math.max(1, Math.ceil(limitedRanking.length / per)), query: {}, rankingStatus, rankingStatusFormatted });
-    return html;
-  } catch (e) {
-    console.warn('getRankingPartialHtml error', e && e.message ? e.message : e);
-    return null;
-  }
-};
-
-// 管理用: 強制ランキング更新をトリガー (管理者専用)
-router.post('/admin/ranking-refresh', ensureAdmin, (req, res) => {
-  if (rankingFetchInProgress) {
-    return res.status(409).json({ success: false, message: 'ランキング取得は既に進行中です' });
-  }
-
-  // start background fetch via centralized helper
-  startRankingFetch(100)
-    .then((fetched) => {
-      console.log('管理者トリガー: ランキング取得完了:', (fetched || []).length);
-    })
-    .catch((err) => {
-      rankingFetchLastError = String(err || err.message || err);
-      console.error('管理者トリガー: ランキング取得エラー:', err);
-    });
-
-  res.status(202).json({ success: true, message: 'ランキング更新をバックグラウンドで開始しました' });
-});
-
-// 管理用: 最新キャッシュをダウンロード (JSON)
-router.get('/admin/ranking-download', ensureAdmin, (req, res) => {
-  if (!Array.isArray(rankingCache) || rankingCache.length === 0) {
-    return res.status(404).json({ success: false, message: 'ランキングキャッシュがありません' });
-  }
-  const filename = `ranking_${new Date().toISOString().slice(0,19).replace(/[:T]/g, '-')}.json`;
-  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-  res.send(JSON.stringify(rankingCache, null, 2));
 });
 
 // 管理用: 設定ページの表示

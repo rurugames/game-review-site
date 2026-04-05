@@ -305,7 +305,7 @@ app.get('/sitemap.xml', async (req, res) => {
 
   try {
     // Note: Exclude gated pages like /videos/fc2 from sitemap to avoid bot crawl/redirect loops.
-    const staticPaths = ['/', '/ranking', '/videos', '/articles', '/help', '/contact'];
+    const staticPaths = ['/', '/videos', '/articles', '/help', '/contact'];
     const urls = staticPaths.map((p) => ({ loc: `${siteUrl}${p}`, lastmod: null }));
 
     const articles = await Article.find({ status: 'published' })
