@@ -8,98 +8,64 @@
     text-align: center;
     margin-bottom: 30px;
   }
-  
-  /* Masonry/Grid Layout for Pixiv style */
-  .gallery-grid {
+
+  /* フォルダ（シリーズ）カードグリッド */
+  .series-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    grid-gap: 15px;
-    align-items: start;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
   }
-  .gallery-item {
+  .series-card {
     background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     overflow: hidden;
-    transition: transform 0.2s;
-  }
-  .gallery-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  }
-  .gallery-image-wrapper {
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    color: inherit;
     display: block;
-    position: relative;
-    width: 100%;
-    /* Keep aspect ratio natural or set max-height, but img width 100% does standard flow */
   }
-  .gallery-image {
+  .series-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+  }
+  .series-cover {
     width: 100%;
-    display: block;
+    aspect-ratio: 3 / 2;
     object-fit: cover;
+    display: block;
+    background: #f0f0f0;
   }
-  .gallery-info {
-    padding: 10px;
+  .series-cover-placeholder {
+    width: 100%;
+    aspect-ratio: 3 / 2;
+    background: linear-gradient(135deg, #e8e8e8, #d0d0d0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    color: #aaa;
   }
-  .gallery-title {
-    font-size: 14px;
+  .series-info {
+    padding: 12px 14px;
+  }
+  .series-name {
+    font-size: 15px;
     font-weight: bold;
-    margin: 0 0 5px 0;
-    color: #333;
+    color: #222;
+    margin: 0 0 6px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  .gallery-tags {
+  .series-count {
     font-size: 12px;
-    color: #777;
-    margin-bottom: 5px;
-  }
-  .gallery-tag {
-    display: inline-block;
-    background: #f0f0f0;
-    border-radius: 4px;
-    padding: 2px 6px;
-    margin-right: 4px;
-    margin-bottom: 4px;
-  }
-  .gallery-footer {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    font-size: 13px;
     color: #888;
-    padding: 0 10px 10px;
   }
-  .like-count-badge {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    color: #e05c8a;
-    font-weight: bold;
-  }
-  .pagination {
-    margin-top: 30px;
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-  }
-  .pagination a, .pagination span {
-    padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    text-decoration: none;
-    color: #333;
-  }
-  .pagination span.current {
-    background: #333;
-    color: #fff;
-    border-color: #333;
-  }
-  
+
   /* レスポンシブ */
   @media (max-width: 600px) {
-    .gallery-grid {
+    .series-grid {
       grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
   }
@@ -108,51 +74,28 @@
 <div class="gallery-container">
   <div class="gallery-header">
     <h1>ギャラリー</h1>
-    <p>自作ゲーム等のキャラクターイラスト</p>
+    <p>アニメ・ゲームキャラクターイラスト</p>
   </div>
 
-  <div class="gallery-grid">
-    <% if (images && images.length > 0) { %>
-      <% images.forEach(function(img) { %>
-        <div class="gallery-item">
-          <a href="/gallery/<%= img._id %>" class="gallery-image-wrapper">
-            <img src="<%= img.r2Url %>" alt="<%= img.title %>" class="gallery-image" loading="lazy">
-          </a>
-          <div class="gallery-info">
-            <h3 class="gallery-title" title="<%= img.title %>"><%= img.title %></h3>
-            <% if (img.tags && img.tags.length > 0) { %>
-              <div class="gallery-tags">
-                <% img.tags.forEach(function(tag) { %>
-                  <span class="gallery-tag">#<%= tag %></span>
-                <% }); %>
-              </div>
-            <% } %>
+  <div class="series-grid">
+    <% if (folders && folders.length > 0) { %>
+      <% folders.forEach(function(f) { %>
+        <a href="/gallery/series/<%= encodeURIComponent(f._id) %>" class="series-card">
+          <% if (f.cover) { %>
+            <img src="<%= f.cover %>" alt="<%= f._id %>" class="series-cover" loading="lazy">
+          <% } else { %>
+            <div class="series-cover-placeholder">🖼</div>
+          <% } %>
+          <div class="series-info">
+            <p class="series-name" title="<%= f._id %>"><%= f._id %></p>
+            <p class="series-count"><%= f.count %> 枚</p>
           </div>
-          <div class="gallery-footer">
-            <span class="like-count-badge">
-              ♥ <%= img.likes ? img.likes.length : 0 %>
-            </span>
-          </div>
-        </div>
+        </a>
       <% }); %>
     <% } else { %>
-      <div style="grid-column: 1 / -1; text-align: center; padding: 50px;">
+      <div style="grid-column: 1 / -1; text-align: center; padding: 60px;">
         <p>現在表示できる画像がありません。</p>
       </div>
     <% } %>
   </div>
-
-  <% if (totalPages > 1) { %>
-    <div class="pagination">
-      <% if (currentPage > 1) { %>
-        <a href="?page=<%= currentPage - 1 %>">前のページ</a>
-      <% } %>
-      
-      <span class="current"><%= currentPage %> / <%= totalPages %></span>
-      
-      <% if (currentPage < totalPages) { %>
-        <a href="?page=<%= currentPage + 1 %>">次のページ</a>
-      <% } %>
-    </div>
-  <% } %>
 </div>

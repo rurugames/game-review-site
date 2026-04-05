@@ -1,0 +1,175 @@
+<style>
+  .gs-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .gs-breadcrumb {
+    font-size: 13px;
+    color: #888;
+    margin-bottom: 20px;
+  }
+  .gs-breadcrumb a {
+    color: #555;
+    text-decoration: none;
+  }
+  .gs-breadcrumb a:hover { text-decoration: underline; }
+  .gs-header {
+    margin-bottom: 24px;
+  }
+  .gs-header h1 {
+    font-size: 24px;
+    margin: 0 0 4px;
+  }
+  .gs-header p {
+    color: #888;
+    font-size: 13px;
+    margin: 0;
+  }
+
+  /* 画像グリッド */
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  .gallery-item {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .gallery-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 12px rgba(0,0,0,0.15);
+  }
+  .gallery-image-wrapper {
+    display: block;
+    width: 100%;
+  }
+  .gallery-image {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+    aspect-ratio: 1 / 1;
+  }
+  .gallery-info {
+    padding: 10px;
+  }
+  .gallery-title {
+    font-size: 13px;
+    font-weight: bold;
+    margin: 0 0 4px;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .gallery-tags {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 4px;
+  }
+  .gallery-tag {
+    display: inline-block;
+    background: #f0f0f0;
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin-right: 3px;
+  }
+  .gallery-footer {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: #aaa;
+    padding: 0 10px 8px;
+  }
+  .like-count-badge {
+    color: #e05c8a;
+    font-weight: bold;
+  }
+
+  /* ページネーション */
+  .pagination {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  .pagination a, .pagination span {
+    padding: 8px 14px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+  }
+  .pagination span.current {
+    background: #333;
+    color: #fff;
+    border-color: #333;
+  }
+
+  @media (max-width: 600px) {
+    .gallery-grid {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+  }
+</style>
+
+<div class="gs-container">
+  <div class="gs-breadcrumb">
+    <a href="/gallery">ギャラリー</a> &rsaquo; <%= folder %>
+  </div>
+
+  <div class="gs-header">
+    <h1><%= folder %></h1>
+    <p><%= images.length > 0 ? `${images.length} 件表示中` : '' %></p>
+  </div>
+
+  <div class="gallery-grid">
+    <% if (images && images.length > 0) { %>
+      <% images.forEach(function(img) { %>
+        <div class="gallery-item">
+          <a href="/gallery/<%= img._id %>" class="gallery-image-wrapper">
+            <img src="<%= img.r2Url %>" alt="<%= img.title %>" class="gallery-image" loading="lazy">
+          </a>
+          <div class="gallery-info">
+            <h3 class="gallery-title" title="<%= img.title %>"><%= img.title %></h3>
+            <% if (img.tags && img.tags.length > 0) { %>
+              <div class="gallery-tags">
+                <% img.tags.forEach(function(tag) { %>
+                  <span class="gallery-tag">#<%= tag %></span>
+                <% }); %>
+              </div>
+            <% } %>
+          </div>
+          <div class="gallery-footer">
+            <span class="like-count-badge">
+              ♥ <%= img.likes ? img.likes.length : 0 %>
+            </span>
+          </div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div style="grid-column: 1 / -1; text-align: center; padding: 60px;">
+        <p>このシリーズの画像がありません。</p>
+        <a href="/gallery" style="color:#555; text-decoration:underline;">← ギャラリーに戻る</a>
+      </div>
+    <% } %>
+  </div>
+
+  <% if (totalPages > 1) { %>
+    <div class="pagination">
+      <% if (currentPage > 1) { %>
+        <a href="?page=<%= currentPage - 1 %>">前のページ</a>
+      <% } %>
+      <span class="current"><%= currentPage %> / <%= totalPages %></span>
+      <% if (currentPage < totalPages) { %>
+        <a href="?page=<%= currentPage + 1 %>">次のページ</a>
+      <% } %>
+    </div>
+  <% } %>
+</div>

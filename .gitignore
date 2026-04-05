@@ -12,3 +12,8 @@ top.html
 
 # generated CSV/JSON outputs
 csvoutput/
+
+# R2ダウンロードキャッシュ（ローカルのみ、git管理不要）
+uploads/gallery/
+.r2_images.json
+.metadata.json
