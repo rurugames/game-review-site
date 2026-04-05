@@ -1,0 +1,139 @@
+<style>
+  .gallery-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  .gallery-header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  
+  /* Masonry/Grid Layout for Pixiv style */
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-gap: 15px;
+    align-items: start;
+  }
+  .gallery-item {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    overflow: hidden;
+    transition: transform 0.2s;
+  }
+  .gallery-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+  }
+  .gallery-image-wrapper {
+    display: block;
+    position: relative;
+    width: 100%;
+    /* Keep aspect ratio natural or set max-height, but img width 100% does standard flow */
+  }
+  .gallery-image {
+    width: 100%;
+    display: block;
+    object-fit: cover;
+  }
+  .gallery-info {
+    padding: 10px;
+  }
+  .gallery-title {
+    font-size: 14px;
+    font-weight: bold;
+    margin: 0 0 5px 0;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .gallery-tags {
+    font-size: 12px;
+    color: #777;
+    margin-bottom: 5px;
+  }
+  .gallery-tag {
+    display: inline-block;
+    background: #f0f0f0;
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+  .pagination {
+    margin-top: 30px;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+  }
+  .pagination a, .pagination span {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    text-decoration: none;
+    color: #333;
+  }
+  .pagination span.current {
+    background: #333;
+    color: #fff;
+    border-color: #333;
+  }
+  
+  /* レスポンシブ */
+  @media (max-width: 600px) {
+    .gallery-grid {
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+  }
+</style>
+
+<div class="gallery-container">
+  <div class="gallery-header">
+    <h1>ギャラリー</h1>
+    <p>自作ゲーム等のキャラクターイラスト</p>
+  </div>
+
+  <div class="gallery-grid">
+    <% if (images && images.length > 0) { %>
+      <% images.forEach(function(img) { %>
+        <div class="gallery-item">
+          <!-- TODO: 必要であれば詳細ページへのリンクにする -->
+          <a href="<%= img.r2Url %>" target="_blank" class="gallery-image-wrapper">
+            <img src="<%= img.r2Url %>" alt="<%= img.title %>" class="gallery-image" loading="lazy">
+          </a>
+          <div class="gallery-info">
+            <h3 class="gallery-title" title="<%= img.title %>"><%= img.title %></h3>
+            <% if (img.tags && img.tags.length > 0) { %>
+              <div class="gallery-tags">
+                <% img.tags.forEach(function(tag) { %>
+                  <span class="gallery-tag">#<%= tag %></span>
+                <% }); %>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      <% }); %>
+    <% } else { %>
+      <div style="grid-column: 1 / -1; text-align: center; padding: 50px;">
+        <p>現在表示できる画像がありません。</p>
+      </div>
+    <% } %>
+  </div>
+
+  <% if (totalPages > 1) { %>
+    <div class="pagination">
+      <% if (currentPage > 1) { %>
+        <a href="?page=<%= currentPage - 1 %>">前のページ</a>
+      <% } %>
+      
+      <span class="current"><%= currentPage %> / <%= totalPages %></span>
+      
+      <% if (currentPage < totalPages) { %>
+        <a href="?page=<%= currentPage + 1 %>">次のページ</a>
+      <% } %>
+    </div>
+  <% } %>
+</div>

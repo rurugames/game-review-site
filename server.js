@@ -246,6 +246,7 @@ app.use(async (req, res, next) => {
     p.startsWith('/users') ||
     p.startsWith('/search') ||
     p.startsWith('/events') ||
+    p === '/videos/fc2' ||
     /^\/articles\/.+\/edit$/.test(p) ||
     p === '/articles/new';
   res.locals.metaRobots = isNoindex ? 'noindex,nofollow' : 'index,follow';
@@ -272,6 +273,10 @@ app.get('/robots.txt', (req, res) => {
   res.type('text/plain; charset=utf-8');
   res.send([
     'User-agent: *',
+    // Avoid crawling pages that are behind gates or likely to create redirect chains.
+    // This helps reduce bot traffic / response counts.
+    'Disallow: /adult/',
+    'Disallow: /videos/fc2',
     'Allow: /',
     siteUrl ? `Sitemap: ${siteUrl}/sitemap.xml` : null,
     '',
@@ -299,7 +304,8 @@ app.get('/sitemap.xml', async (req, res) => {
     .replace(/'/g, '&apos;');
 
   try {
-    const staticPaths = ['/', '/ranking', '/videos', '/videos/fc2', '/articles', '/help', '/contact'];
+    // Note: Exclude gated pages like /videos/fc2 from sitemap to avoid bot crawl/redirect loops.
+    const staticPaths = ['/', '/ranking', '/videos', '/articles', '/help', '/contact'];
     const urls = staticPaths.map((p) => ({ loc: `${siteUrl}${p}`, lastmod: null }));
 
     const articles = await Article.find({ status: 'published' })
@@ -357,6 +363,7 @@ app.use('/events', require('./routes/events'));
 app.use('/generator', require('./routes/generator'));
 app.use('/csv', require('./routes/csv'));
 app.use('/out', require('./routes/out'));
+app.use('/gallery', require('./routes/gallery'));
 
 // Socket.IO 初期化
 const io = new Server(server, { path: '/socket.io' });
