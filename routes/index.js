@@ -1013,10 +1013,27 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
         recentComments.sort((a, b) => (order.get(String(a._id)) ?? 0) - (order.get(String(b._id)) ?? 0));
       }
     }
+    let galleryRecentCommentsCount = 0;
+    let galleryTotalLikes = 0;
+    
     if (isAdmin) {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-
-      // Daily CTR trend (JST) for the last N days
+      
+      const GalleryComment = require('../models/GalleryComment');
+      const GalleryImage = require('../models/GalleryImage');
+      
+      // ギャラリー直近30日のコメント
+      galleryRecentCommentsCount = await GalleryComment.countDocuments({ createdAt: { $gte: since } });
+      
+      // いいねは日付を持たないため、この期間にアップロードされた画像のいいね数を集計するか、全期間のいいね数を出すか
+      // ここでは「全期間のいいね数の合計」を参考に取得するか、運用上許容される「全体いいね数」を出す
+      const galleryLikesAgg = await GalleryImage.aggregate([
+        { $project: { likeCount: { $size: { $ifNull: ['$likes', []] } } } },
+        { $group: { _id: null, totalLikes: { $sum: '$likeCount' } } }
+      ]);
+      galleryTotalLikes = galleryLikesAgg.length > 0 ? galleryLikesAgg[0].totalLikes : 0;
+      
+      // 日別アクセス数（あなたの記事の合計）
       const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
       const MS_PER_DAY = 24 * 60 * 60 * 1000;
       const ymdJstFromMs = (ms) => new Date(ms + JST_OFFSET_MS).toISOString().slice(0, 10);
@@ -1442,6 +1459,9 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       dailyAccessTrend,
       topReferrers,
       recentComments,
+      galleryRecentCommentsCount,
+      galleryTotalLikes,
+      isAdmin,
       relatedClicks,
       relatedClicksByBlock,
       relatedClicksByBlockPosition,
