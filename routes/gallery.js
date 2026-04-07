@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const GalleryImage = require('../models/GalleryImage');
 const GalleryComment = require('../models/GalleryComment');
+const AdTag = require('../models/AdTag');
 const youtubeApi = require('../services/youtubeDataApiService');
 const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
 const { ensureAdmin } = require('../middleware/auth');
@@ -198,12 +199,16 @@ router.get('/', async (req, res) => {
 
     const randomVideo = await fetchOneRandomVideo();
 
+    // 広告タグの取得（トップなので 'default' を優先）
+    const defaultAd = await AdTag.findOne({ keyword: 'default', isActive: true }).lean();
+
     res.render('gallery', {
       title: 'ギャラリー',
       folders,
       latestImages,
       user: req.user,
-      randomVideo
+      randomVideo,
+      adTag: defaultAd ? defaultAd.adHtml : null
     });
   } catch (err) {
     console.error('Gallery Folder List Error:', err);
@@ -242,6 +247,21 @@ router.get('/series/:folder', async (req, res) => {
 
     const randomVideo = await fetchOneRandomVideo();
 
+    // 広告タグの取得（現在のフォルダ名、なければ 'default'）
+    const adTagDoc = await AdTag.findOne({ keyword: { $in: [folder, 'default'] }, isActive: true })
+      .sort({ keyword: -1 }) // folderが 'default' よりアルファベット順で上等にならないケースもあるが簡易的に。
+      .lean();
+    
+    // 正確には folder に一致するものを探し、なければ default を探す
+    let adHtml = null;
+    const specificAd = await AdTag.findOne({ keyword: folder, isActive: true }).lean();
+    if (specificAd) {
+      adHtml = specificAd.adHtml;
+    } else {
+      const defaultAd = await AdTag.findOne({ keyword: 'default', isActive: true }).lean();
+      if (defaultAd) adHtml = defaultAd.adHtml;
+    }
+
     res.render('gallery-series', {
       title: folder + ' - ギャラリー',
       folder,
@@ -250,7 +270,8 @@ router.get('/series/:folder', async (req, res) => {
       currentPage: page,
       totalPages,
       user: req.user,
-      randomVideo
+      randomVideo,
+      adTag: adHtml
     });
   } catch (err) {
     console.error('Gallery Series Error:', err);
@@ -285,6 +306,15 @@ router.get('/tag/:tag', async (req, res) => {
 
     const randomVideo = await fetchOneRandomVideo();
 
+    let adHtml = null;
+    const specificAd = await AdTag.findOne({ keyword: tag, isActive: true }).lean();
+    if (specificAd) {
+      adHtml = specificAd.adHtml;
+    } else {
+      const defaultAd = await AdTag.findOne({ keyword: 'default', isActive: true }).lean();
+      if (defaultAd) adHtml = defaultAd.adHtml;
+    }
+
     res.render('gallery-tag', {
       title: '#' + tag + ' - ギャラリー',
       tag,
@@ -293,7 +323,8 @@ router.get('/tag/:tag', async (req, res) => {
       currentPage: page,
       totalPages,
       user: req.user,
-      randomVideo
+      randomVideo,
+      adTag: adHtml
     });
   } catch (err) {
     console.error('Gallery Tag Error:', err);
@@ -327,6 +358,17 @@ router.get('/:id', async (req, res) => {
 
     const randomVideo = await fetchOneRandomVideo();
 
+    let adHtml = null;
+    const tagToSearch = (image.tags && image.tags.length > 0) ? image.tags[0] : null;
+    if (tagToSearch) {
+      const specificAd = await AdTag.findOne({ keyword: tagToSearch, isActive: true }).lean();
+      if (specificAd) adHtml = specificAd.adHtml;
+    }
+    if (!adHtml) {
+      const defaultAd = await AdTag.findOne({ keyword: 'default', isActive: true }).lean();
+      if (defaultAd) adHtml = defaultAd.adHtml;
+    }
+
     res.render('gallery-detail', {
       title: image.title,
       image,
@@ -335,7 +377,8 @@ router.get('/:id', async (req, res) => {
       bookmarked,
       queryError: req.query.error === '1',
       randomVideo,
-      user: req.user
+      user: req.user,
+      adTag: adHtml
     });
   } catch (err) {
     console.error('Gallery Detail Error:', err);

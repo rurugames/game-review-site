@@ -187,7 +187,12 @@
 
   <div class="gallery-grid">
     <% if (images && images.length > 0) { %>
-      <% images.forEach(function(img) { %>
+      <% images.forEach(function(img, index) { %>
+        <% if (index === 4 && typeof adTag !== 'undefined' && adTag) { %>
+          <div class="gallery-item" style="display: flex; align-items: center; justify-content: center; box-shadow: none; background: transparent;">
+            <%- adTag %>
+          </div>
+        <% } %>
         <div class="gallery-item">
           <a href="/gallery/<%= img._id %>" class="gallery-image-wrapper">
             <img src="<%= img.r2Url %>" alt="<%= img.title %>" class="gallery-image" loading="lazy">

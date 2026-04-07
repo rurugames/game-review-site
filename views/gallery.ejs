@@ -216,7 +216,12 @@
 
   <div class="series-grid">
     <% if (folders && folders.length > 0) { %>
-      <% folders.forEach(function(f) { %>
+      <% folders.forEach(function(f, index) { %>
+        <% if (index === 4 && typeof adTag !== 'undefined' && adTag) { %>
+          <div class="series-card" style="display: flex; align-items: center; justify-content: center; background: transparent; box-shadow: none;">
+            <%- adTag %>
+          </div>
+        <% } %>
         <a href="/gallery/series/<%= encodeURIComponent(f._id) %>" class="series-card">
           <% if (f.cover) { %>
             <img src="<%= f.cover %>" alt="<%= f._id %>" class="series-cover" loading="lazy">
