@@ -153,26 +153,22 @@
         </div>
       </header>
 
-      <style>
-        .pc-header-ad {
-          text-align: center;
-          padding-top: 15px;
-          display: flex;
-          justify-content: center;
-        }
-        @media (max-width: 768px) {
-          .pc-header-ad {
-            display: none !important;
-          }
-        }
-      </style>
-      <div class="pc-header-ad">
-        <!-- admax -->
-        <script src="https://adm.shinobi.jp/s/19b0728604563efe6197dce8022492a3"></script>
-        <!-- admax -->
-      </div>
-
       <main class="content-area">
+        <style>
+          .header-ad-container {
+            text-align: center;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            overflow: hidden;
+          }
+        </style>
+        <div class="header-ad-container">
+          <!-- admax -->
+          <script src="https://adm.shinobi.jp/s/19b0728604563efe6197dce8022492a3"></script>
+          <!-- admax -->
+        </div>
 
         <div class="content-body container">
           <%- body %>
@@ -220,4 +216,6 @@
   </script>
 </body>
 </html>
+
+
 
