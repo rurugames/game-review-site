@@ -17,6 +17,7 @@ const DailyArticleView = require('../models/DailyArticleView');
 const DailyArticleReferrer = require('../models/DailyArticleReferrer');
 const Comment = require('../models/Comment');
 const Review = require('../models/Review');
+const AdTag = require('../models/AdTag');
 const { isAdminEmail } = require('../lib/admin');
 const { normalizeAffiliateLink, DEFAULT_AID } = require('../lib/dlsiteAffiliate');
 
@@ -361,6 +362,9 @@ function attachAffiliateUrls(ranking) {
 // ホームページ - 記事一覧とDLsiteランキング
 router.get('/', async (req, res) => {
   try {
+    const defaultAd = await AdTag.findOne({ keyword: 'default' });
+    const adTag = defaultAd && defaultAd.isActive ? defaultAd.adHtml : '';
+
     const articles = await Article.find({ status: 'published' })
       .populate('author')
       .sort({ releaseDate: -1, createdAt: -1, _id: -1 })
@@ -442,6 +446,7 @@ router.get('/', async (req, res) => {
       latestVideos,
       recommendedVideos,
       youtubeChannelId,
+      adTag,
     });
   } catch (err) {
     console.error(err);
