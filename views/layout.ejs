@@ -148,12 +148,32 @@
               <a href="/auth/logout" class="btn-secondary">ログアウト</a>
             </div>
           <% } else { %>
-            <a href="/auth/google" class="btn-primary">Googleでログイン</a>
-          <% } %>
+             <a href="/auth/google" class="btn-primary">Googleでログイン</a>
+           <% } %>
         </div>
       </header>
 
+      <style>
+        .pc-header-ad {
+          text-align: center;
+          padding-top: 15px;
+          display: flex;
+          justify-content: center;
+        }
+        @media (max-width: 768px) {
+          .pc-header-ad {
+            display: none !important;
+          }
+        }
+      </style>
+      <div class="pc-header-ad">
+        <!-- admax -->
+        <script src="https://adm.shinobi.jp/s/19b0728604563efe6197dce8022492a3"></script>
+        <!-- admax -->
+      </div>
+
       <main class="content-area">
+
         <div class="content-body container">
           <%- body %>
         </div>
@@ -200,3 +220,4 @@
   </script>
 </body>
 </html>
+
