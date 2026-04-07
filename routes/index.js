@@ -362,8 +362,11 @@ function attachAffiliateUrls(ranking) {
 // ホームページ - 記事一覧とDLsiteランキング
 router.get('/', async (req, res) => {
   try {
-    const defaultAd = await AdTag.findOne({ keyword: 'default' });
-    const adTag = defaultAd && defaultAd.isActive ? defaultAd.adHtml : '';
+    let topAd = await AdTag.findOne({ keyword: 'top_page' });
+    if (!topAd || !topAd.isActive) {
+      topAd = await AdTag.findOne({ keyword: 'default' });
+    }
+    const adTag = topAd && topAd.isActive ? topAd.adHtml : '';
 
     const articles = await Article.find({ status: 'published' })
       .populate('author')
