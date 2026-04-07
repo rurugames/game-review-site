@@ -7,7 +7,7 @@ async function main() {
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('MongoDB connected.');
 
-        const adCode = `<!-- admax -->\n<script src="https://adm.shinobi.jp/s/d96f9ea519c843ce8cc1880a19eb818e"></script>\n<!-- admax -->`;
+        const adCode = `<!-- admax -->\n<script src="https://adm.shinobi.jp/s/a375258e0b8bf88ef4360abfb4e8f886"></script>\n<!-- admax -->`;
 
         const result = await AdTag.findOneAndUpdate(
             { keyword: 'default' },
