@@ -195,7 +195,7 @@
         <% } %>
         <div class="gallery-item">
           <a href="/gallery/<%= img._id %>" class="gallery-image-wrapper">
-            <img src="<%= img.r2Url %>" alt="<%= img.title %>" class="gallery-image" loading="lazy">
+            <img src="<%= img.r2Url %>" alt="<%= folder %>の画像 - <%= img.title %>" class="gallery-image" loading="lazy">
           </a>
           <div class="gallery-info">
             <h3 class="gallery-title" title="<%= img.title %>"><%= img.title %></h3>
@@ -260,5 +260,6 @@
     </a>
   <% } %>
 </div>
+
 
 

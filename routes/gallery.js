@@ -203,7 +203,8 @@ router.get('/', async (req, res) => {
     const defaultAd = await AdTag.findOne({ keyword: 'default', isActive: true }).lean();
 
     res.render('gallery', {
-      title: 'ギャラリー',
+      title: '同人CG・画像ギャラリーまとめ',
+      metaDescription: '人気の同人ゲームや人気キャラクターの高画質CG、イラスト画像をタイトル別・タグ別にまとめたギャラリー一覧です。',
       folders,
       latestImages,
       user: req.user,
@@ -263,7 +264,8 @@ router.get('/series/:folder', async (req, res) => {
     }
 
     res.render('gallery-series', {
-      title: folder + ' - ギャラリー',
+      title: `【画像まとめ】${folder}のCG・イラストギャラリー`,
+      metaDescription: `同人ゲーム・作品「${folder}」のCGやイラスト画像、関連シーンをまとめた高画質ギャラリーです。`,
       folder,
       images,
       likedSet,
@@ -316,7 +318,8 @@ router.get('/tag/:tag', async (req, res) => {
     }
 
     res.render('gallery-tag', {
-      title: '#' + tag + ' - ギャラリー',
+      title: `【画像まとめ】${tag}のCG・イラストギャラリー`,
+      metaDescription: `キャラクターや属性「${tag}」に関連する同人ゲームCG・イラスト画像のまとめギャラリーです。`,
       tag,
       images,
       likedSet,
@@ -369,11 +372,14 @@ router.get('/:id', async (req, res) => {
       if (defaultAd) adHtml = defaultAd.adHtml;
     }
 
-    res.render('gallery-detail', {
-      title: image.title,
-      image,
-      comments,
-      liked,
+    const folderName = image.r2Key ? image.r2Key.split('/')[0] : '画像';
+
+      res.render('gallery-detail', {
+        title: image.title + ' | 「' + folderName + '」のCG・イラスト画像',
+        metaDescription: '同人ゲーム・作品「' + folderName + '」の画像「' + image.title + '」。タグ: ' + (image.tags ? image.tags.join(', ') : '') + '。',
+        image,
+        comments,
+        liked,
       bookmarked,
       queryError: req.query.error === '1',
       randomVideo,
@@ -475,3 +481,4 @@ router.post('/comment/:commentId/delete', ensureAuth, async (req, res) => {
 });
 
 module.exports = router;
+

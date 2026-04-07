@@ -200,7 +200,7 @@
       <div class="latest-images-grid">
         <% latestImages.forEach(function(img) { %>
           <a href="/gallery/<%= img._id %>" class="latest-image-card">
-            <img src="<%= img.r2Url %>" alt="<%= img.title || '画像' %>" class="latest-image-img" loading="lazy">
+            <img src="<%= img.r2Url %>" alt="<%= img.folder || ' %>の画像 - <%= img.title %>" class="latest-image-img" loading="lazy">
             <div class="latest-image-info" title="<%= img.title || '名称未設定' %>">
               <%= img.title || '名称未設定' %>
             </div>
@@ -259,5 +259,7 @@
     </a>
   <% } %>
 </div>
+
+
 
 
