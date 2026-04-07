@@ -2389,3 +2389,16 @@ body {
 
 
 
+
+/* ギャラリー/トップ記事内 5番目広告用レスポンシブ拡張 */
+.gallery-ad-banner {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none !important;
+  background: transparent !important;
+  overflow: visible !important;
+  margin: 15px auto;
+  min-width: 320px;
+}

@@ -218,7 +218,7 @@
     <% if (folders && folders.length > 0) { %>
       <% folders.forEach(function(f, index) { %>
         <% if (index === 4 && typeof adTag !== 'undefined' && adTag) { %>
-          <div class="series-card" style="display: flex; align-items: center; justify-content: center; background: transparent; box-shadow: none;">
+          <div class="gallery-ad-banner">
             <%- adTag %>
           </div>
         <% } %>
@@ -259,3 +259,5 @@
     </a>
   <% } %>
 </div>
+
+

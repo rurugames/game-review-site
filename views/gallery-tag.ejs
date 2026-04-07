@@ -189,7 +189,7 @@
     <% if (images && images.length > 0) { %>
       <% images.forEach(function(img, index) { %>
         <% if (index === 4 && typeof adTag !== 'undefined' && adTag) { %>
-          <div class="gallery-item" style="display: flex; align-items: center; justify-content: center; box-shadow: none; background: transparent;">
+          <div class="gallery-ad-banner">
             <%- adTag %>
           </div>
         <% } %>
@@ -260,3 +260,5 @@
     </a>
   <% } %>
 </div>
+
+
