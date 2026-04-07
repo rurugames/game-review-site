@@ -7,7 +7,7 @@ async function main() {
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('MongoDB connected.');
 
-        const adCode = `<!-- admax -->\n<script src="https://adm.shinobi.jp/s/e51ca786a8809173f5a97a64b35b1bf6"></script>\n<!-- admax -->`;
+        const adCode = `<!-- admax -->\n<script src="https://adm.shinobi.jp/s/19b0728604563efe6197dce8022492a3"></script>\n<!-- admax -->`;
 
         const result = await AdTag.findOneAndUpdate(
             { keyword: 'default' },
@@ -18,7 +18,7 @@ async function main() {
             { upsert: true, new: true }
         );
 
-        console.log('✅ デフォルトの広告枠（忍者AdMax インタースティシャル PC/SP共通）をDBに登録しました！');  
+        console.log('✅ デフォルトの広告枠（PC・スマホ両対応バナー）をDBに登録しました！');  
     } catch (err) {
         console.error('❌ エラーが発生しました:', err);
     } finally {

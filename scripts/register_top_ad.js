@@ -7,18 +7,18 @@ async function main() {
         await mongoose.connect(process.env.MONGODB_URI);
         console.log('MongoDB connected.');
 
-        const adCode = `<!-- admax -->\n<script src="https://adm.shinobi.jp/s/7348e803afafe18515a14b0735c50729"></script>\n<!-- admax -->`;
+        const adCode = `<!-- admax -->\n<script src="https://adm.shinobi.jp/s/19b0728604563efe6197dce8022492a3"></script>\n<!-- admax -->`;
 
         const result = await AdTag.findOneAndUpdate(
             { keyword: 'top_page' },
-            { 
+            {
                 adHtml: adCode,
-                isActive: true 
+                isActive: true
             },
             { upsert: true, new: true }
         );
 
-        console.log('✅ トップページ専用の広告枠をDBに登録しました！');
+        console.log('✅ トップページ専用広告枠（PC・スマホ両対応バナー）をDBに登録しました！');  
     } catch (err) {
         console.error('❌ エラーが発生しました:', err);
     } finally {
