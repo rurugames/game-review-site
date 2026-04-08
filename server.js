@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const expressLayouts = require('express-ejs-layouts');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
+const { MongoStore } = require('connect-mongo');
 const passport = require('passport');
 const mongoose = require('mongoose');
 const methodOverride = require('method-override');
