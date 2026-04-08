@@ -697,6 +697,7 @@ router.get('/search', async (req, res) => {
     let articles = await Article.find(articlesQuery, projection)
       .sort(sort)
       .limit(50)
+      .allowDiskUse(true)
       .lean();
 
     // 提供するジャンル一覧（フィルタUI用）
