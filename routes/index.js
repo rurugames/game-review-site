@@ -19,7 +19,7 @@ const Comment = require('../models/Comment');
 const Review = require('../models/Review');
 const AdTag = require('../models/AdTag');
 const { isAdminEmail } = require('../lib/admin');
-const { normalizeAffiliateLink, DEFAULT_AID } = require('../lib/dlsiteAffiliate');
+
 
 // キャッシュ設定
 const { ensureAdmin } = require('../middleware/auth');
@@ -288,78 +288,7 @@ function createMailTransport() {
   });
 }
 
-/**
- * Start or return existing ranking fetch promise.
- * Ensures only one fetch runs at a time and emits progress/status via socketLib.
- * @param {number} maxItems
- * @returns {Promise<Array>} resolves to ranking array
- */
-function startRankingFetch(maxItems = 100) {
-  if (rankingFetchInProgress && rankingFetchPromise) {
-    return rankingFetchPromise;
-  }
-  rankingFetchInProgress = true;
-  rankingFetchLastStarted = Date.now();
-  rankingFetchProgress = 0;
-  rankingFetchTarget = maxItems;
-
-  rankingFetchPromise = (async () => {
-    try {
-        const fetched = await dlsiteService.fetchPopularRanking(maxItems, (count) => {
-        rankingFetchProgress = count;
-        try { socketLib.emit('ranking:progress', makeStatus()); } catch (e) {}
-      });
-        rankingCache = fetched || [];
-        // set cache time before rendering partial so emitted HTML shows correct timestamps
-        rankingCacheTime = Date.now();
-        // render partial HTML for clients to replace without reload (include status info)
-        try {
-          const partialPath = path.join(__dirname, '..', 'views', 'partials', 'rankingList.ejs');
-          // limit to top 10 for the partial sent to home clients
-          const limited = attachAffiliateUrls(Array.isArray(rankingCache) ? rankingCache.slice(0, 10) : []);
-          const rankingStatus = makeStatus();
-          const rankingStatusFormatted = {
-            lastUpdatedStr: rankingStatus.cacheTime ? formatJp(rankingStatus.cacheTime) : null,
-            nextUpdateStr: rankingStatus.nextUpdate ? formatJp(rankingStatus.nextUpdate) : null
-          };
-          const html = await ejs.renderFile(partialPath, { ranking: limited, per: 10, totalCount: limited.length, page: 1, totalPages: 1, query: {}, rankingStatus, rankingStatusFormatted });
-          try {
-            socketLib.emit('ranking:complete', { html, rankingStatus });
-            console.log('Emitted ranking:complete with html length=', html ? html.length : 0);
-          } catch (e) {}
-        } catch (renderErr) {
-          console.warn('ランキング部分レンダリング失敗:', renderErr && renderErr.message ? renderErr.message : renderErr);
-        }
-        rankingFetchLastFinished = Date.now();
-      rankingFetchLastError = null;
-      try { socketLib.emit('ranking:status', makeStatus()); } catch (e) {}
-      return rankingCache;
-    } catch (err) {
-      rankingFetchLastError = String(err || err.message || err);
-      rankingFetchLastFinished = Date.now();
-      try { socketLib.emit('ranking:status', makeStatus()); } catch (e) {}
-      throw err;
-    } finally {
-      rankingFetchInProgress = false;
-      rankingFetchPromise = null;
-      try { socketLib.emit('ranking:status', makeStatus()); } catch (e) {}
-    }
-  })();
-
-  return rankingFetchPromise;
-}
-
-function attachAffiliateUrls(ranking) {
-  const list = Array.isArray(ranking) ? ranking : [];
-  return list.map((game) => {
-    if (!game) return game;
-    const dlsiteUrl = String(game.dlsiteUrl || '').trim();
-    const affiliateUrl = normalizeAffiliateLink(dlsiteUrl, { aid: DEFAULT_AID }) || dlsiteUrl;
-    return { ...game, dlsiteUrl, affiliateUrl };
-  });
-}
-
-// ホームページ - 記事一覧とDLsiteランキング
+// ホームページ
 router.get('/', async (req, res) => {
   try {
     let topAd = await AdTag.findOne({ keyword: 'top_page' });
@@ -831,58 +760,7 @@ router.get('/search', async (req, res) => {
       return a;
     });
 
-    // ランキング（games）側の絞り込み: キーワード、価格帯
-    let games = [];
-    try {
-      if (typeof dlsiteService.fetchPopularRanking === 'function') {
-        // search内の同期取得は startRankingFetch を使って重複を防止
-        let ranking = [];
-        try {
-          ranking = await startRankingFetch(100) || [];
-        } catch (eFetch) {
-          rankingFetchLastError = String(eFetch || eFetch.message || eFetch);
-          ranking = rankingCache || [];
-        }
-        const qLower = q.toLowerCase();
-        games = ranking.filter(g => {
-          const matchesQ = !q || ((g.title && g.title.toLowerCase().includes(qLower)) || (g.circle && g.circle.toLowerCase().includes(qLower)));
-          if (!matchesQ) return false;
-          // price filter (if provided) - attempt to extract digits
-          if ((minPrice !== null && !isNaN(minPrice)) || (maxPrice !== null && !isNaN(maxPrice))) {
-            let p = null;
-            if (g.price) {
-              const m = String(g.price).replace(/[,\s]/g, '').match(/(\d+)/);
-              if (m) p = Number(m[1]);
-            }
-            if (p === null) return false;
-            if (minPrice !== null && !isNaN(minPrice) && p < minPrice) return false;
-            if (maxPrice !== null && !isNaN(maxPrice) && p > maxPrice) return false;
-          }
-          return true;
-        }).slice(0, 24);
-      }
-    } catch (err) {
-      rankingFetchInProgress = false;
-      rankingFetchLastError = String(err || err.message || err);
-      console.error('ランキング検索中にエラー:', err);
-      games = [];
-    }
-
-    // ハイライトをゲームタイトルにも付与（簡易）
-    if (q) {
-      const qEsc = q.replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
-      const re = new RegExp(qEsc, 'ig');
-      games = games.map(g => {
-        const raw = String(g.title || '');
-        const plain = raw.replace(/<[^>]*>/g, '');
-        const esc = escapeHtml(plain);
-        g._titleHighlighted = esc.replace(re, m => '<mark class="search-highlight">' + escapeHtml(m) + '</mark>');
-        return g;
-      });
-    }
-
-    // 検索ページ内ランキングのリンクも dlaf 形式へ統一
-    games = attachAffiliateUrls(games);
+    const games = [];
 
     const total = (articles ? articles.length : 0) + (games ? games.length : 0);
     res.render('search', { query: q, articles, games, total, filters: { genre, minPrice, maxPrice, fromDate: req.query.fromDate || '', toDate: req.query.toDate || '' }, genres });
