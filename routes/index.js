@@ -18,6 +18,7 @@ const DailyArticleReferrer = require('../models/DailyArticleReferrer');
 const Comment = require('../models/Comment');
 const Review = require('../models/Review');
 const AdTag = require('../models/AdTag');
+const GalleryImage = require('../models/GalleryImage');
 const { isAdminEmail } = require('../lib/admin');
 
 
