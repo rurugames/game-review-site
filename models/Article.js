@@ -92,4 +92,8 @@ ArticleSchema.index({
   weights: { title: 10, gameTitle: 8, tags: 5, description: 3, content: 1 }
 });
 
+// ソート用複合インデックス（Sort exceeded memory limit 対策）
+ArticleSchema.index({ status: 1, releaseDate: -1, createdAt: -1, _id: -1 });
+ArticleSchema.index({ status: 1, createdAt: -1, _id: -1 });
+
 module.exports = mongoose.model('Article', ArticleSchema);
