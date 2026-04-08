@@ -1029,7 +1029,8 @@ router.get('/', async (req, res) => {
       .populate('author')
       .sort(sortSpec)
       .skip((page - 1) * per)
-      .limit(per);
+      .limit(per)
+      .allowDiskUse(true);
 
     const heroHtml = `
       <div class="hero">
