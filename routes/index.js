@@ -371,9 +371,7 @@ router.get('/', async (req, res) => {
     const articles = await Article.find({ status: 'published' })
       .populate('author')
       .sort({ releaseDate: -1, createdAt: -1, _id: -1 })
-      .limit(10);
-
-    const GalleryImage = require('../models/GalleryImage');
+        .allowDiskUse(true)
     const latestGalleryImages = await GalleryImage.find({ status: 'published' })
       .sort({ uploadDate: -1 })
       .limit(5);
@@ -914,8 +912,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
 
     const articles = await Article.find(articlesQuery)
       .sort({ createdAt: -1, _id: -1 })
-      .skip((page - 1) * per)
-      .limit(per);
+        .allowDiskUse(true)
 
     // 日別アクセス数（あなたの記事の合計）
     const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
