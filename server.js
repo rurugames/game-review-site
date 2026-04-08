@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const expressLayouts = require('express-ejs-layouts');
 const session = require('express-session');
+const MongoStore = require('connect-mongo');
 const passport = require('passport');
 const mongoose = require('mongoose');
 const methodOverride = require('method-override');
@@ -151,13 +152,16 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI,
+    ttl: 24 * 60 * 60 // 24時間（秒）
+  }),
   cookie: { maxAge: 24 * 60 * 60 * 1000 } // 24時間
 }));
 
 // Passport初期化
 app.use(passport.initialize());
 app.use(passport.session());
-
 async function getUnreadReplyCountForUser(userId) {
   try {
     const uid = String(userId || '').trim();
