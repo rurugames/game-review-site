@@ -4,7 +4,7 @@
   "description": "ゲームレビューサイト - PCゲーム情報をまとめるプラットフォーム",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node --max-old-space-size=460 server.js",
     "dev": "nodemon server.js",
     "start:detached": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows-start-detached.ps1",
     "start:detached:debug": "pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows-start-detached.ps1 -DebugExit",

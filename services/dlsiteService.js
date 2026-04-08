@@ -15,6 +15,7 @@ class DLsiteService {
     };
     // simple in-memory cache for per-game details to avoid refetching
     this.detailsCache = new Map();
+    this.detailsCacheMaxSize = 200; // メモリ保護: 最大200件のみ保持
     // make these configurable defaults
     this.concurrentFetchLimit = 8; // default concurrency
     this.detailsCacheTTL = 1 * 60 * 60 * 1000; // 1 hour TTL
@@ -783,12 +784,16 @@ class DLsiteService {
   // store details in cache
   _cacheDetails(gameId, details) {
     try {
+      // 上限を超えたら古いエントリを削除してメモリを解放
+      if (this.detailsCache.size >= this.detailsCacheMaxSize) {
+        const oldestKey = this.detailsCache.keys().next().value;
+        this.detailsCache.delete(oldestKey);
+      }
       this.detailsCache.set(gameId, { ts: Date.now(), details });
     } catch (e) {
       // ignore cache errors
     }
   }
-
   /**
    * DLsite人気ランキングTop10を取得
    */
