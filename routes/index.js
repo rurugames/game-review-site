@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const Article = require('../models/Article');
 const dlsiteService = require('../services/dlsiteService');
-const socketLib = require('../lib/socket');
 const path = require('path');
 const ejs = require('ejs');
 const mongoose = require('mongoose');
@@ -298,12 +297,15 @@ router.get('/', async (req, res) => {
     }
     const adTag = topAd && topAd.isActive ? topAd.adHtml : '';
 
-    const articles = await Article.find({ status: 'published' })
-      .populate('author')
-      .sort({ releaseDate: -1, createdAt: -1, _id: -1 })
-      .limit(20)
-      .allowDiskUse(true)
-      .lean();
+    const disablePublicArticles = process.env.EMERGENCY_DISABLE_PUBLIC_ARTICLES !== '0';
+    const articles = disablePublicArticles
+      ? []
+      : await Article.find({ status: 'published' })
+        .populate('author')
+        .sort({ releaseDate: -1, createdAt: -1, _id: -1 })
+        .limit(20)
+        .allowDiskUse(true)
+        .lean();
     const latestGalleryImages = await GalleryImage.find({ status: 'published' })
       .sort({ uploadDate: -1 })
       .limit(5);

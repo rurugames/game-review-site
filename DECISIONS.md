@@ -102,3 +102,79 @@
 
 ## 2026-04-05
 - 不要になった「人気ランキング(/ranking)」機能を完全に削除（ルーティング、EJSテンプレート、JSウィジェット、バックグラウンド取得ロジックなど全てクリーンアップ）。
+
+## 2026-04-09: ギャラリー運用で専用エージェントを前提にしない
+
+### 背景
+- ギャラリー追加の短い命令で専用エージェントが起動し、画像をまとめて確認しようとして VS Code が不安定になる事象があった。
+
+### 決定
+- ギャラリー運用は専用エージェント前提にせず、通常の Copilot チャットから段階的に実行する。
+- 大量画像に対して `view_image` を一括で走らせる運用は採らない。
+- `uploads/gallery/` は未処理画像専用とし、反映確認後の画像は `uploads/gallery_archive/YYYY-MM-DD/` に退避する。
+- 画像を退避した後も、`uploads/gallery/` 側のシリーズフォルダは残す。
+- [GALLERY_UPLOAD_PROMPT.md](GALLERY_UPLOAD_PROMPT.md) を添付して「ギャラリーを追加して」と依頼された場合は、通常チャットでアップロードから退避までを既定動作として続けて行う。
+
+### 反映箇所
+- `GALLERY_UPLOAD_PROMPT.md`
+- `.github/copilot-instructions.md`
+
+### メモ
+- 画像確認が不要なケースでは `.metadata.json` を省略し、`scripts/upload_gallery.js` のフォールバック処理を使ってよい。
+- 処理済み画像を `uploads/gallery/` に残し続けないことで、次回の確認対象とチャット実行時の負荷を抑える。
+- 空フォルダを残すことで、次回の投入先シリーズを迷わず維持できる。
+- ローカルサイト確認が失敗しても、アップロード処理が成功していれば退避まで進める運用とする。
+
+## 2026-04-11: CSS の毎回キャッシュ無効化をやめる
+
+### 背景
+- Render の HTTP Responses 帯域を調べると、共通 CSS が毎ページ再取得される構成になっていた。
+
+### 決定
+- `style.css` のクエリ文字列に `Date.now()` を使うのをやめ、固定の `assetVersion` を使う。
+- `assetVersion` は `ASSET_VERSION` 環境変数、未設定なら `package.json` の version を使う。
+
+### 反映箇所
+- `server.js`
+- `views/layout.ejs`
+
+### メモ
+- これにより同一バージョン配信中は CSS をブラウザ/CDN が再利用しやすくなる。
+
+## 2026-04-11: 全ページ共通の Socket.IO 配信を停止
+
+### 背景
+- 共通レイアウトで全ページに `/socket.io/socket.io.js` を配信していたが、現行コードではクライアント側の利用実体がなく、固定帯域だけが増えていた。
+
+### 決定
+- 共通レイアウトから Socket.IO クライアント読込を外す。
+- サーバー側の Socket.IO 初期化と接続時送信処理も削除する。
+
+### 反映箇所
+- `server.js`
+- `views/layout.ejs`
+
+### メモ
+- 将来リアルタイム更新が必要になった場合は、対象ページ限定で読み込む。
+
+## 2026-04-11: Render 帯域緊急対策で公開記事一覧導線を一時停止
+
+### 背景
+- 月間帯域上限が近く、公開記事一覧と sitemap 経由のクロール負荷を即時に落とす必要が出た。
+
+### 決定
+- `EMERGENCY_DISABLE_PUBLIC_ARTICLES` を導入し、未設定時は有効として扱う。
+- 有効時は `/articles` 一覧を 410 で一時停止する。
+- ホームと共通ナビから公開記事一覧への導線を外す。
+- `robots.txt` と `sitemap.xml` から公開記事一覧クロール導線を除外する。
+
+### 反映箇所
+- `server.js`
+- `routes/articles.js`
+- `routes/index.js`
+- `views/layout.ejs`
+- `views/index.ejs`
+
+### メモ
+- 既知の個別記事 URL までは今回停止していないため、さらに削減が必要なら `/articles/:id` も同じフラグで止める。
+- 緊急停止を解除する場合は `EMERGENCY_DISABLE_PUBLIC_ARTICLES=0` を設定する。

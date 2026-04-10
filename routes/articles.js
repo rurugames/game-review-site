@@ -787,6 +787,26 @@ router.get('/:id', async (req, res) => {
 
 // 記事一覧（公開済み）
 router.get('/', async (req, res) => {
+  if (process.env.EMERGENCY_DISABLE_PUBLIC_ARTICLES !== '0') {
+    res.set('X-Robots-Tag', 'noindex, nofollow');
+    return res.status(410).type('text/html; charset=utf-8').send(`<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>記事一覧は一時停止中です</title>
+  </head>
+  <body>
+    <main>
+      <h1>記事一覧は一時停止中です</h1>
+      <p>現在、帯域負荷対策のため記事一覧ページを一時停止しています。</p>
+      <p><a href="/">トップへ戻る</a></p>
+    </main>
+  </body>
+</html>`);
+  }
+
   try {
     // 表示件数制御 + ページネーション: デフォルト10件、オプション: 10,30,50,100
     const allowed = [10, 30, 50, 100];

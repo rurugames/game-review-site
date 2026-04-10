@@ -46,76 +46,80 @@
   <div class="panel">
     <div class="panel-body" style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
       <a href="/review-ranking" class="btn-primary">みんなの評価を見る</a>
-      <a href="/articles#popular-tags" class="btn-secondary">人気タグから最速で探す</a>
-      <a href="/articles?year=<%= _y %>&month=<%= _m %>" class="btn-secondary">今月の新作を見る</a>
+      <% if (!disablePublicArticles) { %>
+        <a href="/articles#popular-tags" class="btn-secondary">人気タグから最速で探す</a>
+        <a href="/articles?year=<%= _y %>&month=<%= _m %>" class="btn-secondary">今月の新作を見る</a>
+      <% } %>
     </div>
   </div>
 </section>
 
-<section class="articles-section page-section">
-  <div class="page-header">
-    <h2 class="section-title">最新記事</h2>
-    <p class="section-lead">レビュー・記事をパネル形式で一覧表示します。気になる記事をクリックして詳細を確認してください。</p>
-  </div>
+<% if (!disablePublicArticles) { %>
+  <section class="articles-section page-section">
+    <div class="page-header">
+      <h2 class="section-title">最新記事</h2>
+      <p class="section-lead">レビュー・記事をパネル形式で一覧表示します。気になる記事をクリックして詳細を確認してください。</p>
+    </div>
 
-  <div class="panel">
-    <div class="panel-body">
-      <div class="articles-grid">
-        <% if (articles.length > 0) { %>
-          <% articles.forEach((article, index) => { %>
-            <% if (index === 4 && typeof adTag !== 'undefined' && adTag) { %>
-              <article class="gallery-ad-banner">
-                <%- adTag %>
-              </article>
-            <% } %>
-            <article class="article-card">
-              <% if (article.imageUrl) { %>
-                <div class="article-image">
-                  <img src="<%= article.imageUrl %>" alt="<%= article.gameTitle %>">
-                </div>
+    <div class="panel">
+      <div class="panel-body">
+        <div class="articles-grid">
+          <% if (articles.length > 0) { %>
+            <% articles.forEach((article, index) => { %>
+              <% if (index === 4 && typeof adTag !== 'undefined' && adTag) { %>
+                <article class="gallery-ad-banner">
+                  <%- adTag %>
+                </article>
               <% } %>
-              <div class="article-content">
-                <div class="article-meta">
-                  <span class="genre"><%= article.genre || 'ゲーム' %></span>
-                  <% if (article.rating) { %>
-                    <span class="rating"><%= '★'.repeat(article.rating) + '☆'.repeat(10 - article.rating) %></span>
-                  <% } %>
-                </div>
-                <h2><%= article.title %></h2>
-                <h3 class="game-title"><%= article.gameTitle %></h3>
-                <p class="description"><%= article.description.substring(0, 150) %>...</p>
-                <% if (article.tags && article.tags.length > 0) { %>
-                  <div class="article-tags">
-                    <% article.tags.slice(0, 3).forEach(tag => { %>
-                      <span class="tag-small">#<%= tag %></span>
-                    <% }); %>
+              <article class="article-card">
+                <% if (article.imageUrl) { %>
+                  <div class="article-image">
+                    <img src="<%= article.imageUrl %>" alt="<%= article.gameTitle %>">
                   </div>
                 <% } %>
-                <div class="article-footer">
-                  <div class="author-info">
-                    <img src="<%= article.author.image %>" alt="<%= (adminDisplayNames && adminDisplayNames[article.author.email]) ? adminDisplayNames[article.author.email] : article.author.displayName %>" class="author-avatar">
-                    <span><%= (adminDisplayNames && adminDisplayNames[article.author.email]) ? adminDisplayNames[article.author.email] : article.author.displayName %></span>
+                <div class="article-content">
+                  <div class="article-meta">
+                    <span class="genre"><%= article.genre || 'ゲーム' %></span>
+                    <% if (article.rating) { %>
+                      <span class="rating"><%= '★'.repeat(article.rating) + '☆'.repeat(10 - article.rating) %></span>
+                    <% } %>
                   </div>
-                  <span class="date"><%= new Date(article.createdAt).toLocaleDateString('ja-JP') %></span>
+                  <h2><%= article.title %></h2>
+                  <h3 class="game-title"><%= article.gameTitle %></h3>
+                  <p class="description"><%= article.description.substring(0, 150) %>...</p>
+                  <% if (article.tags && article.tags.length > 0) { %>
+                    <div class="article-tags">
+                      <% article.tags.slice(0, 3).forEach(tag => { %>
+                        <span class="tag-small">#<%= tag %></span>
+                      <% }); %>
+                    </div>
+                  <% } %>
+                  <div class="article-footer">
+                    <div class="author-info">
+                      <img src="<%= article.author.image %>" alt="<%= (adminDisplayNames && adminDisplayNames[article.author.email]) ? adminDisplayNames[article.author.email] : article.author.displayName %>" class="author-avatar">
+                      <span><%= (adminDisplayNames && adminDisplayNames[article.author.email]) ? adminDisplayNames[article.author.email] : article.author.displayName %></span>
+                    </div>
+                    <span class="date"><%= new Date(article.createdAt).toLocaleDateString('ja-JP') %></span>
+                  </div>
+                  <a href="/articles/<%= article._id %>" class="btn-read-more">続きを読む</a>
                 </div>
-                <a href="/articles/<%= article._id %>" class="btn-read-more">続きを読む</a>
-              </div>
-            </article>
-          <% }); %>
-        <% } else { %>
-          <div class="no-articles">
-            <p>まだ記事がありません。</p>
-            <% if (user) { %>
-              <a href="/articles/new" class="btn-primary">最初の記事を作成する</a>
-            <% } else { %>
-              <a href="/auth/google" class="btn-primary">ログインして記事を作成</a>
-            <% } %>
-          </div>
-        <% } %>
+              </article>
+            <% }); %>
+          <% } else { %>
+            <div class="no-articles">
+              <p>まだ記事がありません。</p>
+              <% if (user) { %>
+                <a href="/articles/new" class="btn-primary">最初の記事を作成する</a>
+              <% } else { %>
+                <a href="/auth/google" class="btn-primary">ログインして記事を作成</a>
+              <% } %>
+            </div>
+          <% } %>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
+<% } %>
 
 <% if (typeof reviewMonthlyBest !== 'undefined') { %>
 <section class="articles-section page-section" aria-label="みんなの評価">

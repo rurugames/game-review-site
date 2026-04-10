@@ -7,6 +7,7 @@ const passport = require('passport');
 const mongoose = require('mongoose');
 const methodOverride = require('method-override');
 const path = require('path');
+const packageJson = require('./package.json');
 const Article = require('./models/Article');
 const Comment = require('./models/Comment');
 
@@ -62,10 +63,10 @@ if (process.env.DEBUG_PROCESS_EXIT === '1') {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const ASSET_VERSION = String(process.env.ASSET_VERSION || packageJson.version || '1').trim();
+const DISABLE_PUBLIC_ARTICLES = process.env.EMERGENCY_DISABLE_PUBLIC_ARTICLES !== '0';
 const http = require('http');
 const server = http.createServer(app);
-const { Server } = require('socket.io');
-const socketLib = require('./lib/socket');
 const { ADMIN_DISPLAY_NAMES, getAdminDisplayNameByEmail, isAdminEmail } = require('./lib/admin');
 const Setting = require('./models/Setting');
 const dlsiteService = require('./services/dlsiteService');
@@ -192,6 +193,8 @@ async function getUnreadReplyCountForUser(userId) {
 // グローバル変数設定
 app.use(async (req, res, next) => {
   res.locals.user = req.user || null;
+  res.locals.assetVersion = ASSET_VERSION;
+  res.locals.disablePublicArticles = DISABLE_PUBLIC_ARTICLES;
   res.locals.adminDisplayNames = ADMIN_DISPLAY_NAMES;
   res.locals.isAdmin = !!(req.user && isAdminEmail(req.user.email));
   if (req.user) {
@@ -251,6 +254,7 @@ app.use(async (req, res, next) => {
     p.startsWith('/search') ||
     p.startsWith('/events') ||
     p === '/videos/fc2' ||
+    (DISABLE_PUBLIC_ARTICLES && p === '/articles') ||
     /^\/articles\/.+\/edit$/.test(p) ||
     p === '/articles/new';
   res.locals.metaRobots = isNoindex ? 'noindex,nofollow' : 'index,follow';
@@ -281,6 +285,7 @@ app.get('/robots.txt', (req, res) => {
     // This helps reduce bot traffic / response counts.
     'Disallow: /adult/',
     'Disallow: /videos/fc2',
+    ...(DISABLE_PUBLIC_ARTICLES ? ['Disallow: /articles'] : []),
     'Allow: /',
     siteUrl ? `Sitemap: ${siteUrl}/sitemap.xml` : null,
     '',
@@ -309,21 +314,26 @@ app.get('/sitemap.xml', async (req, res) => {
 
   try {
     // Note: Exclude gated pages like /videos/fc2 from sitemap to avoid bot crawl/redirect loops.
-    const staticPaths = ['/', '/videos', '/articles', '/help', '/contact'];
+    const staticPaths = ['/', '/videos', '/help', '/contact'];
+    if (!DISABLE_PUBLIC_ARTICLES) {
+      staticPaths.splice(2, 0, '/articles');
+    }
     const urls = staticPaths.map((p) => ({ loc: `${siteUrl}${p}`, lastmod: null }));
 
-    const articles = await Article.find({ status: 'published' })
-      .select('_id updatedAt createdAt')
-      .sort({ updatedAt: -1 })
-      .limit(5000)
-      .lean();
+    if (!DISABLE_PUBLIC_ARTICLES) {
+      const articles = await Article.find({ status: 'published' })
+        .select('_id updatedAt createdAt')
+        .sort({ updatedAt: -1 })
+        .limit(5000)
+        .lean();
 
-    for (const a of (articles || [])) {
-      const ts = a.updatedAt || a.createdAt;
-      urls.push({
-        loc: `${siteUrl}/articles/${a._id}`,
-        lastmod: ts ? new Date(ts).toISOString() : null,
-      });
+      for (const a of (articles || [])) {
+        const ts = a.updatedAt || a.createdAt;
+        urls.push({
+          loc: `${siteUrl}/articles/${a._id}`,
+          lastmod: ts ? new Date(ts).toISOString() : null,
+        });
+      }
     }
 
     const body = [
@@ -368,36 +378,6 @@ app.use('/generator', require('./routes/generator'));
 app.use('/csv', require('./routes/csv'));
 app.use('/out', require('./routes/out'));
 app.use('/gallery', require('./routes/gallery'));
-
-// Socket.IO 初期化
-const io = new Server(server, { path: '/socket.io' });
-socketLib.set(io);
-
-io.on('connection', (socket) => {
-  console.log('クライアントが接続しました:', socket.id);
-  // 初期ステータスを送る（routes/index.js が中身を持つ）
-  try {
-    const routes = require('./routes/index');
-    if (typeof routes.getRankingStatus === 'function') {
-      socket.emit('ranking:status', routes.getRankingStatus());
-    }
-    // If cache exists, also send rendered partial HTML so clients can update immediately
-    try {
-      if (typeof routes.getRankingPartialHtml === 'function') {
-        routes.getRankingPartialHtml().then(html => {
-          if (html) {
-            socket.emit('ranking:complete', { html });
-            try { console.log('Sent ranking:complete to new socket', socket.id, 'htmlLength=', html.length); } catch (e) {}
-          }
-        }).catch((err) => { console.warn('getRankingPartialHtml err', err && err.message ? err.message : err); });
-      }
-    } catch (e) {
-      // ignore
-    }
-  } catch (e) {
-    // ignore
-  }
-});
 
 // サーバー起動
 server.listen(PORT, () => {

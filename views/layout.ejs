@@ -50,7 +50,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/png" href="/images/siteicon.png">
   <link rel="apple-touch-icon" href="/images/siteicon.png">
-  <link rel="stylesheet" href="/css/style.css?v=<%= Date.now() %>">
+  <link rel="stylesheet" href="/css/style.css?v=<%= assetVersion %>">
   <% if (_siteUrl) { %>
     <script type="application/ld+json"><%- JSON.stringify({
       '@context': 'https://schema.org',
@@ -84,7 +84,9 @@
           <li><a href="/gallery">ギャラリー</a></li>
           <li><a href="/videos">動画</a></li>
           <li><a href="/videos/fc2" rel="nofollow">FC2動画（18+）</a></li>
-          <li><a href="/articles">記事一覧</a></li>
+          <% if (!disablePublicArticles) { %>
+            <li><a href="/articles">記事一覧</a></li>
+          <% } %>
           <% if (isAdmin) { %>
             <li><a href="/csv">CSV 管理</a></li>
             <li><a href="/generator">記事自動生成</a></li>
@@ -185,8 +187,6 @@
       </div>
     </div>
   </footer>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="/js/rankingProgress.js"></script>
   <script src="/js/mobileSidebar.js"></script>
   <!-- admax interstitial -->
   <script src="https://adm.shinobi.jp/s/e51ca786a8809173f5a97a64b35b1bf6"></script>
