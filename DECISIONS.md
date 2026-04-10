@@ -208,3 +208,20 @@
 - 新しい `siteicon.svg` は 792 bytes、旧 `siteicon.png` は約 1.1MB。
 - `ruruGames.png` は約 438KB あり、動画ページのロゴ参照から外した。
 - 旧 PNG は一旦残すが、テンプレート参照は外し、旧 URL も SVG へ誘導する。
+
+## 2026-04-11: 帯域調査のため受信・外向き通信の簡易ログを追加
+
+### 背景
+- 15分放置でも Render 帯域が大きく増える状況があり、ページ配信だけでなく外部取得通信も含めて切り分けが必要になった。
+
+### 決定
+- `ENABLE_TRAFFIC_MONITOR` を導入し、未設定時は有効として扱う。
+- 1分ごとに上位の受信パスと外向き通信先を Render ログへ集計出力する。
+
+### 反映箇所
+- `server.js`
+- `lib/trafficMonitor.js`
+
+### メモ
+- 受信は method/path/status ごと、外向き通信は method/host/path/status ごとに集計する。
+- 調査後に不要になれば `ENABLE_TRAFFIC_MONITOR=0` で停止できる。

@@ -7,9 +7,11 @@ const passport = require('passport');
 const mongoose = require('mongoose');
 const methodOverride = require('method-override');
 const path = require('path');
+const axios = require('axios');
 const packageJson = require('./package.json');
 const Article = require('./models/Article');
 const Comment = require('./models/Comment');
+const { createTrafficMonitor } = require('./lib/trafficMonitor');
 
 // Debug helper: find unexpected process exits (set DEBUG_PROCESS_EXIT=1)
 if (process.env.DEBUG_PROCESS_EXIT === '1') {
@@ -65,11 +67,19 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const ASSET_VERSION = String(process.env.ASSET_VERSION || packageJson.version || '1').trim();
 const DISABLE_PUBLIC_ARTICLES = process.env.EMERGENCY_DISABLE_PUBLIC_ARTICLES !== '0';
+const ENABLE_TRAFFIC_MONITOR = process.env.ENABLE_TRAFFIC_MONITOR !== '0';
 const http = require('http');
 const server = http.createServer(app);
 const { ADMIN_DISPLAY_NAMES, getAdminDisplayNameByEmail, isAdminEmail } = require('./lib/admin');
 const Setting = require('./models/Setting');
 const dlsiteService = require('./services/dlsiteService');
+const trafficMonitor = ENABLE_TRAFFIC_MONITOR
+  ? createTrafficMonitor({ intervalMs: Number(process.env.TRAFFIC_MONITOR_INTERVAL_MS || 60 * 1000) || 60 * 1000 })
+  : null;
+
+if (trafficMonitor) {
+  trafficMonitor.installAxiosMonitor(axios);
+}
 
 // Global error handlers to help debugging startup crashes
 process.on('uncaughtException', (err) => {
@@ -79,6 +89,10 @@ process.on('uncaughtException', (err) => {
 process.on('unhandledRejection', (reason, p) => {
   console.error('Unhandled Rejection at:', p, 'reason:', reason && reason.stack ? reason.stack : reason);
 });
+
+if (ENABLE_TRAFFIC_MONITOR) {
+  console.log('[traffic] monitor enabled');
+}
 
 // データベース接続
 mongoose.connect(process.env.MONGODB_URI)
@@ -138,6 +152,9 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(expressLayouts);
 app.set('layout', 'layout');
+if (trafficMonitor) {
+  app.use(trafficMonitor.createMiddleware());
+}
 app.get('/images/siteicon.png', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
   res.redirect(301, '/images/siteicon.svg');
