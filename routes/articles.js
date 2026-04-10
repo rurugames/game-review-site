@@ -270,6 +270,25 @@ router.get('/:id', async (req, res) => {
   try {
     // レビュー投稿直後のフィードバック（1回だけ表示）
     let reviewPostFeedback = null;
+    if (process.env.EMERGENCY_DISABLE_PUBLIC_ARTICLES !== '0') {
+      res.set('X-Robots-Tag', 'noindex, nofollow');
+      return res.status(410).type('text/html; charset=utf-8').send(`<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="robots" content="noindex,nofollow">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>記事ページは一時停止中です</title>
+  </head>
+  <body>
+    <main>
+      <h1>記事ページは一時停止中です</h1>
+      <p>現在、帯域負荷対策のため記事ページを一時停止しています。</p>
+      <p><a href="/">トップへ戻る</a></p>
+    </main>
+  </body>
+</html>`);
+    }
     try {
       const fb = req.session && req.session.reviewJustPosted ? req.session.reviewJustPosted : null;
       if (fb && String(fb.articleId || '') === String(req.params.id || '')) {

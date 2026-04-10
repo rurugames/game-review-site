@@ -165,6 +165,7 @@
 ### 決定
 - `EMERGENCY_DISABLE_PUBLIC_ARTICLES` を導入し、未設定時は有効として扱う。
 - 有効時は `/articles` 一覧を 410 で一時停止する。
+- 有効時は `/articles/:id` の個別記事ページも 410 で一時停止する。
 - ホームと共通ナビから公開記事一覧への導線を外す。
 - `robots.txt` と `sitemap.xml` から公開記事一覧クロール導線を除外する。
 
@@ -176,5 +177,4 @@
 - `views/index.ejs`
 
 ### メモ
-- 既知の個別記事 URL までは今回停止していないため、さらに削減が必要なら `/articles/:id` も同じフラグで止める。
 - 緊急停止を解除する場合は `EMERGENCY_DISABLE_PUBLIC_ARTICLES=0` を設定する。
