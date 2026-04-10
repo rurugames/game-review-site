@@ -413,6 +413,14 @@ router.get('/help', function(req, res, next) {
   res.render('help', { title: 'ヘルプ' });
 });
 
+// Updates page
+router.get('/updates', function(req, res) {
+  res.render('updates', {
+    title: 'お知らせ',
+    metaDescription: 'R18Hub の更新履歴と運用上のお知らせを掲載しています。',
+  });
+});
+
 // Contact page
 router.get('/contact', function(req, res) {
   const sent = String(req.query.sent || '') === '1';

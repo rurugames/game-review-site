@@ -314,7 +314,7 @@ app.get('/sitemap.xml', async (req, res) => {
 
   try {
     // Note: Exclude gated pages like /videos/fc2 from sitemap to avoid bot crawl/redirect loops.
-    const staticPaths = ['/', '/videos', '/help', '/contact'];
+    const staticPaths = ['/', '/videos', '/updates', '/help', '/contact'];
     if (!DISABLE_PUBLIC_ARTICLES) {
       staticPaths.splice(2, 0, '/articles');
     }
