@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">R18Hub icon</title>
+  <desc id="desc">R18Hub lightweight site icon</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="url(#bg)"/>
+  <circle cx="96" cy="32" r="10" fill="#f59e0b"/>
+  <path d="M31 95V33h26c18 0 28 8 28 23 0 10-5 17-13 21l17 18H71L57 80H46v15H31zm15-28h11c8 0 13-4 13-11s-5-11-13-11H46v22z" fill="#f8fafc"/>
+  <text x="95" y="100" text-anchor="end" font-family="Arial, sans-serif" font-size="26" font-weight="700" fill="#f8fafc">18</text>
+</svg>

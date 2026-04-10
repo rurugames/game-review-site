@@ -178,3 +178,30 @@
 
 ### メモ
 - 緊急停止を解除する場合は `EMERGENCY_DISABLE_PUBLIC_ARTICLES=0` を設定する。
+
+## 2026-04-11: 重い site icon の参照を軽量化し静的キャッシュを強化
+
+### 背景
+- Render 帯域を確認すると、`public/images/siteicon.png` が約 1.1MB と大きく、favicon、メニューのロゴ、各種プレースホルダ画像として広く参照されていた。
+- 静的配信は `max-age=0` 相当で、同画像の再取得が帯域増加の主要因になっていた。
+
+### 決定
+- 実運用の参照先は軽量な `siteicon.svg` に切り替える。
+- `express.static` に 7 日のキャッシュヘッダと `stale-while-revalidate` を付ける。
+
+### 反映箇所
+- `server.js`
+- `views/layout.ejs`
+- `views/gallery-series.ejs`
+- `views/gallery-detail.ejs`
+- `views/gallery.ejs`
+- `views/gallery-tag.ejs`
+- `views/videos/index.ejs`
+- `views/videos/fc2.ejs`
+- `views/search.ejs`
+- `views/articles/index.ejs`
+- `public/images/siteicon.svg`
+
+### メモ
+- 新しい `siteicon.svg` は 792 bytes、旧 `siteicon.png` は約 1.1MB。
+- 旧 PNG は一旦残すが、テンプレート参照は外している。
