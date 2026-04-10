@@ -187,6 +187,7 @@
 
 ### 決定
 - 実運用の参照先は軽量な `siteicon.svg` に切り替える。
+- 旧 `siteicon.png` と `ruruGames.png` への直接アクセスは軽量 SVG へ 301 リダイレクトする。
 - `express.static` に 7 日のキャッシュヘッダと `stale-while-revalidate` を付ける。
 
 ### 反映箇所
@@ -201,7 +202,9 @@
 - `views/search.ejs`
 - `views/articles/index.ejs`
 - `public/images/siteicon.svg`
+- `public/images/ruruGames.svg`
 
 ### メモ
 - 新しい `siteicon.svg` は 792 bytes、旧 `siteicon.png` は約 1.1MB。
-- 旧 PNG は一旦残すが、テンプレート参照は外している。
+- `ruruGames.png` は約 438KB あり、動画ページのロゴ参照から外した。
+- 旧 PNG は一旦残すが、テンプレート参照は外し、旧 URL も SVG へ誘導する。

@@ -138,6 +138,14 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.use(expressLayouts);
 app.set('layout', 'layout');
+app.get('/images/siteicon.png', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+  res.redirect(301, '/images/siteicon.svg');
+});
+app.get('/images/ruruGames.png', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+  res.redirect(301, '/images/ruruGames.svg');
+});
 app.use(express.static(path.join(__dirname, 'public'), {
   etag: true,
   maxAge: '7d',
