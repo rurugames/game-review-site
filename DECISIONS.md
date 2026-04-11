@@ -217,6 +217,7 @@
 ### 決定
 - `ENABLE_TRAFFIC_MONITOR` を導入し、未設定時は有効として扱う。
 - 1分ごとに上位の受信パスと外向き通信先を Render ログへ集計出力する。
+- 受信については User-Agent と IP の上位も同時に出し、Bot 由来かを判別しやすくする。
 
 ### 反映箇所
 - `server.js`
@@ -224,4 +225,5 @@
 
 ### メモ
 - 受信は method/path/status ごと、外向き通信は method/host/path/status ごとに集計する。
+- `inbound-ua` と `inbound-ip` を見ることで、特定 Bot や同一送信元の連続アクセスを把握しやすくする。
 - 調査後に不要になれば `ENABLE_TRAFFIC_MONITOR=0` で停止できる。
