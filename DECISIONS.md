@@ -227,3 +227,40 @@
 - 受信は method/path/status ごと、外向き通信は method/host/path/status ごとに集計する。
 - `inbound-ua` と `inbound-ip` を見ることで、特定 Bot や同一送信元の連続アクセスを把握しやすくする。
 - 調査後に不要になれば `ENABLE_TRAFFIC_MONITOR=0` で停止できる。
+
+## 2026-04-11: ギャラリーアップロードでサブフォルダを再帰走査する
+
+### 背景
+- `uploads/gallery/` 直下のシリーズフォルダのさらに下に画像を置くケースがあり、従来の1階層走査では拾えない画像が発生した。
+
+### 決定
+- `scripts/upload_gallery.js` は `uploads/gallery/` 配下を再帰走査する。
+- R2 キーは `uploads/gallery/` からの相対パスをそのまま使い、サブフォルダ構造も保持する。
+- タイトルとタグのシリーズ名は、最上位フォルダ名を使う。
+
+### 反映箇所
+- `scripts/upload_gallery.js`
+- `GALLERY_UPLOAD_PROMPT.md`
+
+### メモ
+- ルート直下の画像は従来どおり「その他」扱いのまま維持する。
+
+## 2026-04-20: サイト全体の年齢確認をトップページ起点に統一
+
+### 背景
+- 既存実装では FC2 動画リンクや `/out` 経由の一部導線だけで年齢確認しており、配下ページへの直リンク時に入口が統一されていなかった。
+
+### 決定
+- セッション未確認時は、トップページを含むサイト内の HTML ページアクセスを ` /adult/confirm ` に誘導する。
+- 配下ページへ直リンクした場合も、確認後に元のURLへ戻す。
+- 年齢確認で「いいえ」を選んだ場合は Google へ遷移する。
+- ` /adult ` と ` /auth `、`robots.txt`、`sitemap.xml`、`healthz` など運用上必要なエンドポイントは共通ゲートの対象外とする。
+
+### 反映箇所
+- `middleware/adultGate.js`
+- `routes/adult.js`
+- `views/adult/confirm.ejs`
+- `server.js`
+
+### メモ
+- 既存の FC2 個別ガードは残しつつ、サーバー全体の前段に共通ガードを追加した。

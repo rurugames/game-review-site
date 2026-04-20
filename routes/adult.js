@@ -3,6 +3,8 @@ const router = express.Router();
 
 const { sanitizeNextPath } = require('../middleware/adultGate');
 
+const ADULT_DENY_REDIRECT_URL = 'https://www.google.com/';
+
 router.get('/confirm', (req, res) => {
   const nextPath = sanitizeNextPath(req.query && req.query.next);
   res.render('adult/confirm', {
@@ -31,7 +33,7 @@ router.post('/deny', (req, res) => {
     }
   } catch (_) {}
 
-  res.redirect('/');
+  res.redirect(ADULT_DENY_REDIRECT_URL);
 });
 
 module.exports = router;

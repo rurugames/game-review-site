@@ -12,6 +12,7 @@ const packageJson = require('./package.json');
 const Article = require('./models/Article');
 const Comment = require('./models/Comment');
 const { createTrafficMonitor } = require('./lib/trafficMonitor');
+const { requireSiteAdultConfirmation } = require('./middleware/adultGate');
 
 // Debug helper: find unexpected process exits (set DEBUG_PROCESS_EXIT=1)
 if (process.env.DEBUG_PROCESS_EXIT === '1') {
@@ -397,6 +398,11 @@ app.get('/sitemap.xml', async (req, res) => {
 app.get('/healthz', (req, res) => {
   res.status(200).type('text/plain').send('ok');
 });
+
+app.use(requireSiteAdultConfirmation({
+  allowPrefixes: ['/adult', '/auth'],
+  allowPaths: ['/robots.txt', '/sitemap.xml', '/healthz', '/googlee4cfbb7a627606e5.html'],
+}));
 
 // ルート
 app.use('/', require('./routes/index'));

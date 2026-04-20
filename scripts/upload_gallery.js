@@ -2,8 +2,9 @@
  * ローカルフォルダの画像を R2 にアップロードして MongoDB ギャラリーに登録するスクリプト。
  *
  * フォルダ構造:
- *   uploads/gallery/フォルダ名/画像.png  → R2キー: フォルダ名/画像.png
- *   uploads/gallery/画像.png             → R2キー: 画像.png（その他扱い）
+ *   uploads/gallery/フォルダ名/画像.png              → R2キー: フォルダ名/画像.png
+ *   uploads/gallery/フォルダ名/サブフォルダ/画像.png → R2キー: フォルダ名/サブフォルダ/画像.png
+ *   uploads/gallery/画像.png                         → R2キー: 画像.png（その他扱い）
  *
  * フォルダ名が自動的にタグとタイトルに使用されます。
  * 使い方: node scripts/upload_gallery.js
@@ -59,36 +60,36 @@ async function uploadToR2(r2Key, fileBuffer, contentType) {
  */
 function scanUploadDir() {
   const results = [];
-  const entries = fs.readdirSync(UPLOADS_DIR, { withFileTypes: true });
 
-  for (const entry of entries) {
-    if (entry.name.startsWith('.')) continue;
+  function walkDirectory(currentDir, folderName = null) {
+    const entries = fs.readdirSync(currentDir, { withFileTypes: true });
 
-    if (entry.isDirectory()) {
-      // サブフォルダ = シリーズ名
-      const folderName = entry.name;
-      const subDir = path.join(UPLOADS_DIR, folderName);
-      const files = fs.readdirSync(subDir);
-      for (const file of files) {
-        const ext = path.extname(file).toLowerCase();
-        if (!IMAGE_EXTS.has(ext)) continue;
-        results.push({
-          localPath: path.join(subDir, file),
-          r2Key: `${folderName}/${file}`,
-          folderName,
-        });
+    for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
+
+      const fullPath = path.join(currentDir, entry.name);
+
+      if (entry.isDirectory()) {
+        const nextFolderName = folderName || path.relative(UPLOADS_DIR, fullPath).split(path.sep)[0] || null;
+        walkDirectory(fullPath, nextFolderName);
+        continue;
       }
-    } else if (entry.isFile()) {
-      // ルート直下の画像
+
+      if (!entry.isFile()) continue;
+
       const ext = path.extname(entry.name).toLowerCase();
       if (!IMAGE_EXTS.has(ext)) continue;
+
+      const relativePath = path.relative(UPLOADS_DIR, fullPath).split(path.sep).join('/');
       results.push({
-        localPath: path.join(UPLOADS_DIR, entry.name),
-        r2Key: entry.name,
-        folderName: null,
+        localPath: fullPath,
+        r2Key: relativePath,
+        folderName,
       });
     }
   }
+
+  walkDirectory(UPLOADS_DIR);
   return results;
 }
 
