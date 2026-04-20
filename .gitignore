@@ -15,5 +15,6 @@ csvoutput/
 
 # R2ダウンロードキャッシュ（ローカルのみ、git管理不要）
 uploads/gallery/
+uploads/gallery_archive/
 .r2_images.json
 .metadata.json
