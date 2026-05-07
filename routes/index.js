@@ -915,6 +915,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
     }
     let galleryRecentCommentsCount = 0;
     let galleryTotalLikes = 0;
+    let galleryManagementImages = [];
     
     if (isAdmin) {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
@@ -932,6 +933,11 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
         { $group: { _id: null, totalLikes: { $sum: '$likeCount' } } }
       ]);
       galleryTotalLikes = galleryLikesAgg.length > 0 ? galleryLikesAgg[0].totalLikes : 0;
+      galleryManagementImages = await GalleryImage.find({})
+        .sort({ uploadDate: -1, _id: -1 })
+        .limit(200)
+        .select('title r2Url r2Key tags uploadDate status views')
+        .lean();
       
       // 日別アクセス数（あなたの記事の合計）
       const JST_OFFSET_MS = 9 * 60 * 60 * 1000;
@@ -1361,6 +1367,7 @@ router.get('/dashboard', ensureAuth, async (req, res) => {
       recentComments,
       galleryRecentCommentsCount,
       galleryTotalLikes,
+      galleryManagementImages,
       isAdmin,
       relatedClicks,
       relatedClicksByBlock,

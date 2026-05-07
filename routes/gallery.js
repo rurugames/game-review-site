@@ -11,6 +11,10 @@ const { analyzeImage, buildMeta, initCounters, mimeFromExt, sleep } = require('.
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif']);
 
+function encodeR2Key(key) {
+  return String(key || '').split('/').map(encodeURIComponent).join('/');
+}
+
 const r2Client = new S3Client({
   region: 'auto',
   endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -112,6 +116,28 @@ async function syncR2ToGallery() {
   return { total: imageKeys.length, added, skipped: imageKeys.length - existing.size - added };
 }
 
+async function deleteFromR2(r2Key) {
+  const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+  const accountId = process.env.R2_ACCOUNT_ID;
+  const bucket = process.env.R2_BUCKET_NAME;
+  if (!apiToken || !accountId || !bucket) {
+    throw new Error('R2削除に必要な環境変数が不足しています');
+  }
+
+  const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/r2/buckets/${bucket}/objects/${encodeR2Key(r2Key)}`;
+  const res = await fetch(url, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${apiToken}`,
+    },
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`R2 DELETE 失敗 (${res.status}): ${text}`);
+  }
+}
+
 function cleanEnvValue(v) {
   const s = String(v || '').trim();
   if (!s) return '';
@@ -154,6 +180,55 @@ router.post('/admin/sync-r2', ensureAdmin, async (req, res) => {
   } catch (err) {
     console.error('R2 sync error:', err);
     res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/admin/bulk-delete', ensureAdmin, async (req, res) => {
+  try {
+    const imageIds = Array.isArray(req.body.imageIds) ? req.body.imageIds.filter(Boolean) : [];
+    if (imageIds.length === 0) {
+      return res.status(400).json({ success: false, error: '削除するギャラリー画像を選択してください' });
+    }
+
+    const images = await GalleryImage.find({ _id: { $in: imageIds } })
+      .select('_id r2Key')
+      .lean();
+
+    if (images.length === 0) {
+      return res.status(404).json({ success: false, error: '削除対象の画像が見つかりません' });
+    }
+
+    const r2Errors = [];
+    for (const image of images) {
+      try {
+        await deleteFromR2(image.r2Key);
+      } catch (err) {
+        r2Errors.push({ id: String(image._id), r2Key: image.r2Key, message: err.message });
+      }
+    }
+
+    const deletableIds = images
+      .filter((image) => !r2Errors.some((entry) => entry.id === String(image._id)))
+      .map((image) => image._id);
+
+    let deletedCount = 0;
+    if (deletableIds.length > 0) {
+      await GalleryComment.deleteMany({ image: { $in: deletableIds } });
+      const result = await GalleryImage.deleteMany({ _id: { $in: deletableIds } });
+      deletedCount = result.deletedCount || 0;
+    }
+
+    const statusCode = r2Errors.length > 0 ? 207 : 200;
+    return res.status(statusCode).json({
+      success: true,
+      deletedCount,
+      requestedCount: imageIds.length,
+      failedCount: r2Errors.length,
+      r2Errors,
+    });
+  } catch (err) {
+    console.error('Gallery bulk delete error:', err);
+    return res.status(500).json({ success: false, error: 'ギャラリー画像の削除に失敗しました' });
   }
 });
 

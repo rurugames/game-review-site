@@ -104,6 +104,9 @@
       <a class="per-button" href="#related-daily-ctr">└ 日別CTR推移</a>
       <a class="per-button" href="#related-details">└ 詳細</a>
     <% } %>
+    <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
+      <a class="per-button" href="#gallery-management" data-tab="gallery-management">ギャラリー管理</a>
+    <% } %>
     <a class="per-button" href="#my-articles" data-tab="my-articles">記事管理</a>
   </nav>
 
@@ -578,6 +581,71 @@
     </section>
   <% } %>
 
+  <% if (typeof isAdmin !== 'undefined' && isAdmin) { %>
+    <section id="gallery-management" class="page-section" aria-label="ギャラリー管理" data-tabpanel="gallery-management">
+      <div class="dashboard-header" style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
+        <h2 style="margin:0;">ギャラリー管理</h2>
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <div style="font-size:0.9rem; color: var(--text-muted);">最新200件を表示</div>
+          <button type="button" class="per-button section-toggle" data-section-toggle aria-expanded="true" aria-controls="gallery-management-body" title="表示/非表示">
+            <span class="caret">▼</span>
+          </button>
+        </div>
+      </div>
+
+      <div id="gallery-management-body" data-section-body>
+        <% if (galleryManagementImages && galleryManagementImages.length > 0) { %>
+          <div class="bulk-actions">
+            <button id="selectAllGalleryImages" class="btn-secondary">全選択</button>
+            <button id="deselectAllGalleryImages" class="btn-secondary">全解除</button>
+            <button id="deleteSelectedGalleryImages" class="btn-delete" style="display: none;">選択したギャラリー画像を削除</button>
+          </div>
+
+          <table class="articles-table">
+            <thead>
+              <tr>
+                <th><input type="checkbox" id="selectAllGalleryCheckbox"></th>
+                <th>画像</th>
+                <th>タイトル</th>
+                <th>シリーズ</th>
+                <th>タグ</th>
+                <th>公開日</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% galleryManagementImages.forEach(image => { %>
+                <% const folderName = (image.r2Key && image.r2Key.includes('/')) ? image.r2Key.split('/')[0] : 'その他'; %>
+                <tr>
+                  <td><input type="checkbox" class="gallery-checkbox" value="<%= image._id %>"></td>
+                  <td>
+                    <a href="/gallery/<%= image._id %>" target="_blank" rel="noopener noreferrer">
+                      <img src="<%= image.r2Url %>" alt="<%= image.title %>" style="width:72px; height:72px; object-fit:cover; border-radius:8px; border:1px solid var(--border-color);">
+                    </a>
+                  </td>
+                  <td>
+                    <a href="/gallery/<%= image._id %>" target="_blank" rel="noopener noreferrer"><%= image.title %></a>
+                    <div style="margin-top:0.25rem; font-size:0.8rem; color: var(--text-muted); word-break: break-all;"><%= image.r2Key %></div>
+                  </td>
+                  <td><%= folderName %></td>
+                  <td><%= image.tags && image.tags.length ? image.tags.join(', ') : 'なし' %></td>
+                  <td><%= image.uploadDate ? new Date(image.uploadDate).toLocaleDateString('ja-JP') : '' %></td>
+                  <td class="actions">
+                    <a href="/gallery/<%= image._id %>" class="btn-edit" target="_blank" rel="noopener noreferrer">表示</a>
+                  </td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <div class="no-articles">
+            <p>管理対象のギャラリー画像がありません。</p>
+          </div>
+        <% } %>
+      </div>
+    </section>
+  <% } %>
+
   <section id="my-articles" class="page-section" aria-label="記事管理" data-tabpanel="my-articles">
     <div class="dashboard-header" style="display:flex; align-items:center; justify-content:space-between; gap:1rem;">
       <h2 style="margin:0;">記事管理</h2>
@@ -863,6 +931,11 @@ document.addEventListener('DOMContentLoaded', function() {
   const publishAllDraftBtn = document.getElementById('publishAllDraftArticles');
   const deleteSelectedBtn = document.getElementById('deleteSelectedArticles');
   const articleCheckboxes = document.querySelectorAll('.article-checkbox');
+  const selectAllGalleryCheckbox = document.getElementById('selectAllGalleryCheckbox');
+  const selectAllGalleryBtn = document.getElementById('selectAllGalleryImages');
+  const deselectAllGalleryBtn = document.getElementById('deselectAllGalleryImages');
+  const deleteSelectedGalleryBtn = document.getElementById('deleteSelectedGalleryImages');
+  const galleryCheckboxes = document.querySelectorAll('.gallery-checkbox');
 
   // チェックボックスの状態変化を監視
   function updateActionButtons() {
@@ -881,9 +954,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  function updateGalleryActionButtons() {
+    const checkedCount = document.querySelectorAll('.gallery-checkbox:checked').length;
+    if (deleteSelectedGalleryBtn) {
+      if (checkedCount > 0) {
+        deleteSelectedGalleryBtn.style.display = 'block';
+        deleteSelectedGalleryBtn.textContent = `選択したギャラリー画像を削除 (${checkedCount}件)`;
+      } else {
+        deleteSelectedGalleryBtn.style.display = 'none';
+      }
+    }
+  }
+
   // 各チェックボックスにイベントリスナーを追加
   articleCheckboxes.forEach(checkbox => {
     checkbox.addEventListener('change', updateActionButtons);
+  });
+
+  galleryCheckboxes.forEach(checkbox => {
+    checkbox.addEventListener('change', updateGalleryActionButtons);
   });
 
   // ヘッダーのチェックボックスで全選択/全解除
@@ -915,6 +1004,35 @@ document.addEventListener('DOMContentLoaded', function() {
       });
       if (selectAllCheckbox) selectAllCheckbox.checked = false;
       updateActionButtons();
+    });
+  }
+
+  if (selectAllGalleryCheckbox) {
+    selectAllGalleryCheckbox.addEventListener('change', function() {
+      galleryCheckboxes.forEach(checkbox => {
+        checkbox.checked = this.checked;
+      });
+      updateGalleryActionButtons();
+    });
+  }
+
+  if (selectAllGalleryBtn) {
+    selectAllGalleryBtn.addEventListener('click', function() {
+      galleryCheckboxes.forEach(checkbox => {
+        checkbox.checked = true;
+      });
+      if (selectAllGalleryCheckbox) selectAllGalleryCheckbox.checked = true;
+      updateGalleryActionButtons();
+    });
+  }
+
+  if (deselectAllGalleryBtn) {
+    deselectAllGalleryBtn.addEventListener('click', function() {
+      galleryCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      if (selectAllGalleryCheckbox) selectAllGalleryCheckbox.checked = false;
+      updateGalleryActionButtons();
     });
   }
 
@@ -1031,6 +1149,48 @@ document.addEventListener('DOMContentLoaded', function() {
       } catch (error) {
         console.error('エラー:', error);
         alert('削除に失敗しました。');
+      }
+    });
+  }
+
+  if (deleteSelectedGalleryBtn) {
+    deleteSelectedGalleryBtn.addEventListener('click', async function() {
+      const selectedIds = Array.from(document.querySelectorAll('.gallery-checkbox:checked'))
+        .map(checkbox => checkbox.value);
+
+      if (selectedIds.length === 0) {
+        alert('削除するギャラリー画像を選択してください。');
+        return;
+      }
+
+      if (!confirm(`${selectedIds.length}件のギャラリー画像を削除しますか？この操作は取り消せません。`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch('/gallery/admin/bulk-delete', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ imageIds: selectedIds })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          if (data.failedCount > 0) {
+            alert(`${data.deletedCount}件を削除しました。${data.failedCount}件は R2 側の削除に失敗したため残しています。`);
+          } else {
+            alert(`${data.deletedCount}件のギャラリー画像を削除しました。`);
+          }
+          location.reload();
+        } else {
+          alert('削除に失敗しました: ' + (data.error || '不明なエラー'));
+        }
+      } catch (error) {
+        console.error('エラー:', error);
+        alert('ギャラリー画像の削除に失敗しました。');
       }
     });
   }
