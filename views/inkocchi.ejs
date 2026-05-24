@@ -291,10 +291,12 @@
   const S = {
     stage: 0, hunger: 100, happy: 100, energy: 100,
     age: 0, sleeping: false, tick: 0, fx: null, color: null, name: null, dead: false,
+    lifespan: 14, lifePts: 0,
+    motion: 'idle', motionX: 0, motionY: 0, motionTimer: 0, motionPhase: 0,
   };
   const STAGE_NAMES = ['たまご','ひなとり','わかどり','せいちょうインコ'];
   const STAGE_DAYS  = [0, 1, 3, 7];
-  const MAX_AGE = 14;
+  const MIN_LIFESPAN = 7, MAX_LIFESPAN = 28;
   let awaitingName = false;
 
   // ─── カラーパレット ────────────────────────
@@ -357,7 +359,7 @@
 
   // ─── INIT ──────────────────────────────────
   loadState();
-  if(S.stage>0&&S.age>=MAX_AGE&&!S.dead) triggerDeath();
+  if(S.stage>0&&S.age>=S.lifespan&&!S.dead) triggerDeath();
   else checkEvolve();
   renderGrave();
   requestAnimationFrame(loop);
@@ -365,7 +367,7 @@
   setInterval(()=>{
     if(S.dead) return;
     S.age++;
-    if(S.stage>0&&S.age>=MAX_AGE){ triggerDeath(); }
+    if(S.stage>0&&S.age>=S.lifespan){ triggerDeath(); }
     else { checkEvolve(); updateUI(); }
     saveState();
   }, 3*60*1000);
@@ -374,7 +376,7 @@
   updateUI();
 
   // ─── LOOP ──────────────────────────────────
-  function loop() { S.tick++; render(); requestAnimationFrame(loop); }
+  function loop() { S.tick++; updateMotion(); render(); requestAnimationFrame(loop); }
 
   // ─── RENDER ────────────────────────────────
   function render() {
@@ -390,6 +392,7 @@
       ctx.fillStyle='rgba(200,230,255,0.6)'; ctx.fillRect(x,y,2,2);
     });
     ctx.globalAlpha=1;
+    if(S.fx==='play') drawSwingFrame();
     if(S.stage===0) drawEgg();
     else if(S.stage===1) drawChick();
     else if(S.stage===2) drawYoung();
@@ -424,8 +427,8 @@
     const p=getP();
     const spd=S.energy<30?0.04:0.07;
     const bob=Math.sin(S.tick*spd)*2, blink=(S.tick%(S.hunger<30?40:90)<4);
-    const ox=CX, oy=CY-52+bob;
-    ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.ellipse(ox,CY-4,18,5,0,0,Math.PI*2); ctx.fill();
+    const ox=CX+Math.round(S.motionX), oy=CY-52+bob+Math.round(S.motionY);
+    ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.ellipse(CX,CY-4,18,5,0,0,Math.PI*2); ctx.fill();
     circ(ox,oy+20,20,p.b1); circ(ox+6,oy+24,12,p.b2); circ(ox-6,oy+12,8,p.b3);
     circ(ox,oy,16,p.b4); circ(ox-4,oy-4,8,p.b5);
     sq(ox-2,oy-16,4,8,p.crest); sq(ox-5,oy-13,3,6,p.crest); sq(ox+3,oy-13,3,6,p.crest);
@@ -445,9 +448,11 @@
   function drawYoung(){
     const p=getP();
     const spd=S.energy<30?0.04:0.07;
-    const bob=S.sleeping?0:Math.sin(S.tick*spd)*2, wf=S.sleeping?0:Math.sin(S.tick*0.14)*3;
-    const blink=(S.tick%(S.hunger<30?40:80)<4), ox=CX, oy=CY-66+bob;
-    ctx.fillStyle='rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(ox,CY-4,22,6,0,0,Math.PI*2); ctx.fill();
+    const bob=S.sleeping?0:Math.sin(S.tick*spd)*2;
+    const wfSpd=S.motion==='fly'?0.28:0.14, wfAmp=S.motion==='fly'?6:S.motion==='run'?4.5:3;
+    const wf=S.sleeping?0:Math.sin(S.tick*wfSpd)*wfAmp;
+    const blink=(S.tick%(S.hunger<30?40:80)<4), ox=CX+Math.round(S.motionX), oy=CY-66+bob+Math.round(S.motionY);
+    ctx.fillStyle='rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(CX,CY-4,22,6,0,0,Math.PI*2); ctx.fill();
     poly([[ox-20,oy+32+wf],[ox-38,oy+44+wf],[ox-34,oy+62+wf],[ox-16,oy+58+wf]],p.w1);
     poly([[ox-19,oy+34+wf],[ox-34,oy+44+wf],[ox-31,oy+58+wf],[ox-17,oy+55+wf]],p.w3);
     poly([[ox+20,oy+32-wf],[ox+38,oy+44-wf],[ox+34,oy+62-wf],[ox+16,oy+58-wf]],p.w1);
@@ -483,9 +488,11 @@
   function drawAdult(){
     const p=getP();
     const spd=S.energy<30?0.035:0.06;
-    const bob=S.sleeping?0:Math.sin(S.tick*spd)*2, wf=S.sleeping?0:Math.sin(S.tick*0.11)*4;
-    const blink=(S.tick%(S.hunger<30?45:90)<4), ox=CX, oy=CY-78+bob;
-    ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(ox,CY-3,28,7,0,0,Math.PI*2); ctx.fill();
+    const bob=S.sleeping?0:Math.sin(S.tick*spd)*2;
+    const wfSpd=S.motion==='fly'?0.25:0.11, wfAmp=S.motion==='fly'?9:S.motion==='run'?6:4;
+    const wf=S.sleeping?0:Math.sin(S.tick*wfSpd)*wfAmp;
+    const blink=(S.tick%(S.hunger<30?45:90)<4), ox=CX+Math.round(S.motionX), oy=CY-78+bob+Math.round(S.motionY);
+    ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(CX,CY-3,28,7,0,0,Math.PI*2); ctx.fill();
     poly([[ox-22,oy+36+wf],[ox-46,oy+50+wf],[ox-42,oy+74+wf],[ox-18,oy+68+wf]],p.w2);
     poly([[ox-21,oy+38+wf],[ox-40,oy+50+wf],[ox-37,oy+70+wf],[ox-19,oy+66+wf]],p.w1);
     poly([[ox-20,oy+40+wf],[ox-36,oy+52+wf],[ox-34,oy+66+wf],[ox-20,oy+62+wf]],p.w3);
@@ -537,12 +544,14 @@
       }
       ctx.fillStyle='#ffd700'; ctx.font='bold 11px Courier New'; ctx.fillText('もぐもぐ...',90,28);
     } else if(S.fx==='play'){
-      [['♪',70,38],['♫',120,30],['♪',170,42]].forEach(([c,x,y],i)=>{
-        const phase=((t*0.04+i*0.6)%1);
-        ctx.globalAlpha=Math.max(0,Math.sin(phase*Math.PI));
-        ctx.fillStyle='#ffd700'; ctx.font=`bold ${13+i*2}px serif`; ctx.fillText(c,x,y-phase*28);
-      });
-      ctx.globalAlpha=1; ctx.fillStyle='#ffd700'; ctx.font='bold 11px Courier New'; ctx.fillText('たのしいな！',82,28);
+      const bx=CX+S.motionX, by=CY-55+S.motionY;
+      for(let i=0;i<8;i++){
+        const a=(i/8)*Math.PI*2+t*0.07, dist=16+((t*1.2+i*6)%22);
+        ctx.globalAlpha=Math.max(0,0.5+Math.sin(t*0.12+i)*0.5);
+        sq(bx+Math.cos(a)*dist-2,by+Math.sin(a)*dist*0.6-2,4,4,i%2===0?'#ffd700':'#ff88ff');
+      }
+      ctx.globalAlpha=1; ctx.fillStyle='#ffd700'; ctx.font='bold 11px Courier New';
+      ctx.textAlign='center'; ctx.fillText('たのしいな！',CX,20); ctx.textAlign='left';
     } else if(S.sleeping||S.fx==='sleep'){
       [['z',CX+16,CY-55],[' z',CX+24,CY-70],['Z',CX+34,CY-82]].forEach(([c,x,y],i)=>{
         const phase=((t*0.025+i*0.5)%1);
@@ -561,11 +570,109 @@
     }
   }
 
+  // ─── SWING ─────────────────────────────────
+  function drawSwingFrame(){
+    const angle=Math.sin(S.tick*0.05)*0.45;
+    const px=CX, py=22, rl=72;
+    const sx=Math.sin(angle)*rl, sy=Math.cos(angle)*rl;
+    // 支柱
+    ctx.strokeStyle='#553399'; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.moveTo(px-40,py); ctx.lineTo(px+40,py); ctx.stroke();
+    ctx.lineWidth=3;
+    ctx.beginPath(); ctx.moveTo(px-40,0); ctx.lineTo(px-40,py); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(px+40,0); ctx.lineTo(px+40,py); ctx.stroke();
+    // チェーン
+    ctx.strokeStyle='#aa8844'; ctx.lineWidth=2;
+    const r1x=px-18, r2x=px+18;
+    ctx.beginPath(); ctx.moveTo(r1x,py); ctx.lineTo(r1x+sx,py+sy); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(r2x,py); ctx.lineTo(r2x+sx,py+sy); ctx.stroke();
+    // 座面
+    const scx=px+sx, scy=py+sy;
+    ctx.save(); ctx.translate(scx,scy); ctx.rotate(angle);
+    ctx.fillStyle='#774422'; ctx.fillRect(-22,-5,44,9);
+    ctx.fillStyle='#aa6633'; ctx.fillRect(-22,-5,44,4);
+    ctx.restore();
+  }
+
+  // ─── MOTION ─────────────────────────────────
+  function updateMotion(){
+    if(S.stage===0||S.dead){ S.motionX=0; S.motionY=0; S.motion='idle'; return; }
+
+    // ブランコ乗り中（あそぶ FX）
+    if(S.fx==='play'){
+      const angle=Math.sin(S.tick*0.05)*0.45;
+      const rl=72, py=22;
+      S.motionX=Math.sin(angle)*rl;
+      const sy=Math.cos(angle)*rl, seatY=py+sy;
+      // 各ステージの足元 Y = stageBaseOY + feetOffset に seatY を合わせる
+      const feetRef=S.stage===1?(CY-52+42):S.stage===2?(CY-66+68):(CY-78+78);
+      S.motionY=seatY-feetRef;
+      S.motion='play';
+      return;
+    }
+
+    if(S.sleeping){ S.motionX=0; S.motionY=0; S.motion='idle'; return; }
+
+    S.motionTimer--;
+    S.motionPhase++;
+    if(S.motionTimer<=0){
+      const r=Math.random();
+      if(r<0.28){      S.motion='idle'; S.motionTimer=80+Math.floor(Math.random()*80); }
+      else if(r<0.46){ S.motion='jump'; S.motionTimer=36+Math.floor(Math.random()*24); }
+      else if(r<0.62){ S.motion='fly';  S.motionTimer=55+Math.floor(Math.random()*35); }
+      else if(r<0.80){ S.motion='run';  S.motionTimer=55+Math.floor(Math.random()*45); }
+      else{            S.motion='walk'; S.motionTimer=70+Math.floor(Math.random()*60); }
+      S.motionPhase=0;
+    }
+    switch(S.motion){
+      case 'jump':
+        S.motionX=0;
+        S.motionY=-Math.abs(Math.sin(S.motionPhase*0.13))*18;
+        break;
+      case 'fly':
+        S.motionX=Math.sin(S.motionPhase*0.05)*40;
+        S.motionY=-18+Math.sin(S.motionPhase*0.07)*8;
+        break;
+      case 'run':
+        S.motionX=Math.sin(S.motionPhase*0.09)*44;
+        S.motionY=-Math.abs(Math.sin(S.motionPhase*0.18))*6;
+        break;
+      case 'walk':
+        S.motionX=Math.sin(S.motionPhase*0.045)*26;
+        S.motionY=-Math.abs(Math.sin(S.motionPhase*0.09))*3;
+        break;
+      default:
+        S.motionX=0; S.motionY=0;
+    }
+  }
+
   // ─── LOGIC ─────────────────────────────────
   function decayTick(){
-    if(S.stage===0) return;
-    if(S.sleeping){ S.energy=Math.min(100,S.energy+18); S.hunger=Math.max(0,S.hunger-3); }
-    else { S.hunger=Math.max(0,S.hunger-6); S.happy=Math.max(0,S.happy-5); S.energy=Math.max(0,S.energy-7); }
+    if(S.stage===0||S.dead) return;
+    if(S.sleeping){
+      S.energy=Math.min(100,S.energy+12); S.hunger=Math.max(0,S.hunger-2);
+    } else {
+      S.hunger=Math.max(0,S.hunger-3); S.happy=Math.max(0,S.happy-2); S.energy=Math.max(0,S.energy-4);
+    }
+    // 寿命管理：よく世話をすると延び、放置すると縮む
+    if(S.stage>0){
+      const anyZero=S.hunger===0||S.happy===0||S.energy===0;
+      if(anyZero){
+        S.lifePts-=3;
+        if(S.lifePts<=-15){
+          S.lifespan=Math.max(MIN_LIFESPAN,S.lifespan-1);
+          S.lifePts=0;
+          msg('ほったらかし...寿命が縮んだ...');
+        }
+      } else if(S.hunger>60&&S.happy>60&&S.energy>60){
+        S.lifePts++;
+        if(S.lifePts>=40){
+          S.lifespan=Math.min(MAX_LIFESPAN,S.lifespan+1);
+          S.lifePts=0;
+          msg('元気いっぱい！寿命が延びた！✨');
+        }
+      }
+    }
     checkStatus(); updateUI();
   }
 
@@ -699,11 +806,11 @@
     if(S.stage===0){ msg('まだたまごだよ。もうすこしまってね...'); return; }
     if(type==='feed'){
       if(S.hunger>=100){ msg('もうおなかいっぱいだよ！'); return; }
-      S.hunger=Math.min(100,S.hunger+32); S.fx='feed';
+      S.hunger=Math.min(100,S.hunger+20); S.fx='feed';
       setTimeout(()=>S.fx=null,2500); msg('もぐもぐ...おいしい！');
     } else if(type==='play'){
-      if(S.energy<18){ msg('つかれてあそべないよ...ねかせて...'); return; }
-      S.happy=Math.min(100,S.happy+28); S.energy=Math.max(0,S.energy-18);
+      if(S.energy<14){ msg('つかれてあそべないよ...ねかせて...'); return; }
+      S.happy=Math.min(100,S.happy+16); S.energy=Math.max(0,S.energy-12);
       S.fx='play'; setTimeout(()=>S.fx=null,2500); msg('やったー！たのしいな♪');
     } else if(type==='sleep'){
       if(S.sleeping){
@@ -741,7 +848,7 @@
     });
     document.getElementById('ikStageLabel').textContent=`▷ ${getStageName()} ◁`;
     document.getElementById('ikAge').textContent=S.name
-      ?`生後 ${S.age} 日（${STAGE_NAMES[S.stage]}）/ 寿命${MAX_AGE}日`
+      ?`生後 ${S.age} 日（${STAGE_NAMES[S.stage]}） 寿命 ${S.lifespan} 日`
       :`生後 ${S.age} 日`;
   }
 
@@ -750,7 +857,7 @@
     localStorage.setItem('inkocchi',JSON.stringify({
       stage:S.stage,hunger:S.hunger,happy:S.happy,energy:S.energy,
       age:S.age,sleeping:S.sleeping,color:S.color,name:S.name,
-      dead:S.dead,savedAt:Date.now()
+      dead:S.dead,lifespan:S.lifespan,lifePts:S.lifePts,savedAt:Date.now()
     }));
   }
 
@@ -764,6 +871,8 @@
       if(S.color===null&&S.stage>0) S.color=Math.floor(Math.random()*3);
       S.name=d.name??null;
       S.dead=d.dead??false;
+      S.lifespan=d.lifespan??14;
+      S.lifePts=d.lifePts??0;
       if(S.sleeping){
         document.getElementById('ikIcoSleep').textContent='☀️';
         document.getElementById('ikLblSleep').textContent='おこす';

@@ -120,14 +120,16 @@ router.post('/', ensureAdmin, async (req, res) => {
     }
 
     const affiliateLink = normalizeAffiliateLink(affiliateLinkRaw) || affiliateLinkRaw;
-    const { imageUrl, rating } = await fetchPageMeta(affiliateLink);
+    const { imageUrl, rating: fetchedRating } = await fetchPageMeta(affiliateLink);
+    const manualRating = req.body.rating ? parseFloat(req.body.rating) : null;
+    const rating = manualRating || fetchedRating || undefined;
 
     const product = new Product({
       title,
       body,
       affiliateLink,
       imageUrl: imageUrl || undefined,
-      rating: rating || undefined,
+      rating,
       author: req.user._id,
       status: req.body.status === 'draft' ? 'draft' : 'published',
     });

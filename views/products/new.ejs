@@ -39,6 +39,26 @@
   margin-top: 1.5rem;
   flex-wrap: wrap;
 }
+.star-rating-input {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+  margin: 6px 0 4px;
+}
+.star-rating-input input[type="radio"] { display: none; }
+.star-rating-input label {
+  font-size: 2.2rem;
+  color: #ccc;
+  cursor: pointer;
+  transition: color 0.1s;
+  line-height: 1;
+}
+.star-rating-input input:checked ~ label,
+.star-rating-input label:hover,
+.star-rating-input label:hover ~ label {
+  color: #f5a623;
+}
 </style>
 
 <div class="product-form-container">
@@ -63,6 +83,16 @@
       <p class="form-hint">Markdown 形式で記述できます。</p>
       <textarea id="body" name="body" rows="16" required
                 placeholder="## おすすめポイント&#10;- ここに感想を書く&#10;&#10;## こんな人に向いている&#10;- ..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>評価（★）<span style="font-size:0.8rem;color:#888;margin-left:6px;">未選択でも投稿可</span></label>
+      <div class="star-rating-input">
+        <% for (let i = 5; i >= 1; i--) { %>
+          <input type="radio" name="rating" id="star<%= i %>" value="<%= i %>">
+          <label for="star<%= i %>">★</label>
+        <% } %>
+      </div>
     </div>
 
     <div class="form-group">
