@@ -207,8 +207,17 @@
   word-break:break-all; max-width:64px;
 }
 .ik-grave-age { font-size:9px; color:#3a5060; margin-top:2px; }
+/* ── release button ─────────────────── */
+.ik-release-wrap { text-align:center; margin-top:10px; }
+.ik-release-btn {
+  background:transparent; border:1px solid #1a4a6a;
+  border-radius:8px; color:#3a8aaa; font-size:10px;
+  padding:5px 18px; cursor:pointer;
+  font-family:'Courier New',monospace; transition:all 0.2s;
+}
+.ik-release-btn:hover { border-color:#55bbdd; color:#88ddff; }
 /* ── reset button ───────────────────── */
-.ik-reset-wrap { text-align:center; margin-top:14px; }
+.ik-reset-wrap { text-align:center; margin-top:10px; }
 .ik-reset-btn {
   background:transparent; border:1px solid #2a3a4a;
   border-radius:8px; color:#3a5060; font-size:10px;
@@ -306,9 +315,12 @@
 
       <div class="ik-msg" id="ikMsg">インコっちをそだてよう！</div>
       <div class="ik-age" id="ikAge">生後 0 日</div>
+      <div class="ik-release-wrap">
+        <button class="ik-release-btn" onclick="ikRelease()">🕊️ 放鳥する</button>
+      </div>
     </div>
     <div class="ik-graveyard" id="ikGraveyard" style="display:none">
-      <div class="ik-grave-title">🪦 歴代インコ</div>
+      <div class="ik-grave-title">📖 歴代インコ</div>
       <div class="ik-grave-list" id="ikGraveList"></div>
     </div>
     <div class="ik-reset-wrap">
@@ -326,6 +338,7 @@
     lifespan: 14, lifePts: 0, eatPhase: 0,
     motion: 'idle', motionX: 0, motionY: 0, motionTimer: 0, motionPhase: 0,
     bowl: 100, water: 100, clean: 100, poops: [],
+    drinkPhase: 0, bathPhase: 0, rainbowHue: null,
   };
   const STAGE_NAMES = ['たまご','ひなとり','わかどり','せいちょうインコ'];
   const STAGE_DAYS  = [0, 1, 3, 7];
@@ -389,7 +402,8 @@
   function getP(){
     const c = S.color ?? 2;
     if(c === 3){
-      const h = (deg, l=55) => `hsl(${(S.tick*0.7+deg)%360},85%,${l}%)`;
+      const hue = S.rainbowHue ?? 0;
+      const h = (deg, l=55) => `hsl(${(hue+deg)%360},85%,${l}%)`;
       return { name:'レインボー',
         b1:h(0),b2:h(20),b3:h(340,75),b4:h(10),b5:h(350,80),bw:h(50),
         g1:h(120),g2:h(150),g3:h(90),
@@ -497,7 +511,7 @@
   }, 2500);
 
   // ─── LOOP ──────────────────────────────────
-  function loop() { S.tick++; if(S.eatPhase>0) S.eatPhase--; updateMotion(); render(); requestAnimationFrame(loop); }
+  function loop() { S.tick++; if(S.eatPhase>0) S.eatPhase--; if(S.drinkPhase>0) S.drinkPhase--; if(S.bathPhase>0) S.bathPhase--; updateMotion(); render(); requestAnimationFrame(loop); }
 
   // ─── RENDER ────────────────────────────────
   function render() {
@@ -517,12 +531,12 @@
     for(let x=8;x<W;x+=20) ctx.fillRect(x,H-18,12,4);
     const sBase={morning:0.18,day:0.08,evening:0.28,night:0.55}[phase];
     [[30,20],[80,15],[130,25],[190,12],[240,22],[60,40],[170,35],[220,45]].forEach(([x,y])=>{
-      ctx.globalAlpha=sBase+Math.sin((S.tick*0.02+x*0.1)*Math.PI*2)*0.2;
+      ctx.globalAlpha=sBase+Math.sin((S.tick*0.012+x*0.1)*Math.PI*2)*0.2;
       ctx.fillStyle='rgba(200,230,255,0.8)'; ctx.fillRect(x,y,2,2);
     });
     if(phase==='night'||phase==='evening'){
       [[50,30],[110,8],[160,18],[200,30],[260,14],[20,45],[90,38],[145,10]].forEach(([x,y])=>{
-        ctx.globalAlpha=(0.15+Math.sin((S.tick*0.015+x*0.13)*Math.PI*2)*0.12)*(phase==='night'?1:0.45);
+        ctx.globalAlpha=(0.15+Math.sin((S.tick*0.009+x*0.13)*Math.PI*2)*0.12)*(phase==='night'?1:0.45);
         ctx.fillStyle='rgba(200,230,255,0.8)'; ctx.fillRect(x,y,1,1);
       });
     }
@@ -547,7 +561,7 @@
   }
 
   function drawEgg(){
-    const bob=Math.sin(S.tick*0.04)*3, ox=CX, oy=CY-55+bob;
+    const bob=Math.sin(S.tick*0.025)*3, ox=CX, oy=CY-55+bob;
     ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(ox,CY-2,22,6,0,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='#f0e4cc'; ctx.beginPath(); ctx.ellipse(ox,oy+5,26,32,0,0,Math.PI*2); ctx.fill();
     ctx.fillStyle='rgba(200,160,100,0.25)'; ctx.beginPath(); ctx.ellipse(ox+8,oy+10,16,22,0.4,0,Math.PI*2); ctx.fill();
@@ -563,9 +577,9 @@
 
   function drawChick(){
     const p=getP();
-    const spd=S.energy<30?0.04:0.07;
+    const spd=S.energy<30?0.024:0.042;
     const bob=Math.sin(S.tick*spd)*2, blink=(S.tick%(S.hunger<30?40:90)<4);
-    const extraX=(!S.sleeping&&S.hunger>80&&S.happy>80&&S.energy>80)?Math.sin(S.tick*0.2)*2:(!S.sleeping&&S.energy<10)?Math.sin(S.tick*0.35)*4:0;
+    const extraX=(!S.sleeping&&S.hunger>80&&S.happy>80&&S.energy>80)?Math.sin(S.tick*0.12)*2:(!S.sleeping&&S.energy<10)?Math.sin(S.tick*0.2)*4:0;
     const ox=CX+Math.round(S.motionX+extraX), oy=CY-52+bob+Math.round(S.motionY);
     ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.ellipse(CX,CY-4,18,5,0,0,Math.PI*2); ctx.fill();
     circ(ox,oy+20,20,p.b1); circ(ox+6,oy+24,12,p.b2); circ(ox-6,oy+12,8,p.b3);
@@ -580,7 +594,7 @@
       circ(ox-6,oy-3,3.5,'#111'); circ(ox+6,oy-3,3.5,'#111');
       sq(ox-5,oy-5,2,2,'#fff'); sq(ox+7,oy-5,2,2,'#fff');
     } else { sq(ox-8,oy-4,4,2,'#111'); sq(ox+4,oy-4,4,2,'#111'); }
-    const beakOpen=S.eatPhase>0&&Math.floor(S.eatPhase/4)%2===0?3:0;
+    const beakOpen=S.eatPhase>0?(Math.floor(S.eatPhase/6)%2===0?3:0):S.drinkPhase>0?1:S.bathPhase>0?2:0;
     poly([[ox-3,oy+4],[ox+3,oy+4],[ox,oy+9+beakOpen]],'#ff9000');
     poly([[ox-3,oy+4],[ox+3,oy+4],[ox,oy+6+beakOpen]],'#ffb030');
     poly([[ox-18,oy+18],[ox-28,oy+28],[ox-16,oy+36],[ox-10,oy+22]],p.bw);
@@ -592,12 +606,12 @@
 
   function drawYoung(){
     const p=getP();
-    const spd=S.energy<30?0.04:0.07;
+    const spd=S.energy<30?0.024:0.042;
     const bob=S.sleeping?0:Math.sin(S.tick*spd)*2;
-    const wfSpd=S.motion==='fly'?0.28:0.14, wfAmp=S.motion==='fly'?6:S.motion==='run'?4.5:3;
+    const wfSpd=S.motion==='fly'?0.15:S.motion==='run'?0.10:0.08, wfAmp=S.motion==='fly'?6:S.motion==='run'?4.5:3;
     const wf=S.sleeping?0:Math.sin(S.tick*wfSpd)*wfAmp;
     const blink=(S.tick%(S.hunger<30?40:80)<4);
-    const extraX=(!S.sleeping&&S.hunger>80&&S.happy>80&&S.energy>80)?Math.sin(S.tick*0.2)*2:(!S.sleeping&&S.energy<10)?Math.sin(S.tick*0.35)*4:0;
+    const extraX=(!S.sleeping&&S.hunger>80&&S.happy>80&&S.energy>80)?Math.sin(S.tick*0.12)*2:(!S.sleeping&&S.energy<10)?Math.sin(S.tick*0.2)*4:0;
     const ox=CX+Math.round(S.motionX+extraX), oy=CY-66+bob+Math.round(S.motionY);
     ctx.fillStyle='rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(CX,CY-4,22,6,0,0,Math.PI*2); ctx.fill();
     poly([[ox-20,oy+32+wf],[ox-38,oy+44+wf],[ox-34,oy+62+wf],[ox-16,oy+58+wf]],p.w1);
@@ -629,7 +643,7 @@
       ctx.beginPath(); ctx.moveTo(ox+12,oy+1); ctx.lineTo(ox+5,oy+4); ctx.stroke();
       ctx.lineWidth=1;
     }
-    const beakOpen=S.eatPhase>0&&Math.floor(S.eatPhase/4)%2===0?3:0;
+    const beakOpen=S.eatPhase>0?(Math.floor(S.eatPhase/6)%2===0?3:0):S.drinkPhase>0?1:S.bathPhase>0?2:0;
     ctx.fillStyle='#ff9900'; ctx.beginPath(); ctx.moveTo(ox-5,oy+14); ctx.lineTo(ox+5,oy+14); ctx.lineTo(ox+4,oy+18); ctx.lineTo(ox-4,oy+18); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#cc6600'; ctx.beginPath(); ctx.moveTo(ox-4,oy+18+beakOpen); ctx.lineTo(ox+4,oy+18+beakOpen); ctx.lineTo(ox+4,oy+22+beakOpen); ctx.lineTo(ox-1,oy+22+beakOpen); ctx.closePath(); ctx.fill();
     sq(ox-12,oy+68,6,5,'#ff8800'); sq(ox+5,oy+68,6,5,'#ff8800');
@@ -640,12 +654,12 @@
 
   function drawAdult(){
     const p=getP();
-    const spd=S.energy<30?0.035:0.06;
+    const spd=S.energy<30?0.021:0.036;
     const bob=S.sleeping?0:Math.sin(S.tick*spd)*2;
-    const wfSpd=S.motion==='fly'?0.25:0.11, wfAmp=S.motion==='fly'?9:S.motion==='run'?6:4;
+    const wfSpd=S.motion==='fly'?0.14:S.motion==='run'?0.09:0.065, wfAmp=S.motion==='fly'?9:S.motion==='run'?6:4;
     const wf=S.sleeping?0:Math.sin(S.tick*wfSpd)*wfAmp;
     const blink=(S.tick%(S.hunger<30?45:90)<4);
-    const extraX=(!S.sleeping&&S.hunger>80&&S.happy>80&&S.energy>80)?Math.sin(S.tick*0.2)*2:(!S.sleeping&&S.energy<10)?Math.sin(S.tick*0.35)*4:0;
+    const extraX=(!S.sleeping&&S.hunger>80&&S.happy>80&&S.energy>80)?Math.sin(S.tick*0.12)*2:(!S.sleeping&&S.energy<10)?Math.sin(S.tick*0.2)*4:0;
     const ox=CX+Math.round(S.motionX+extraX), oy=CY-78+bob+Math.round(S.motionY);
     ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(CX,CY-3,28,7,0,0,Math.PI*2); ctx.fill();
     poly([[ox-22,oy+36+wf],[ox-46,oy+50+wf],[ox-42,oy+74+wf],[ox-18,oy+68+wf]],p.w2);
@@ -687,7 +701,7 @@
       ctx.beginPath(); ctx.moveTo(ox+13,oy+3); ctx.lineTo(ox+5,oy+6); ctx.stroke();
       ctx.lineWidth=1;
     }
-    const beakOpen=S.eatPhase>0&&Math.floor(S.eatPhase/4)%2===0?4:0;
+    const beakOpen=S.eatPhase>0?(Math.floor(S.eatPhase/6)%2===0?4:0):S.drinkPhase>0?2:S.bathPhase>0?3:0;
     ctx.fillStyle='#ee8800'; ctx.beginPath(); ctx.moveTo(ox-6,oy+18); ctx.lineTo(ox+6,oy+18); ctx.lineTo(ox+5,oy+22); ctx.lineTo(ox-5,oy+22); ctx.closePath(); ctx.fill();
     ctx.fillStyle='#bb5500'; ctx.beginPath(); ctx.moveTo(ox-5,oy+22+beakOpen); ctx.lineTo(ox+5,oy+22+beakOpen); ctx.lineTo(ox+5,oy+27+beakOpen); ctx.lineTo(ox-1,oy+27+beakOpen); ctx.closePath(); ctx.fill();
     sq(ox-15,oy+78,7,5,'#ff8800'); sq(ox+7,oy+78,7,5,'#ff8800');
@@ -700,39 +714,40 @@
     const t=S.tick;
     if(S.fx==='feed'){
       for(let i=0;i<5;i++){
-        const y=((t*1.5+i*22)%80)-10, x=100+i*18+Math.sin(t*0.1+i)*6;
+        const y=((t*0.9+i*22)%80)-10, x=80+i*18+Math.sin(t*0.06+i)*6;
         sq(x,y+30,5,5,'#ffe050'); sq(x+2,y+28,3,3,'#ffcc00');
       }
-      ctx.fillStyle='#ffd700'; ctx.font='bold 11px Courier New'; ctx.fillText('もぐもぐ...',90,28);
+      ctx.fillStyle='#ffd700'; ctx.font='bold 10px Courier New';
+      ctx.textAlign='center'; ctx.fillText('もぐもぐ...',CX,26); ctx.textAlign='left';
     } else if(S.fx==='play'){
       const bx=CX+S.motionX, by=CY-55+S.motionY;
       for(let i=0;i<8;i++){
-        const a=(i/8)*Math.PI*2+t*0.07, dist=16+((t*1.2+i*6)%22);
-        ctx.globalAlpha=Math.max(0,0.5+Math.sin(t*0.12+i)*0.5);
+        const a=(i/8)*Math.PI*2+t*0.04, dist=16+((t*0.7+i*6)%22);
+        ctx.globalAlpha=Math.max(0,0.5+Math.sin(t*0.07+i)*0.5);
         sq(bx+Math.cos(a)*dist-2,by+Math.sin(a)*dist*0.6-2,4,4,i%2===0?'#ffd700':'#ff88ff');
       }
       ctx.globalAlpha=1; ctx.fillStyle='#ffd700'; ctx.font='bold 11px Courier New';
       ctx.textAlign='center'; ctx.fillText('たのしいな！',CX,20); ctx.textAlign='left';
     } else if(S.sleeping||S.fx==='sleep'){
       [['z',CX+16,CY-55],[' z',CX+24,CY-70],['Z',CX+34,CY-82]].forEach(([c,x,y],i)=>{
-        const phase=((t*0.025+i*0.5)%1);
+        const phase=((t*0.015+i*0.5)%1);
         ctx.globalAlpha=Math.max(0,Math.sin(phase*Math.PI)*0.8);
-        ctx.fillStyle='#aaddff'; ctx.font=`bold ${10+i*4}px Courier New`; ctx.fillText(c,x,y-phase*12);
+        ctx.fillStyle='#aaddff'; ctx.font=`bold ${10+i*4}px Courier New`; ctx.fillText(c,x,y-phase*18);
       });
       ctx.globalAlpha=1;
     } else if(S.fx==='evolve'){
       for(let i=0;i<12;i++){
-        const angle=(i/12)*Math.PI*2+t*0.05, dist=20+((t*2)%50);
+        const angle=(i/12)*Math.PI*2+t*0.03, dist=20+((t*1.2)%50);
         const x=CX+Math.cos(angle)*dist, y=(CY-40)+Math.sin(angle)*dist*0.6;
-        ctx.globalAlpha=Math.max(0,1-(t%30)/30);
+        ctx.globalAlpha=Math.max(0,1-(t%40)/40);
         sq(x-2,y-2,4,4,i%2===0?'#ffd700':'#ffffff');
       }
       ctx.globalAlpha=1;
     }
     if(S.fx==='water'){
       for(let i=0;i<6;i++){
-        const bpx=40+Math.floor((t*1.4+i*32)%200), bpy=H-28-((t*0.9+i*18)%38);
-        ctx.globalAlpha=Math.max(0,0.25+Math.sin(t*0.15+i)*0.3);
+        const bpx=40+Math.floor((t*0.8+i*32)%200), bpy=H-28-((t*0.5+i*18)%38);
+        ctx.globalAlpha=Math.max(0,0.25+Math.sin(t*0.09+i)*0.3);
         ctx.strokeStyle='#88ddff'; ctx.lineWidth=1.5;
         ctx.beginPath(); ctx.arc(bpx,bpy,1.5+i%3,0,Math.PI*2); ctx.stroke();
       }
@@ -740,10 +755,34 @@
       ctx.fillStyle='#88ddff'; ctx.font='bold 11px Courier New';
       ctx.textAlign='center'; ctx.fillText('きれいきれい！',CX,20); ctx.textAlign='left';
     }
+    // 水を飲む：水滴が水入れから浮かぶ
+    if(S.drinkPhase>0){
+      for(let i=0;i<4;i++){
+        const dT=((t*0.06+i*0.55)%1);
+        const dx=216+Math.sin(t*0.12+i)*5, dy=112-dT*28;
+        ctx.globalAlpha=Math.sin(dT*Math.PI)*0.7;
+        ctx.fillStyle='#66aaff';
+        ctx.fillRect(Math.round(dx)-1,Math.round(dy)-1,3,3);
+      }
+      ctx.globalAlpha=1;
+    }
+    // 水浴び：飛沫が上に散る
+    if(S.bathPhase>0){
+      for(let i=0;i<6;i++){
+        const bT=((t*0.08+i*0.38)%1);
+        const bpx=192+8+i*8+Math.sin(t*0.2+i*1.2)*6, bpy=112-bT*35;
+        ctx.globalAlpha=Math.sin(bT*Math.PI)*0.85;
+        ctx.fillStyle=i%2===0?'#88ccff':'#aae4ff';
+        ctx.fillRect(Math.round(bpx)-1,Math.round(bpy)-1,3,3);
+      }
+      ctx.globalAlpha=1;
+      ctx.fillStyle='#88ddff'; ctx.font='bold 11px Courier New';
+      ctx.textAlign='center'; ctx.fillText('きもちいい～！',CX,20); ctx.textAlign='left';
+    }
     if(S.fx==='pet'){
       const bx=CX+S.motionX, by=CY-50+S.motionY;
       for(let i=0;i<5;i++){
-        const hy=((t*0.7+i*12)%45), hx=bx+(i%2===0?-1:1)*((Math.floor(i/2)+1)*9);
+        const hy=((t*0.4+i*12)%45), hx=bx+(i%2===0?-1:1)*((Math.floor(i/2)+1)*9);
         ctx.globalAlpha=Math.max(0,(1-hy/45)*0.9);
         ctx.fillStyle=['#ff88aa','#ff99cc','#ffaad4','#ff77bb','#ff66aa'][i];
         ctx.font=`${10+i%3*2}px Courier New`;
@@ -753,7 +792,7 @@
     }
     if(!S.sleeping&&S.stage>0&&S.hunger>80&&S.happy>80&&S.energy>80){
       for(let i=0;i<3;i++){
-        const hy=((t*0.4+i*20)%55), hx=75+i*65;
+        const hy=((t*0.24+i*20)%55), hx=75+i*65;
         ctx.globalAlpha=Math.max(0,(1-hy/55)*0.8);
         ctx.fillStyle='#ff88aa'; ctx.font='14px Courier New';
         ctx.textAlign='center'; ctx.fillText('♥',hx,H-25-hy);
@@ -764,7 +803,7 @@
 
   // ─── SWING ─────────────────────────────────
   function drawSwingFrame(){
-    const angle=Math.sin(S.tick*0.05)*0.45;
+    const angle=Math.sin(S.tick*0.03)*0.45;
     const px=CX, py=22, rl=72;
     const sx=Math.sin(angle)*rl, sy=Math.cos(angle)*rl;
     // 支柱
@@ -788,27 +827,86 @@
 
   // ─── BOWLS / POOPS ─────────────────────────
   function drawBowls(){
-    const fy=H-17, bw=36, bh=13;
-    function bowl(bx, level, fillHi, fillLo, label, warn){
-      ctx.fillStyle='#1a2a3e'; ctx.fillRect(bx,fy,bw,bh);
-      ctx.fillStyle='#0e1e2e'; ctx.fillRect(bx+2,fy+2,bw-4,bh-2);
-      if(level>0){
-        const fh=Math.max(1,Math.round((bh-4)*level/100));
-        ctx.fillStyle=level<20?fillLo:fillHi;
-        ctx.fillRect(bx+2,fy+bh-2-fh,bw-4,fh);
+    drawDish(38, 112, 52, 20, S.bowl,  false);
+    drawDish(190,112, 52, 20, S.water, true);
+  }
+
+  function drawDish(bx,by,bw,bh,level,isWater){
+    const cx=Math.round(bx+bw/2);
+    // スタンド脚
+    const legH=H-by-bh-22, legClr='#2a3a4a';
+    sq(cx-12,by+bh,3,legH,legClr); sq(cx+9,by+bh,3,legH,legClr);
+    sq(cx-16,H-23,32,3,legClr);
+    // 影
+    ctx.globalAlpha=0.2; ctx.fillStyle='#000';
+    ctx.beginPath(); ctx.ellipse(cx,by+bh+2,bw/2-4,4,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    // ボウル外形（台形）
+    poly([[bx+6,by],[bx+bw-6,by],[bx+bw,by+bh],[bx,by+bh]],isWater?'#2a4466':'#4a2e10');
+    // ボウル内（深み）
+    poly([[bx+8,by+3],[bx+bw-8,by+3],[bx+bw-2,by+bh-1],[bx+2,by+bh-1]],isWater?'#0e1e3a':'#2a1608');
+    // 中身
+    if(level>0){
+      const maxH=bh-5, fillH=Math.max(2,Math.round(maxH*level/100));
+      const fillY=by+bh-1-fillH, fillX=bx+3, fillW=bw-6;
+      if(isWater){
+        ctx.fillStyle=level<20?'#1a2a44':'#2255aa';
+        ctx.fillRect(fillX,fillY,fillW,fillH);
+        // 水面リップル
         if(level>10){
-          ctx.globalAlpha=0.35+Math.sin(S.tick*0.12)*0.15;
-          ctx.fillStyle='#ffffff'; ctx.fillRect(bx+2,fy+bh-2-fh,bw-4,1);
+          ctx.globalAlpha=0.45+Math.sin(S.tick*0.08)*0.25;
+          ctx.fillStyle='#88ddff'; ctx.fillRect(fillX,fillY,fillW,1);
+          ctx.globalAlpha=1;
+        }
+        // 飲むときのさざ波
+        if(S.drinkPhase>0&&level>10){
+          ctx.globalAlpha=0.6; ctx.fillStyle='#aaddff';
+          ctx.fillRect(fillX+5,fillY,8,1); ctx.fillRect(fillX+16,fillY-1,6,1);
+          ctx.globalAlpha=1;
+        }
+        // 水浴び飛沫
+        if(S.bathPhase>0&&level>5){
+          const bt=S.tick*0.25;
+          for(let i=0;i<4;i++){
+            const spx=fillX+5+i*11+Math.sin(bt+i*1.5)*4;
+            const sph=3+Math.abs(Math.sin(bt*1.3+i))*6;
+            ctx.globalAlpha=0.7*Math.abs(Math.sin(bt+i*0.8));
+            ctx.fillStyle='#88ccff';
+            ctx.fillRect(Math.round(spx),Math.round(fillY-sph),2,Math.round(sph));
+          }
+          ctx.globalAlpha=1;
+        }
+      } else {
+        ctx.fillStyle=level<20?'#3a1a08':'#7a5222';
+        ctx.fillRect(fillX,fillY,fillW,fillH);
+        // 種の粒
+        if(level>5){
+          const ns=Math.max(2,Math.min(7,Math.round(level/14)));
+          const sp=(fillW-6)/(ns-1||1);
+          for(let i=0;i<ns;i++){
+            const sx=Math.round(fillX+3+i*sp);
+            ctx.fillStyle=level<20?'#552200':'#ccaa44'; ctx.fillRect(sx,fillY-2,3,3);
+            ctx.fillStyle=level<20?'#772200':'#eecc55'; ctx.fillRect(sx,fillY-2,2,2);
+          }
+        }
+        // 食事中キラキラ
+        if(S.eatPhase>20){
+          const eT=S.tick*0.25;
+          ctx.globalAlpha=0.7+Math.sin(eT)*0.3; ctx.fillStyle='#ffdd88';
+          ctx.fillRect(Math.round(fillX+8+Math.sin(eT)*8),fillY-4,3,3);
+          ctx.fillRect(Math.round(fillX+22+Math.sin(eT+1.5)*6),fillY-3,2,2);
           ctx.globalAlpha=1;
         }
       }
-      ctx.fillStyle='#334455'; ctx.fillRect(bx,fy+bh-1,bw,1);
-      ctx.fillStyle=level<20?warn:'#7799aa'; ctx.font='7px Courier New';
-      ctx.textAlign='center'; ctx.fillText(label+' '+Math.round(level)+'%',bx+bw/2,fy-3);
-      ctx.textAlign='left';
     }
-    bowl(12,   S.bowl,  '#cc8822','#882200','🌾','#ff6633');
-    bowl(W-48, S.water, '#2266cc','#113388','💧','#4488ff');
+    // リムハイライト
+    ctx.fillStyle=isWater?'#4488bb':'#7a5a28';
+    ctx.fillRect(bx+8,by,bw-16,2);
+    // ラベル（ボウル上）
+    ctx.fillStyle=level<1?'#cc3300':(level<20?(isWater?'#ff8844':'#ff6633'):'#6688aa');
+    ctx.font='7px Courier New'; ctx.textAlign='center';
+    ctx.fillText((isWater?'みず':'えさ')+' '+Math.round(level)+'%',cx,by-4);
+    ctx.textAlign='left';
   }
 
   function drawPoops(){
@@ -831,22 +929,33 @@
   // ─── MOTION ─────────────────────────────────
   function updateMotion(){
     if(S.stage===0||S.dead){ S.motionX=0; S.motionY=0; S.motion='idle'; return; }
-
-    // ブランコ乗り中（あそぶ FX）
+    // ブランコ
     if(S.fx==='play'){
-      const angle=Math.sin(S.tick*0.05)*0.45;
+      const angle=Math.sin(S.tick*0.03)*0.45;
       const rl=72, py=22;
       S.motionX=Math.sin(angle)*rl;
       const sy=Math.cos(angle)*rl, seatY=py+sy;
-      // 各ステージの足元 Y = stageBaseOY + feetOffset に seatY を合わせる
       const feetRef=S.stage===1?(CY-52+42):S.stage===2?(CY-66+68):(CY-78+78);
       S.motionY=seatY-feetRef;
-      S.motion='play';
-      return;
+      S.motion='play'; return;
     }
-
     if(S.sleeping){ S.motionX=0; S.motionY=0; S.motion='idle'; return; }
-
+    // えさいれへ移動（eatPhase）
+    if(S.eatPhase>0){
+      const t=90-S.eatPhase, inF=Math.min(t,15)/15, outF=S.eatPhase<15?S.eatPhase/15:1, f=inF*outF;
+      S.motionX=Math.round(-75*f); S.motionY=Math.round(38*f); S.motion='idle'; return;
+    }
+    // みずいれへ移動（drinkPhase）
+    if(S.drinkPhase>0){
+      const t=70-S.drinkPhase, inF=Math.min(t,12)/12, outF=S.drinkPhase<12?S.drinkPhase/12:1, f=inF*outF;
+      S.motionX=Math.round(75*f); S.motionY=Math.round(35*f); S.motion='idle'; return;
+    }
+    // 水浴び（bathPhase）- みずいれでゆさゆさ
+    if(S.bathPhase>0){
+      const t=180-S.bathPhase, inF=Math.min(t,20)/20, outF=S.bathPhase<20?S.bathPhase/20:1, f=inF*outF;
+      S.motionX=Math.round((75+Math.sin(S.tick*0.4)*5)*f);
+      S.motionY=Math.round(35*f); S.motion='idle'; return;
+    }
     S.motionTimer--;
     S.motionPhase++;
     if(S.motionTimer<=0){
@@ -861,19 +970,19 @@
     switch(S.motion){
       case 'jump':
         S.motionX=0;
-        S.motionY=-Math.abs(Math.sin(S.motionPhase*0.13))*18;
+        S.motionY=-Math.abs(Math.sin(S.motionPhase*0.08))*18;
         break;
       case 'fly':
-        S.motionX=Math.sin(S.motionPhase*0.05)*40;
-        S.motionY=-18+Math.sin(S.motionPhase*0.07)*8;
+        S.motionX=Math.sin(S.motionPhase*0.03)*40;
+        S.motionY=-18+Math.sin(S.motionPhase*0.042)*8;
         break;
       case 'run':
-        S.motionX=Math.sin(S.motionPhase*0.09)*44;
-        S.motionY=-Math.abs(Math.sin(S.motionPhase*0.18))*6;
+        S.motionX=Math.sin(S.motionPhase*0.055)*44;
+        S.motionY=-Math.abs(Math.sin(S.motionPhase*0.11))*6;
         break;
       case 'walk':
-        S.motionX=Math.sin(S.motionPhase*0.045)*26;
-        S.motionY=-Math.abs(Math.sin(S.motionPhase*0.09))*3;
+        S.motionX=Math.sin(S.motionPhase*0.028)*26;
+        S.motionY=-Math.abs(Math.sin(S.motionPhase*0.055))*3;
         break;
       default:
         S.motionX=0; S.motionY=0;
@@ -883,7 +992,6 @@
   // ─── LOGIC ─────────────────────────────────
   function decayTick(){
     if(S.stage===0||S.dead) return;
-    let bathed=false;
     if(S.sleeping){
       S.energy=Math.min(100,S.energy+12);
       S.hunger=Math.max(0,S.hunger-1);
@@ -896,20 +1004,23 @@
       if(S.bowl>0){
         S.bowl=Math.max(0,S.bowl-2);
         S.hunger=Math.min(100,S.hunger+2);
-        if(Math.random()<0.25&&!S.fx) S.eatPhase=20;
+        if(Math.random()<0.25&&!S.fx&&S.eatPhase===0) S.eatPhase=90;
       } else {
         S.hunger=Math.max(0,S.hunger-3);
       }
       // みずいれ（徐々に減少）
       S.water=Math.max(0,S.water-1.5);
-      // 水を飲む（ランダム20%で清潔度微回復）
-      if(S.water>0&&Math.random()<0.2) S.clean=Math.min(100,S.clean+5);
-      // 水浴び（水80%以上・5%確率）
-      if(S.water>=80&&Math.random()<0.05&&!S.fx){
+      // 水を飲む（ランダム20%で清潔度微回復・飲みアニメ）
+      if(S.water>0&&Math.random()<0.2){
+        S.clean=Math.min(100,S.clean+5);
+        if(S.drinkPhase===0&&S.bathPhase===0) S.drinkPhase=70;
+      }
+      // 水浴び（水80%以上・5%確率・浴びアニメ）
+      if(S.water>=80&&Math.random()<0.05&&S.bathPhase===0&&S.eatPhase===0){
         S.water=Math.max(0,S.water-8);
         S.clean=Math.min(100,S.clean+40+Math.round(Math.random()*20));
-        S.fx='water'; setTimeout(()=>{ if(S.fx==='water') S.fx=null; },2000);
-        bathed=true;
+        S.bathPhase=180;
+        msg('みずあびしてるよ！きもちよさそう！');
       }
       // フン
       poopTick++;
@@ -946,7 +1057,6 @@
       }
     }
     checkStatus(); updateUI();
-    if(bathed) msg('みずあびしてるよ！きもちよさそう！');
   }
 
   function checkStatus(){
@@ -965,6 +1075,7 @@
       if(next===1){
         if(awaitingName) return;
         S.color=Math.random()<0.1?3:Math.floor(Math.random()*3);
+        if(S.color===3) S.rainbowHue=Math.floor(Math.random()*360);
         awaitingName=true;
         showNameOverlay();
         return;
@@ -1085,9 +1196,7 @@
     document.getElementById('ikScreen').style.boxShadow='0 0 40px rgba(255,255,255,0.5)';
     setTimeout(()=>{
       document.getElementById('ikScreen').style.boxShadow='';
-      Object.assign(S,{stage:0,hunger:100,happy:100,energy:100,age:0,
-        sleeping:false,fx:null,color:null,name:null,dead:false,eatPhase:0,
-        bowl:100,water:100,clean:100,poops:[]});
+      Object.assign(S,{stage:0,hunger:100,happy:100,energy:100,age:0,sleeping:false,fx:null,color:null,name:null,dead:false,eatPhase:0,drinkPhase:0,bathPhase:0,bowl:100,water:100,clean:100,poops:[],rainbowHue:null});
       document.getElementById('ikIcoSleep').textContent='💤';
       document.getElementById('ikLblSleep').textContent='ねかせる';
       saveState();
@@ -1112,9 +1221,9 @@
     el.style.display='block';
     const cIcon={0:'💛',1:'💙',2:'💚',3:'🌈'};
     listEl.innerHTML=list.map(g=>`<div class="ik-grave-item">
-      <div class="ik-grave-icon">🪦</div>
+      <div class="ik-grave-icon">${g.released?'🕊️':'🪦'}</div>
       <div class="ik-grave-name">${cIcon[g.color??2]||'💚'} ${g.name||'インコっち'}</div>
-      <div class="ik-grave-age">${g.age}日生きた</div>
+      <div class="ik-grave-age">${g.released?`${g.age}日で放鳥`:`${g.age}日生きた`}</div>
     </div>`).join('');
   }
 
@@ -1123,6 +1232,29 @@
     const btn=document.getElementById('ikSndBtn');
     btn.textContent=soundOn?'🔊':'🔇';
     btn.classList.toggle('ik-snd-on',soundOn);
+  };
+
+  window.ikRelease=function(){
+    if(S.stage===0){ msg('まだたまごだよ...そっとしといて...'); return; }
+    if(S.dead) return;
+    const nm=S.name||'インコっち';
+    if(!confirm(`${nm}を放鳥しますか？\n大空へかえしてあげる？`)) return;
+    S.dead=true;
+    const entry={name:nm,color:S.color??2,age:S.age,diedAt:Date.now(),released:true};
+    saveGrave(entry);
+    renderGrave();
+    sndEvolve();
+    msg(`${nm}は大空へとびたっていった... 🕊️`);
+    const sc=document.getElementById('ikScreen');
+    sc.style.boxShadow='0 0 40px rgba(100,200,255,0.7)';
+    setTimeout(()=>{
+      sc.style.boxShadow='';
+      Object.assign(S,{stage:0,hunger:100,happy:100,energy:100,age:0,sleeping:false,fx:null,color:null,name:null,dead:false,eatPhase:0,drinkPhase:0,bathPhase:0,bowl:100,water:100,clean:100,poops:[],rainbowHue:null});
+      document.getElementById('ikIcoSleep').textContent='💤';
+      document.getElementById('ikLblSleep').textContent='ねかせる';
+      saveState(); updateUI();
+      msg('あたらしいたまごがあった！');
+    },3500);
   };
 
   window.ikReset=function(){
@@ -1137,7 +1269,7 @@
     if(S.sleeping&&type==='play'){ msg('いまねてるよ...そっとしといて...'); return; }
     if(type==='feed'){
       if(S.bowl>=100){ msg('えさいれはまだいっぱいだよ！'); return; }
-      S.bowl=100; S.eatPhase=24; S.fx='feed';
+      S.bowl=100; S.eatPhase=90; S.fx='feed';
       sndFeed(); setTimeout(()=>S.fx=null,2500); msg('えさを補充したよ！もぐもぐ♪');
     } else if(type==='water'){
       if(S.water>=100){ msg('みずいれはまだいっぱいだよ！'); return; }
@@ -1200,6 +1332,7 @@
       age:S.age,sleeping:S.sleeping,color:S.color,name:S.name,
       dead:S.dead,lifespan:S.lifespan,lifePts:S.lifePts,
       bowl:S.bowl,water:S.water,clean:S.clean,poops:S.poops,
+      rainbowHue:S.rainbowHue,
       savedAt:Date.now()
     }));
   }
@@ -1220,6 +1353,8 @@
       S.water=d.water??100;
       S.clean=d.clean??100;
       S.poops=d.poops??[];
+      S.rainbowHue=d.rainbowHue??null;
+      if(S.color===3&&S.rainbowHue===null) S.rainbowHue=Math.floor(Math.random()*360);
       if(S.sleeping){
         document.getElementById('ikIcoSleep').textContent='☀️';
         document.getElementById('ikLblSleep').textContent='おこす';
