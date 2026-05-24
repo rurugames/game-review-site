@@ -230,8 +230,11 @@
   position:relative; display:flex;
   align-items:center; justify-content:center;
 }
-.ik-snd-btn {
+.ik-title-btns {
   position:absolute; right:0;
+  display:flex; gap:4px; align-items:center;
+}
+.ik-snd-btn {
   background:#0a1e35; border:1px solid #1a3a5a;
   border-radius:8px; font-size:15px; line-height:1;
   padding:3px 7px; cursor:pointer; transition:all 0.15s;
@@ -239,6 +242,17 @@
 }
 .ik-snd-btn:hover { background:#1a4a7a; }
 .ik-snd-btn.ik-snd-on { border-color:#4499ff; box-shadow:0 0 6px rgba(68,153,255,0.4); }
+/* ── volume slider ──────────────────── */
+.ik-vol-row {
+  display:flex; align-items:center; gap:5px;
+  margin:3px 0 8px; padding:0 2px;
+}
+.ik-vol-icon { font-size:11px; line-height:1; }
+.ik-vol-slider {
+  flex:1; height:3px; cursor:pointer;
+  accent-color:#4499ff;
+  background:#0a1628;
+}
 </style>
 
 <div class="inkocchi-page">
@@ -254,7 +268,15 @@
     <div class="ik-container">
       <div class="ik-titlebar">
         <div class="ik-title">インコっち</div>
-        <button class="ik-snd-btn" id="ikSndBtn" onclick="ikToggleSound()">🔇</button>
+        <div class="ik-title-btns">
+          <button class="ik-snd-btn" id="ikBgmBtn" onclick="ikToggleBgm()" title="BGM">♩</button>
+          <button class="ik-snd-btn" id="ikSndBtn" onclick="ikToggleSound()" title="効果音">🔇</button>
+        </div>
+      </div>
+      <div class="ik-vol-row">
+        <span class="ik-vol-icon">🔈</span>
+        <input type="range" class="ik-vol-slider" id="ikVolSlider" min="0" max="100" value="30">
+        <span class="ik-vol-icon">🔊</span>
       </div>
       <div class="ik-stage" id="ikStageLabel">▷ たまご ◁</div>
 
@@ -367,6 +389,7 @@
   ];
   let awaitingName = false;
   let soundOn = false;
+  let masterVol = 0.3;
   let poopTick = 0, poopInterval = 5;
 
   // ─── カラーパレット ────────────────────────
@@ -429,7 +452,7 @@
   function getAC(){ if(!AC) AC=new(window.AudioContext||window.webkitAudioContext)(); return AC; }
   function beep(freq,dur,type,vol,delay){
     if(!soundOn) return;
-    type=type||'square'; vol=vol||0.12; delay=delay||0;
+    type=type||'square'; vol=(vol||0.12)*masterVol; delay=delay||0;
     try{
       const ac=getAC(), g=ac.createGain(), o=ac.createOscillator();
       o.type=type; o.frequency.value=freq;
@@ -451,6 +474,81 @@
   function sndTalk(){ beep(660,0.06,'square',0.10); beep(550,0.06,'square',0.08,0.08); }
   function sndWater(){ [880,1100,880,660].forEach((f,i)=>beep(f,0.10,'sine',0.08,i*0.08)); }
   function sndClean(){ [660,550,440,330,220].forEach((f,i)=>beep(f,0.06,'square',0.08,i*0.055)); }
+
+  // ─── BGM（ファミコン風スケジューラー） ────────────
+  let bgmOn=false, bgmStep=0, bgmNextTime=0, bgmTimer=null;
+  const BSTEP=60/150/4; // 16th note at BPM150 ≈ 0.1s
+  const BN={
+    _:0,
+    C3:130.81,D3:146.83,E3:164.81,F3:174.61,G3:196.00,A3:220.00,
+    C4:261.63,D4:293.66,E4:329.63,F4:349.23,G4:392.00,A4:440.00,B4:493.88,
+    C5:523.25,D5:587.33,E5:659.25,F5:698.46,G5:783.99,A5:880.00,
+  };
+  // メロディー（スクウェア波、64ステップ = 4小節ループ）
+  const BGM_MEL=[
+    BN.E5,BN._,  BN.G5,BN._,  BN.E5,BN._,  BN.D5,BN._,
+    BN.C5,BN._,  BN.D5,BN._,  BN.E5,BN._,  BN._,BN._,
+    BN.G5,BN._,  BN.A5,BN._,  BN.G5,BN._,  BN.E5,BN._,
+    BN.D5,BN._,  BN.E5,BN._,  BN.C5,BN._,  BN._,BN._,
+    BN.C5,BN.D5, BN.E5,BN.G5, BN.A5,BN.G5, BN.E5,BN.D5,
+    BN.C5,BN._,  BN.B4,BN._,  BN.A4,BN._,  BN.G4,BN._,
+    BN.E5,BN._,  BN.G5,BN._,  BN.E5,BN._,  BN.D5,BN._,
+    BN.C5,BN._,  BN._,BN._,   BN.C5,BN._,  BN._,BN._,
+  ];
+  // ベースライン（トライアングル波）
+  const BGM_BAS=[
+    BN.C3,BN._,BN._,BN._,  BN.C3,BN._,BN._,BN._,  BN.G3,BN._,BN._,BN._,  BN.G3,BN._,BN._,BN._,
+    BN.A3,BN._,BN._,BN._,  BN.A3,BN._,BN._,BN._,  BN.E3,BN._,BN._,BN._,  BN.E3,BN._,BN._,BN._,
+    BN.F3,BN._,BN._,BN._,  BN.F3,BN._,BN._,BN._,  BN.G3,BN._,BN._,BN._,  BN.G3,BN._,BN._,BN._,
+    BN.C3,BN._,BN._,BN._,  BN.C3,BN._,BN._,BN._,  BN.G3,BN._,BN._,BN._,  BN.C3,BN._,BN._,BN._,
+  ];
+  // ハーモニー（オクターブ下のスクウェア波でコード感）
+  const BGM_HAR=[
+    BN.C4,BN._,BN._,BN._,  BN.E4,BN._,BN._,BN._,  BN.G4,BN._,BN._,BN._,  BN.E4,BN._,BN._,BN._,
+    BN.A4,BN._,BN._,BN._,  BN.C4,BN._,BN._,BN._,  BN.E4,BN._,BN._,BN._,  BN.A4,BN._,BN._,BN._,
+    BN.F4,BN._,BN._,BN._,  BN.A4,BN._,BN._,BN._,  BN.G4,BN._,BN._,BN._,  BN.B4,BN._,BN._,BN._,
+    BN.C4,BN._,BN._,BN._,  BN.E4,BN._,BN._,BN._,  BN.G4,BN._,BN._,BN._,  BN.C4,BN._,BN._,BN._,
+  ];
+
+  function playBgmNote(freq,dur,type,vol,when){
+    if(!freq||!bgmOn) return;
+    try{
+      const ac=getAC(),g=ac.createGain(),o=ac.createOscillator();
+      o.type=type; o.frequency.value=freq;
+      g.gain.setValueAtTime(vol*masterVol,when);
+      g.gain.exponentialRampToValueAtTime(0.001,when+dur);
+      o.connect(g); g.connect(ac.destination);
+      o.start(when); o.stop(when+dur+0.01);
+    }catch(e){}
+  }
+
+  function bgmScheduler(){
+    if(!bgmOn) return;
+    const ac=getAC();
+    while(bgmNextTime < ac.currentTime+0.15){
+      const s=bgmStep%BGM_MEL.length;
+      playBgmNote(BGM_MEL[s], BSTEP*0.80, 'square',   0.055, bgmNextTime);
+      playBgmNote(BGM_BAS[s], BSTEP*0.92, 'triangle', 0.038, bgmNextTime);
+      playBgmNote(BGM_HAR[s], BSTEP*0.75, 'square',   0.025, bgmNextTime);
+      bgmStep++; bgmNextTime+=BSTEP;
+    }
+    bgmTimer=setTimeout(bgmScheduler, Math.round(BSTEP*350));
+  }
+
+  window.ikToggleBgm=function(){
+    try{ getAC().resume(); }catch(e){}
+    const btn=document.getElementById('ikBgmBtn');
+    if(bgmOn){
+      bgmOn=false;
+      if(bgmTimer){ clearTimeout(bgmTimer); bgmTimer=null; }
+      btn.textContent='♩'; btn.classList.remove('ik-snd-on');
+    } else {
+      bgmOn=true; bgmStep=0;
+      bgmNextTime=getAC().currentTime+0.05;
+      bgmScheduler();
+      btn.textContent='♪'; btn.classList.add('ik-snd-on');
+    }
+  };
 
   // ─── 夜昼 ──────────────────────────────────
   function getDayPhase(){
@@ -500,6 +598,7 @@
   setInterval(saveState, 20000);
   setInterval(randomTalk, 120000);
   document.addEventListener('pointerdown', ()=>{ try{ getAC().resume(); }catch(e){} });
+  document.getElementById('ikVolSlider').addEventListener('input', function(){ masterVol=this.value/100; });
   document.getElementById('ikNameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') window.ikSubmitName(); });
   canvas.addEventListener('pointerdown', handleCanvasTap);
   updateUI();
@@ -904,8 +1003,8 @@
     ctx.fillRect(bx+8,by,bw-16,2);
     // ラベル（ボウル上）
     ctx.fillStyle=level<1?'#cc3300':(level<20?(isWater?'#ff8844':'#ff6633'):'#6688aa');
-    ctx.font='7px Courier New'; ctx.textAlign='center';
-    ctx.fillText((isWater?'みず':'えさ')+' '+Math.round(level)+'%',cx,by-4);
+    ctx.font='bold 10px Courier New'; ctx.textAlign='center';
+    ctx.fillText((isWater?'みず':'えさ')+' '+Math.round(level)+'%',cx,by-5);
     ctx.textAlign='left';
   }
 
