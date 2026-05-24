@@ -18,6 +18,7 @@ const Comment = require('../models/Comment');
 const Review = require('../models/Review');
 const AdTag = require('../models/AdTag');
 const GalleryImage = require('../models/GalleryImage');
+const Product = require('../models/Product');
 const { isAdminEmail } = require('../lib/admin');
 
 
@@ -371,6 +372,14 @@ router.get('/', async (req, res) => {
       try { console.warn('review ranking compute failed (home):', e && e.message ? e.message : String(e)); } catch (_) {}
     }
 
+    let latestProducts = [];
+    try {
+      latestProducts = await Product.find({ status: 'published' })
+        .sort({ createdAt: -1 })
+        .limit(4)
+        .lean();
+    } catch (e) { latestProducts = []; }
+
     res.render('index', {
       title: 'トップ',
       metaDescription: '成人向け同人PCゲームの最新記事・人気ランキング・おすすめ動画をまとめてチェックできます。',
@@ -378,6 +387,7 @@ router.get('/', async (req, res) => {
       latestGalleryImages,
       heroHtml,
       reviewMonthlyBest,
+      latestProducts,
       latestVideos,
       recommendedVideos,
       youtubeChannelId,

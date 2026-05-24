@@ -176,7 +176,15 @@ app.use(express.static(path.join(__dirname, 'public'), {
 }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(methodOverride('_method'));
+// フォームボディの _method フィールドで DELETE/PUT を上書き（クエリ文字列にも対応）
+app.use(methodOverride(function (req, res) {
+  if (req.body && typeof req.body === 'object' && '_method' in req.body) {
+    const method = req.body._method;
+    delete req.body._method;
+    return method;
+  }
+}));
+app.use(methodOverride('_method')); // クエリ文字列 ?_method=DELETE にも対応
 
 // セッション設定
 if (!process.env.SESSION_SECRET && process.env.NODE_ENV !== 'production') {
@@ -242,6 +250,16 @@ app.use(async (req, res, next) => {
   } catch (_) {
     res.locals.isAdultConfirmed = false;
   }
+
+  // 商品ジャンル判定ヘルパー（テンプレートから呼び出し可能）
+  res.locals.getProductGenre = function(url) {
+    if (!url) return 'その他';
+    if (url.includes('/maniax/')) return '同人ゲーム';
+    if (url.includes('/pro/'))    return 'PCゲーム';
+    if (url.includes('/books/'))  return '成年コミック';
+    if (url.includes('fanza.com') || url.includes('dmm.co.jp')) return 'FANZAブック';
+    return 'その他';
+  };
 
   // Affiliate banner config (optional)
   res.locals.fanzaBannerUrl = String(process.env.FANZA_BANNER_URL || '').trim();
@@ -418,6 +436,8 @@ app.use('/generator', require('./routes/generator'));
 app.use('/csv', require('./routes/csv'));
 app.use('/out', require('./routes/out'));
 app.use('/gallery', require('./routes/gallery'));
+app.use('/inkocchi', require('./routes/inkocchi'));
+app.use('/products', require('./routes/products'));
 
 // サーバー起動
 server.listen(PORT, () => {

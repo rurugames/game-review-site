@@ -5,7 +5,7 @@
  *
  * メタデータの優先順位:
  *   1. .metadata.json（Copilotエージェントによる事前解析結果）
- *   2. OpenAI Vision（OPENAI_API_KEYが設定されている場合）
+ *   2. OpenAI Vision（GALLERY_ENABLE_OPENAI_ANALYSIS と OPENAI_API_KEY の両方が設定されている場合）
  *   3. 連番フォールバック（アニメN）
  *
  * 使い方: node scripts/sync_r2_gallery.js
@@ -15,7 +15,7 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const { S3Client, ListObjectsV2Command, GetObjectCommand } = require('@aws-sdk/client-s3');
 const GalleryImage = require('../models/GalleryImage');
-const { analyzeImage, buildMeta, initCounters, mimeFromExt, sleep } = require('../lib/imageMetaFromAI');
+const { analyzeImage, buildMeta, initCounters, mimeFromExt, sleep, canUseOpenAIAnalysis } = require('../lib/imageMetaFromAI');
 const path = require('path');
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif']);
@@ -84,7 +84,7 @@ async function run() {
     }
   }
   const hasAgentMeta = Object.keys(agentAnalysis).length > 0;
-  const hasAI = !hasAgentMeta && !!process.env.OPENAI_API_KEY;
+  const hasAI = !hasAgentMeta && canUseOpenAIAnalysis();
 
   const apiToken = process.env.CLOUDFLARE_API_TOKEN;
   const accountId = process.env.R2_ACCOUNT_ID;

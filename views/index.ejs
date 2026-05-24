@@ -12,6 +12,46 @@
   </div>
 </div>
 
+<% if (typeof latestProducts !== 'undefined' && latestProducts && latestProducts.length > 0) { %>
+<section class="articles-section page-section">
+  <div class="page-header" style="justify-content:space-between;display:flex;align-items:center;">
+    <h2 class="section-title">商品レビュー</h2>
+    <a href="/products" class="btn-more">一覧へ</a>
+  </div>
+  <div class="panel">
+    <div class="panel-body">
+      <div class="articles-grid">
+        <% latestProducts.forEach(p => { %>
+          <article class="article-card">
+            <% if (p.imageUrl) { %>
+              <div class="article-image">
+                <a href="<%= p.affiliateLink %>" target="_blank" rel="noopener sponsored" style="display:block;">
+                  <img src="<%= p.imageUrl %>" alt="<%= p.title %>" loading="lazy">
+                </a>
+              </div>
+            <% } %>
+            <div class="article-content">
+              <div class="article-meta">
+                <span class="genre"><%= getProductGenre(p.affiliateLink) %></span>
+                <% if (p.rating) { %>
+                  <% const _pn = Math.min(5, Math.max(0, Math.round(p.rating))); %>
+                  <span class="rating"><%= '★'.repeat(_pn) + '☆'.repeat(5 - _pn) %> <%= p.rating.toFixed(1) %></span>
+                <% } %>
+              </div>
+              <h2><%= p.title %></h2>
+              <div class="article-footer">
+                <span class="date"><%= new Date(p.createdAt).toLocaleDateString('ja-JP') %></span>
+              </div>
+              <a href="/products/<%= p._id %>" class="btn-read-more">レビューを読む</a>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+</section>
+<% } %>
+
 <% if (typeof latestGalleryImages !== 'undefined' && latestGalleryImages && latestGalleryImages.length > 0) { %>
 <section class="gallery-section page-section">
   <div class="page-header" style="justify-content: space-between; display: flex; align-items: center;">
@@ -38,21 +78,6 @@
   const _m = _jst.getUTCMonth() + 1;
 %>
 
-<section class="articles-section page-section" aria-label="クイック導線">
-  <div class="page-header">
-    <h2 class="section-title">最短で探す</h2>
-    <p class="section-lead">迷ったら「人気タグ」から。合わなければ検索やフィルターへ。</p>
-  </div>
-  <div class="panel">
-    <div class="panel-body" style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
-      <a href="/review-ranking" class="btn-primary">みんなの評価を見る</a>
-      <% if (!disablePublicArticles) { %>
-        <a href="/articles#popular-tags" class="btn-secondary">人気タグから最速で探す</a>
-        <a href="/articles?year=<%= _y %>&month=<%= _m %>" class="btn-secondary">今月の新作を見る</a>
-      <% } %>
-    </div>
-  </div>
-</section>
 
 <% if (!disablePublicArticles) { %>
   <section class="articles-section page-section">
@@ -119,44 +144,6 @@
       </div>
     </div>
   </section>
-<% } %>
-
-<% if (typeof reviewMonthlyBest !== 'undefined') { %>
-<section class="articles-section page-section" aria-label="みんなの評価">
-  <div class="page-header">
-    <h2 class="section-title">みんなの評価（短評レビュー）</h2>
-    <p class="section-lead">短評レビューから「買ってよかった」を探せます。<a href="/review-ranking">一覧を見る</a></p>
-  </div>
-
-  <div class="panel">
-    <div class="panel-body">
-      <% if (reviewMonthlyBest && reviewMonthlyBest.length > 0) { %>
-        <div class="articles-grid">
-          <% reviewMonthlyBest.forEach(item => { %>
-            <% const a = item.article; %>
-            <article class="article-card">
-              <% if (a.imageUrl) { %>
-                <div class="article-image"><img src="<%= a.imageUrl %>" alt="<%= a.gameTitle || a.title %>"></div>
-              <% } %>
-              <div class="article-content">
-                <div class="article-meta">
-                  <span class="genre"><%= a.genre || 'ゲーム' %></span>
-                  <span class="rating">総合★<%= Number(item.score || 0).toFixed(2) %>（<%= item.count %>件）</span>
-                </div>
-                <h2><%= a.title %></h2>
-                <h3 class="game-title"><%= a.gameTitle %></h3>
-                <p class="description">レビュー <%= item.count %>件</p>
-                <a href="/articles/<%= a._id %>#reviews" class="btn-read-more">短評レビューを見る</a>
-              </div>
-            </article>
-          <% }); %>
-        </div>
-      <% } else { %>
-        <div class="no-articles"><p>レビューがまだ集まっていません。</p></div>
-      <% } %>
-    </div>
-  </div>
-</section>
 <% } %>
 
 <% if (latestVideos && latestVideos.length > 0) { %>

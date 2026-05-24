@@ -1,0 +1,786 @@
+<style>
+.inkocchi-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 12px 40px;
+}
+.inkocchi-intro {
+  max-width: 400px;
+  text-align: center;
+  margin-bottom: 24px;
+  color: var(--text-secondary, #aaa);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.inkocchi-intro h1 {
+  font-size: 1.4rem;
+  color: var(--text-primary, #fff);
+  margin-bottom: 8px;
+}
+/* ── game container ─────────────────────── */
+.ik-wrap {
+  font-family: 'Courier New', monospace;
+}
+.ik-container {
+  background: #16213e;
+  border: 3px solid #0f3460;
+  border-radius: 24px;
+  padding: 18px 16px 16px;
+  width: 320px;
+  max-width: 96vw;
+  box-shadow: 0 0 40px rgba(15,52,96,0.7), inset 0 0 20px rgba(0,0,0,0.3);
+}
+.ik-title {
+  text-align: center;
+  font-size: 22px;
+  color: #7ecfff;
+  margin-bottom: 3px;
+  letter-spacing: 4px;
+  text-shadow: 0 0 12px #3388cc;
+}
+.ik-stage {
+  text-align: center;
+  font-size: 11px;
+  color: #6699bb;
+  margin-bottom: 12px;
+  letter-spacing: 2px;
+}
+.ik-screen {
+  background: #0a1a2e;
+  border: 2px solid #0f3460;
+  border-radius: 12px;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.ik-screen canvas {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.ik-status { margin-bottom: 14px; }
+.ik-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 7px;
+  gap: 7px;
+}
+.ik-lbl {
+  font-size: 11px;
+  width: 72px;
+  color: #8ab;
+  white-space: nowrap;
+}
+.ik-bar-wrap {
+  flex: 1;
+  height: 11px;
+  background: #0a1628;
+  border-radius: 6px;
+  border: 1px solid #0f3460;
+  overflow: hidden;
+}
+.ik-bar {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease;
+}
+.ik-bar-hunger { background: linear-gradient(90deg,#ff7b7b,#ffb07a); }
+.ik-bar-happy  { background: linear-gradient(90deg,#ffd700,#fff176); }
+.ik-bar-energy { background: linear-gradient(90deg,#00e676,#69ffb4); }
+.ik-val {
+  font-size: 10px;
+  width: 28px;
+  text-align: right;
+  color: #6699bb;
+}
+.ik-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.ik-btn {
+  background: #0e2d52;
+  border: 2px solid #1a4a7a;
+  border-radius: 12px;
+  color: #cce4ff;
+  font-size: 11px;
+  padding: 10px 2px 8px;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.ik-btn:hover  { background: #1a4a7a; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+.ik-btn:active { transform: translateY(0); background: #0a1e35; }
+.ik-btn-icon   { font-size: 20px; display: block; margin-bottom: 4px; }
+.ik-msg {
+  background: #071220;
+  border: 1px solid #0f3460;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  color: #7ecfff;
+  text-align: center;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.5px;
+}
+.ik-age {
+  text-align: center;
+  font-size: 10px;
+  color: #445566;
+  margin-top: 8px;
+}
+/* ── name overlay ───────────────────── */
+.ik-name-overlay {
+  position: absolute; top:0; left:0; right:0; bottom:0;
+  background: rgba(5,15,30,0.93);
+  border-radius: 10px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 10px; z-index: 10;
+}
+.ik-name-title { color:#7ecfff; font-size:13px; text-align:center; line-height:1.7; }
+.ik-name-color { font-size:11px; color:#ffd700; }
+.ik-name-input {
+  background:#0a1628; border:2px solid #1a4a7a; border-radius:8px;
+  color:#cce4ff; font-size:14px; padding:6px 10px;
+  text-align:center; width:140px;
+  font-family:'Courier New',monospace; outline:none;
+}
+.ik-name-input:focus { border-color:#4499ff; }
+.ik-name-btn {
+  background:#1a4a7a; border:2px solid #4499ff; border-radius:8px;
+  color:#cce4ff; font-size:12px; padding:7px 20px; cursor:pointer;
+  font-family:'Courier New',monospace;
+}
+.ik-name-btn:hover { background:#2a5a9a; }
+/* ── birth overlay ──────────────────── */
+.ik-birth-overlay {
+  position:absolute; top:0; left:0; right:0; bottom:0;
+  background:rgba(0,0,0,0.72); border-radius:10px;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  z-index:9; pointer-events:none;
+}
+.ik-birth-text {
+  font-size:15px; color:#ffd700; text-align:center;
+  text-shadow:0 0 18px #ffd700;
+  animation:ik-pop 0.4s ease;
+}
+.ik-birth-sub { font-size:11px; color:#aaddff; margin-top:6px; }
+@keyframes ik-pop {
+  0%{transform:scale(0.5);opacity:0}70%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}
+}
+/* ── graveyard ──────────────────────── */
+.ik-graveyard {
+  margin-top:20px; width:320px; max-width:96vw;
+}
+.ik-grave-title {
+  text-align:center; font-size:12px; color:#445566;
+  letter-spacing:2px; margin-bottom:10px;
+}
+.ik-grave-list {
+  display:flex; flex-wrap:wrap; gap:8px; justify-content:center;
+}
+.ik-grave-item {
+  background:#0d1d2e; border:1px solid #1a3a5a;
+  border-radius:10px; padding:8px 10px; text-align:center;
+  min-width:60px;
+}
+.ik-grave-icon { font-size:20px; }
+.ik-grave-name {
+  font-size:10px; color:#7a9ab0; margin-top:3px;
+  word-break:break-all; max-width:64px;
+}
+.ik-grave-age { font-size:9px; color:#3a5060; margin-top:2px; }
+/* ── reset button ───────────────────── */
+.ik-reset-wrap { text-align:center; margin-top:14px; }
+.ik-reset-btn {
+  background:transparent; border:1px solid #2a3a4a;
+  border-radius:8px; color:#3a5060; font-size:10px;
+  padding:5px 14px; cursor:pointer;
+  font-family:'Courier New',monospace; transition:all 0.2s;
+}
+.ik-reset-btn:hover { border-color:#ff4444; color:#ff6666; }
+</style>
+
+<div class="inkocchi-page">
+  <div class="inkocchi-intro">
+    <h1>🐦 インコっち</h1>
+    <p>ドット絵のインコを育てよう！<br>えさをあげたり、いっしょにあそんだり、ねかせてあげたりしながら、たまごからせいちょうしたインコへと進化させてください。</p>
+    <p style="margin-top:0.7rem; padding:0.6rem 0.9rem; background:#fff8e1; border-left:4px solid #f9a825; border-radius:4px; font-size:0.82rem; color:#555;">
+      ⚠️ <strong>ベータ版</strong>です。予告なくデータのリセットや仕様変更が行われる場合があります。セーブデータはブラウザのローカルストレージに保存されており、キャッシュ削除・端末変更・ブラウザ更新などで失われることがあります。あらかじめご了承ください。
+    </p>
+  </div>
+
+  <div class="ik-wrap">
+    <div class="ik-container">
+      <div class="ik-title">インコっち</div>
+      <div class="ik-stage" id="ikStageLabel">▷ たまご ◁</div>
+
+      <div class="ik-screen" id="ikScreen">
+        <canvas id="ikCanvas" width="280" height="176"></canvas>
+        <div id="ikNameOverlay" class="ik-name-overlay" style="display:none">
+          <div class="ik-name-title">インコが生まれたよ！<br>名前をつけてあげて！</div>
+          <div class="ik-name-color" id="ikNameColorLabel"></div>
+          <input class="ik-name-input" id="ikNameInput" maxlength="8" placeholder="なまえ（8文字まで）">
+          <button class="ik-name-btn" onclick="ikSubmitName()">けってい！</button>
+        </div>
+        <div id="ikBirthOverlay" class="ik-birth-overlay" style="display:none">
+          <div class="ik-birth-text" id="ikBirthText"></div>
+          <div class="ik-birth-sub" id="ikBirthSub"></div>
+        </div>
+      </div>
+
+      <div class="ik-status">
+        <div class="ik-row">
+          <span class="ik-lbl">🌾 おなか</span>
+          <div class="ik-bar-wrap"><div class="ik-bar ik-bar-hunger" id="ikHgBar" style="width:100%"></div></div>
+          <span class="ik-val" id="ikHgVal">100</span>
+        </div>
+        <div class="ik-row">
+          <span class="ik-lbl">🎵 きぶん</span>
+          <div class="ik-bar-wrap"><div class="ik-bar ik-bar-happy" id="ikHpBar" style="width:100%"></div></div>
+          <span class="ik-val" id="ikHpVal">100</span>
+        </div>
+        <div class="ik-row">
+          <span class="ik-lbl">💤 たいりょく</span>
+          <div class="ik-bar-wrap"><div class="ik-bar ik-bar-energy" id="ikEnBar" style="width:100%"></div></div>
+          <span class="ik-val" id="ikEnVal">100</span>
+        </div>
+      </div>
+
+      <div class="ik-btns">
+        <button class="ik-btn" onclick="ikAction('feed')">
+          <span class="ik-btn-icon" id="ikIcoFeed">🌾</span><span id="ikLblFeed">えさやり</span>
+        </button>
+        <button class="ik-btn" onclick="ikAction('play')">
+          <span class="ik-btn-icon">🎾</span>あそぶ
+        </button>
+        <button class="ik-btn" onclick="ikAction('sleep')">
+          <span class="ik-btn-icon" id="ikIcoSleep">💤</span><span id="ikLblSleep">ねかせる</span>
+        </button>
+      </div>
+
+      <div class="ik-msg" id="ikMsg">インコっちをそだてよう！</div>
+      <div class="ik-age" id="ikAge">生後 0 日</div>
+    </div>
+    <div class="ik-graveyard" id="ikGraveyard" style="display:none">
+      <div class="ik-grave-title">🪦 歴代インコ</div>
+      <div class="ik-grave-list" id="ikGraveList"></div>
+    </div>
+    <div class="ik-reset-wrap">
+      <button class="ik-reset-btn" onclick="ikReset()">全データをリセット</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  // ─── STATE ────────────────────────────────
+  const S = {
+    stage: 0, hunger: 100, happy: 100, energy: 100,
+    age: 0, sleeping: false, tick: 0, fx: null, color: null, name: null, dead: false,
+  };
+  const STAGE_NAMES = ['たまご','ひなとり','わかどり','せいちょうインコ'];
+  const STAGE_DAYS  = [0, 1, 3, 7];
+  const MAX_AGE = 14;
+  let awaitingName = false;
+
+  // ─── カラーパレット ────────────────────────
+  // b1-b5: ひなの体色, bw: ひなの羽色
+  // g1-g3: 成長後の体色(メイン/影/ハイライト)
+  // f1-f3: 頭・顔色(メイン/影/ハイライト)
+  // cheek: ほっぺ色, crest: 冠羽色
+  // w1-w3: 翼色, t1-t3: 尾羽色
+  const PALETTES = [
+    { name:'きいろ',
+      b1:'#ffe066',b2:'#e8c040',b3:'#fff5aa',b4:'#ffe580',b5:'#fff7cc',bw:'#d4a800',
+      g1:'#d4a800',g2:'#b08800',g3:'#f0c800',
+      f1:'#fffce0',f2:'#ffe880',f3:'#fffff0',
+      cheek:'#ff88aa',crest:'#ffd400',
+      w1:'#d4a800',w2:'#b08800',w3:'#f0c800',
+      t1:'#886600',t2:'#aa8800',t3:'#cc9900' },
+    { name:'みずいろ',
+      b1:'#77ddff',b2:'#44aadd',b3:'#bbf0ff',b4:'#99e8ff',b5:'#ccf5ff',bw:'#44aadd',
+      g1:'#4499cc',g2:'#2277aa',g3:'#77bbee',
+      f1:'#ccf0ff',f2:'#99ddff',f3:'#e8f8ff',
+      cheek:'#554499',crest:'#aaddff',
+      w1:'#2277aa',w2:'#115588',w3:'#4499cc',
+      t1:'#0a4477',t2:'#0d5599',t3:'#1166aa' },
+    { name:'みどり',
+      b1:'#ffe066',b2:'#e8c040',b3:'#fff5aa',b4:'#ffe580',b5:'#fff7cc',bw:'#e8b800',
+      g1:'#4ea820',g2:'#3a8010',g3:'#6ad030',
+      f1:'#ffd700',f2:'#e8c000',f3:'#fff5aa',
+      cheek:'#3377cc',crest:'#ffbb00',
+      w1:'#3a7a10',w2:'#1e5a06',w3:'#5ab020',
+      t1:'#1e5a06',t2:'#2e7a10',t3:'#3a9018' },
+  ];
+
+  function getP(){
+    const c = S.color ?? 2;
+    if(c === 3){
+      const h = (deg, l=55) => `hsl(${(S.tick*0.7+deg)%360},85%,${l}%)`;
+      return { name:'レインボー',
+        b1:h(0),b2:h(20),b3:h(340,75),b4:h(10),b5:h(350,80),bw:h(50),
+        g1:h(120),g2:h(150),g3:h(90),
+        f1:h(220,72),f2:h(200,62),f3:h(240,82),
+        cheek:h(280),crest:h(55),
+        w1:h(150),w2:h(170),w3:h(130),
+        t1:h(200),t2:h(220),t3:h(180),
+      };
+    }
+    return PALETTES[c];
+  }
+
+  function getStageName(){
+    if(S.stage === 0) return 'たまご';
+    const p = S.color !== null ? getP() : null;
+    const colorPrefix = p ? p.name+'の' : '';
+    if(S.name) return colorPrefix + S.name;
+    return colorPrefix + ['','ひなとり','わかどり','せいちょうインコ'][S.stage];
+  }
+
+  const canvas = document.getElementById('ikCanvas');
+  const ctx    = canvas.getContext('2d');
+  const W = 280, H = 176, CX = 140, CY = 132;
+
+  // ─── INIT ──────────────────────────────────
+  loadState();
+  if(S.stage>0&&S.age>=MAX_AGE&&!S.dead) triggerDeath();
+  else checkEvolve();
+  renderGrave();
+  requestAnimationFrame(loop);
+  setInterval(decayTick, 8000);
+  setInterval(()=>{
+    if(S.dead) return;
+    S.age++;
+    if(S.stage>0&&S.age>=MAX_AGE){ triggerDeath(); }
+    else { checkEvolve(); updateUI(); }
+    saveState();
+  }, 3*60*1000);
+  setInterval(saveState, 20000);
+  document.getElementById('ikNameInput').addEventListener('keydown',e=>{ if(e.key==='Enter') window.ikSubmitName(); });
+  updateUI();
+
+  // ─── LOOP ──────────────────────────────────
+  function loop() { S.tick++; render(); requestAnimationFrame(loop); }
+
+  // ─── RENDER ────────────────────────────────
+  function render() {
+    ctx.clearRect(0, 0, W, H);
+    const grad = ctx.createLinearGradient(0,0,0,H);
+    grad.addColorStop(0,'#081525'); grad.addColorStop(1,'#0d2540');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle = '#0a1e38'; ctx.fillRect(0, H-22, W, 22);
+    ctx.fillStyle = '#0d2850';
+    for(let x=8;x<W;x+=20) ctx.fillRect(x,H-18,12,4);
+    [[30,20],[80,15],[130,25],[190,12],[240,22],[60,40],[170,35],[220,45]].forEach(([x,y])=>{
+      ctx.globalAlpha = 0.3+Math.sin((S.tick*0.02+x*0.1)*Math.PI*2)*0.3;
+      ctx.fillStyle='rgba(200,230,255,0.6)'; ctx.fillRect(x,y,2,2);
+    });
+    ctx.globalAlpha=1;
+    if(S.stage===0) drawEgg();
+    else if(S.stage===1) drawChick();
+    else if(S.stage===2) drawYoung();
+    else drawAdult();
+    drawFX();
+  }
+
+  function sq(x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(x,y,w,h); }
+  function circ(x,y,r,c){ ctx.fillStyle=c; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+  function poly(pts,c){
+    ctx.fillStyle=c; ctx.beginPath(); ctx.moveTo(pts[0][0],pts[0][1]);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+    ctx.closePath(); ctx.fill();
+  }
+
+  function drawEgg(){
+    const bob=Math.sin(S.tick*0.04)*3, ox=CX, oy=CY-55+bob;
+    ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(ox,CY-2,22,6,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#f0e4cc'; ctx.beginPath(); ctx.ellipse(ox,oy+5,26,32,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(200,160,100,0.25)'; ctx.beginPath(); ctx.ellipse(ox+8,oy+10,16,22,0.4,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,0.35)'; ctx.beginPath(); ctx.ellipse(ox-8,oy-8,9,14,-0.3,0,Math.PI*2); ctx.fill();
+    if(S.age>=1){
+      ctx.strokeStyle='#b8926a'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(ox-4,oy-10); ctx.lineTo(ox+6,oy-2); ctx.lineTo(ox+2,oy+8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ox+10,oy+5); ctx.lineTo(ox+4,oy+14); ctx.stroke();
+    }
+    ctx.fillStyle='rgba(180,140,80,0.5)'; ctx.font='bold 22px Courier New';
+    ctx.textAlign='center'; ctx.fillText('?',ox,oy+12); ctx.textAlign='left';
+  }
+
+  function drawChick(){
+    const p=getP();
+    const spd=S.energy<30?0.04:0.07;
+    const bob=Math.sin(S.tick*spd)*2, blink=(S.tick%(S.hunger<30?40:90)<4);
+    const ox=CX, oy=CY-52+bob;
+    ctx.fillStyle='rgba(0,0,0,0.2)'; ctx.beginPath(); ctx.ellipse(ox,CY-4,18,5,0,0,Math.PI*2); ctx.fill();
+    circ(ox,oy+20,20,p.b1); circ(ox+6,oy+24,12,p.b2); circ(ox-6,oy+12,8,p.b3);
+    circ(ox,oy,16,p.b4); circ(ox-4,oy-4,8,p.b5);
+    sq(ox-2,oy-16,4,8,p.crest); sq(ox-5,oy-13,3,6,p.crest); sq(ox+3,oy-13,3,6,p.crest);
+    if(!blink){
+      circ(ox-6,oy-3,3.5,'#111'); circ(ox+6,oy-3,3.5,'#111');
+      sq(ox-5,oy-5,2,2,'#fff'); sq(ox+7,oy-5,2,2,'#fff');
+    } else { sq(ox-8,oy-4,4,2,'#111'); sq(ox+4,oy-4,4,2,'#111'); }
+    poly([[ox-3,oy+4],[ox+3,oy+4],[ox,oy+9]],'#ff9000');
+    poly([[ox-3,oy+4],[ox+3,oy+4],[ox,oy+6]],'#ffb030');
+    poly([[ox-18,oy+18],[ox-28,oy+28],[ox-16,oy+36],[ox-10,oy+22]],p.bw);
+    poly([[ox+18,oy+18],[ox+28,oy+28],[ox+16,oy+36],[ox+10,oy+22]],p.bw);
+    sq(ox-10,oy+38,5,4,'#ff8800'); sq(ox+5,oy+38,5,4,'#ff8800');
+    sq(ox-14,oy+41,5,3,'#ff8800'); sq(ox-9,oy+41,5,3,'#ff8800');
+    sq(ox+3,oy+41,5,3,'#ff8800'); sq(ox+8,oy+41,5,3,'#ff8800');
+  }
+
+  function drawYoung(){
+    const p=getP();
+    const spd=S.energy<30?0.04:0.07;
+    const bob=S.sleeping?0:Math.sin(S.tick*spd)*2, wf=S.sleeping?0:Math.sin(S.tick*0.14)*3;
+    const blink=(S.tick%(S.hunger<30?40:80)<4), ox=CX, oy=CY-66+bob;
+    ctx.fillStyle='rgba(0,0,0,0.22)'; ctx.beginPath(); ctx.ellipse(ox,CY-4,22,6,0,0,Math.PI*2); ctx.fill();
+    poly([[ox-20,oy+32+wf],[ox-38,oy+44+wf],[ox-34,oy+62+wf],[ox-16,oy+58+wf]],p.w1);
+    poly([[ox-19,oy+34+wf],[ox-34,oy+44+wf],[ox-31,oy+58+wf],[ox-17,oy+55+wf]],p.w3);
+    poly([[ox+20,oy+32-wf],[ox+38,oy+44-wf],[ox+34,oy+62-wf],[ox+16,oy+58-wf]],p.w1);
+    poly([[ox+19,oy+34-wf],[ox+34,oy+44-wf],[ox+31,oy+58-wf],[ox+17,oy+55-wf]],p.w3);
+    ctx.fillStyle=p.g1; ctx.beginPath(); ctx.ellipse(ox,oy+44,20,26,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=p.g2; ctx.beginPath(); ctx.ellipse(ox+5,oy+48,13,18,0.2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=p.g3; ctx.beginPath(); ctx.ellipse(ox-5,oy+38,10,14,-0.15,0,Math.PI*2); ctx.fill();
+    poly([[ox-10,oy+68],[ox,oy+82],[ox+10,oy+68]],p.t1);
+    poly([[ox-4,oy+68],[ox+2,oy+80],[ox+6,oy+68]],p.t2);
+    circ(ox,oy+22,14,p.f2); circ(ox,oy+8,18,p.f1); circ(ox-5,oy+2,10,p.f3);
+    sq(ox-2,oy-10,5,12,p.crest); sq(ox-6,oy-7,4,9,p.crest); sq(ox+4,oy-7,4,9,p.crest);
+    ctx.fillStyle=p.cheek; ctx.beginPath(); ctx.ellipse(ox-13,oy+14,5,4,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(ox+13,oy+14,5,4,0,0,Math.PI*2); ctx.fill();
+    sq(ox-8,oy+20,4,3,'#333'); sq(ox-2,oy+20,4,3,'#333'); sq(ox+4,oy+20,4,3,'#333');
+    if(!blink){
+      circ(ox-8,oy+6,4,'#111'); circ(ox+8,oy+6,4,'#111');
+      circ(ox-8,oy+6,1.5,'#fff'); circ(ox+8,oy+6,1.5,'#fff');
+    } else { sq(ox-11,oy+5,6,2,'#111'); sq(ox+5,oy+5,6,2,'#111'); }
+    if(S.happy<30&&!S.sleeping){
+      ctx.strokeStyle='#665533'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(ox-12,oy+1); ctx.lineTo(ox-5,oy+4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ox+12,oy+1); ctx.lineTo(ox+5,oy+4); ctx.stroke();
+      ctx.lineWidth=1;
+    }
+    ctx.fillStyle='#cc6600'; ctx.beginPath(); ctx.moveTo(ox-5,oy+14); ctx.lineTo(ox+5,oy+14); ctx.lineTo(ox+4,oy+22); ctx.lineTo(ox-1,oy+22); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#ff9900'; ctx.beginPath(); ctx.moveTo(ox-5,oy+14); ctx.lineTo(ox+5,oy+14); ctx.lineTo(ox+4,oy+18); ctx.lineTo(ox-4,oy+18); ctx.closePath(); ctx.fill();
+    sq(ox-12,oy+68,6,5,'#ff8800'); sq(ox+5,oy+68,6,5,'#ff8800');
+    sq(ox-16,oy+71,5,3,'#ff8800'); sq(ox-10,oy+71,5,3,'#ff8800');
+    sq(ox+3,oy+71,5,3,'#ff8800'); sq(ox+9,oy+71,5,3,'#ff8800');
+    if(S.sleeping){ ctx.fillStyle='rgba(10,20,40,0.35)'; ctx.beginPath(); ctx.ellipse(ox,oy+52,18,24,0,0,Math.PI*2); ctx.fill(); }
+  }
+
+  function drawAdult(){
+    const p=getP();
+    const spd=S.energy<30?0.035:0.06;
+    const bob=S.sleeping?0:Math.sin(S.tick*spd)*2, wf=S.sleeping?0:Math.sin(S.tick*0.11)*4;
+    const blink=(S.tick%(S.hunger<30?45:90)<4), ox=CX, oy=CY-78+bob;
+    ctx.fillStyle='rgba(0,0,0,0.25)'; ctx.beginPath(); ctx.ellipse(ox,CY-3,28,7,0,0,Math.PI*2); ctx.fill();
+    poly([[ox-22,oy+36+wf],[ox-46,oy+50+wf],[ox-42,oy+74+wf],[ox-18,oy+68+wf]],p.w2);
+    poly([[ox-21,oy+38+wf],[ox-40,oy+50+wf],[ox-37,oy+70+wf],[ox-19,oy+66+wf]],p.w1);
+    poly([[ox-20,oy+40+wf],[ox-36,oy+52+wf],[ox-34,oy+66+wf],[ox-20,oy+62+wf]],p.w3);
+    poly([[ox+22,oy+36-wf],[ox+46,oy+50-wf],[ox+42,oy+74-wf],[ox+18,oy+68-wf]],p.w2);
+    poly([[ox+21,oy+38-wf],[ox+40,oy+50-wf],[ox+37,oy+70-wf],[ox+19,oy+66-wf]],p.w1);
+    poly([[ox+20,oy+40-wf],[ox+36,oy+52-wf],[ox+34,oy+66-wf],[ox+20,oy+62-wf]],p.w3);
+    ctx.fillStyle=p.g1; ctx.beginPath(); ctx.ellipse(ox,oy+50,24,30,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=p.g2; ctx.beginPath(); ctx.ellipse(ox+7,oy+55,16,22,0.2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=p.g3; ctx.beginPath(); ctx.ellipse(ox-7,oy+42,13,18,-0.15,0,Math.PI*2); ctx.fill();
+    poly([[ox-14,oy+78],[ox-6,oy+100],[ox+6,oy+100],[ox+14,oy+78]],p.t1);
+    poly([[ox-6,oy+78],[ox-2,oy+98],[ox+4,oy+98],[ox+6,oy+78]],p.t2);
+    poly([[ox-2,oy+78],[ox+2,oy+96],[ox+4,oy+78]],p.t3);
+    ctx.fillStyle=p.f1; ctx.beginPath(); ctx.ellipse(ox,oy+24,16,14,0,0,Math.PI*2); ctx.fill();
+    circ(ox,oy+10,20,p.f1); circ(ox-6,oy+4,11,p.f3); circ(ox+7,oy+14,13,p.f2);
+    sq(ox-3,oy-14,6,16,p.crest); sq(ox-7,oy-10,5,12,p.crest); sq(ox+4,oy-10,5,12,p.crest);
+    sq(ox-10,oy-6,4,8,p.crest); sq(ox+8,oy-6,4,8,p.crest);
+    ctx.fillStyle=p.cheek; ctx.beginPath(); ctx.ellipse(ox-14,oy+18,6,5,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(ox+14,oy+18,6,5,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=0.6;
+    ctx.fillStyle=p.cheek; ctx.beginPath(); ctx.ellipse(ox-14,oy+17,4,3,0,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(ox+14,oy+17,4,3,0,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+    for(let i=-1;i<=1;i++) sq(ox+i*6-2,oy+24,4,3,'#333');
+    if(!blink){
+      circ(ox-9,oy+8,5,'#111'); circ(ox+9,oy+8,5,'#111');
+      circ(ox-9,oy+8,2,'#fff'); circ(ox+9,oy+8,2,'#fff');
+      circ(ox-8,oy+7,1,'#4488ff'); circ(ox+10,oy+7,1,'#4488ff');
+    } else { sq(ox-12,oy+7,6,2,'#111'); sq(ox+6,oy+7,6,2,'#111'); }
+    if(S.happy<30&&!S.sleeping){
+      ctx.strokeStyle='#665533'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(ox-13,oy+3); ctx.lineTo(ox-5,oy+6); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ox+13,oy+3); ctx.lineTo(ox+5,oy+6); ctx.stroke();
+      ctx.lineWidth=1;
+    }
+    ctx.fillStyle='#bb5500'; ctx.beginPath(); ctx.moveTo(ox-6,oy+18); ctx.lineTo(ox+6,oy+18); ctx.lineTo(ox+5,oy+27); ctx.lineTo(ox-1,oy+27); ctx.closePath(); ctx.fill();
+    ctx.fillStyle='#ee8800'; ctx.beginPath(); ctx.moveTo(ox-6,oy+18); ctx.lineTo(ox+6,oy+18); ctx.lineTo(ox+5,oy+22); ctx.lineTo(ox-5,oy+22); ctx.closePath(); ctx.fill();
+    sq(ox-15,oy+78,7,5,'#ff8800'); sq(ox+7,oy+78,7,5,'#ff8800');
+    sq(ox-20,oy+81,6,3,'#ff8800'); sq(ox-13,oy+81,6,3,'#ff8800');
+    sq(ox+5,oy+81,6,3,'#ff8800'); sq(ox+12,oy+81,6,3,'#ff8800');
+    if(S.sleeping){ ctx.fillStyle='rgba(5,15,35,0.35)'; ctx.beginPath(); ctx.ellipse(ox,oy+62,24,26,0,0,Math.PI*2); ctx.fill(); }
+  }
+
+  function drawFX(){
+    const t=S.tick;
+    if(S.fx==='feed'){
+      for(let i=0;i<5;i++){
+        const y=((t*1.5+i*22)%80)-10, x=100+i*18+Math.sin(t*0.1+i)*6;
+        sq(x,y+30,5,5,'#ffe050'); sq(x+2,y+28,3,3,'#ffcc00');
+      }
+      ctx.fillStyle='#ffd700'; ctx.font='bold 11px Courier New'; ctx.fillText('もぐもぐ...',90,28);
+    } else if(S.fx==='play'){
+      [['♪',70,38],['♫',120,30],['♪',170,42]].forEach(([c,x,y],i)=>{
+        const phase=((t*0.04+i*0.6)%1);
+        ctx.globalAlpha=Math.max(0,Math.sin(phase*Math.PI));
+        ctx.fillStyle='#ffd700'; ctx.font=`bold ${13+i*2}px serif`; ctx.fillText(c,x,y-phase*28);
+      });
+      ctx.globalAlpha=1; ctx.fillStyle='#ffd700'; ctx.font='bold 11px Courier New'; ctx.fillText('たのしいな！',82,28);
+    } else if(S.sleeping||S.fx==='sleep'){
+      [['z',CX+16,CY-55],[' z',CX+24,CY-70],['Z',CX+34,CY-82]].forEach(([c,x,y],i)=>{
+        const phase=((t*0.025+i*0.5)%1);
+        ctx.globalAlpha=Math.max(0,Math.sin(phase*Math.PI)*0.8);
+        ctx.fillStyle='#aaddff'; ctx.font=`bold ${10+i*4}px Courier New`; ctx.fillText(c,x,y-phase*12);
+      });
+      ctx.globalAlpha=1;
+    } else if(S.fx==='evolve'){
+      for(let i=0;i<12;i++){
+        const angle=(i/12)*Math.PI*2+t*0.05, dist=20+((t*2)%50);
+        const x=CX+Math.cos(angle)*dist, y=(CY-40)+Math.sin(angle)*dist*0.6;
+        ctx.globalAlpha=Math.max(0,1-(t%30)/30);
+        sq(x-2,y-2,4,4,i%2===0?'#ffd700':'#ffffff');
+      }
+      ctx.globalAlpha=1;
+    }
+  }
+
+  // ─── LOGIC ─────────────────────────────────
+  function decayTick(){
+    if(S.stage===0) return;
+    if(S.sleeping){ S.energy=Math.min(100,S.energy+18); S.hunger=Math.max(0,S.hunger-3); }
+    else { S.hunger=Math.max(0,S.hunger-6); S.happy=Math.max(0,S.happy-5); S.energy=Math.max(0,S.energy-7); }
+    checkStatus(); updateUI();
+  }
+
+  function checkStatus(){
+    if(S.energy<15) msg('つかれたよ...ねむいよ...');
+    else if(S.hunger<15) msg('おなかすいたよ～！えさちょうだい！');
+    else if(S.happy<15) msg('つまんないよ...あそんで！');
+    else if(S.hunger>80&&S.happy>80&&S.energy>80) msg('げんきいっぱいだよ！');
+  }
+
+  function checkEvolve(){
+    const next=S.stage+1; if(next>3) return;
+    if(S.age>=STAGE_DAYS[next]){
+      if(next===1){
+        if(awaitingName) return;
+        S.color=Math.random()<0.1?3:Math.floor(Math.random()*3);
+        awaitingName=true;
+        showNameOverlay();
+        return;
+      }
+      S.stage=next; S.fx='evolve';
+      setTimeout(()=>{ S.fx=null; },2000);
+      msg(`✨ ${getStageName()}になったよ！`);
+      const sc=document.getElementById('ikScreen');
+      sc.style.boxShadow='0 0 30px #ffd700';
+      setTimeout(()=>{ sc.style.boxShadow=''; },2500);
+      updateUI();
+    }
+  }
+
+  function showNameOverlay(){
+    const ol=document.getElementById('ikNameOverlay');
+    const lbl=document.getElementById('ikNameColorLabel');
+    const inp=document.getElementById('ikNameInput');
+    lbl.textContent=S.color===3
+      ?'🌈 レアカラー！レインボーいろのインコ！'
+      :`✨ ${PALETTES[S.color].name}いろのインコ`;
+    inp.value='';
+    ol.style.display='flex';
+    setTimeout(()=>inp.focus(),100);
+  }
+
+  window.ikSubmitName=function(){
+    const inp=document.getElementById('ikNameInput');
+    S.name=inp.value.trim()||'インコっち';
+    document.getElementById('ikNameOverlay').style.display='none';
+    continueEvolve(1);
+  };
+
+  function continueEvolve(next){
+    awaitingName=false;
+    S.stage=next; S.fx='evolve';
+    showBirthOverlay();
+    setTimeout(()=>{ S.fx=null; },2000);
+    msg(`✨ ${getStageName()}が生まれたよ！`);
+    const sc=document.getElementById('ikScreen');
+    sc.style.boxShadow='0 0 30px #ffd700';
+    setTimeout(()=>{ sc.style.boxShadow=''; },2500);
+    saveState();
+    updateUI();
+  }
+
+  function showBirthOverlay(){
+    const p=getP();
+    const ol=document.getElementById('ikBirthOverlay');
+    const txt=document.getElementById('ikBirthText');
+    const sub=document.getElementById('ikBirthSub');
+    if(S.color===3){
+      txt.textContent=`🌈 ${S.name}`;
+      sub.textContent='レインボーいろのレアインコ！';
+    } else {
+      txt.textContent=`✨ ${p.name}の ${S.name} ✨`;
+      sub.textContent='たまごからうまれたよ！';
+    }
+    ol.style.display='flex';
+    setTimeout(()=>{ ol.style.display='none'; },3000);
+  }
+
+  function triggerDeath(){
+    if(S.dead) return;
+    S.dead=true;
+    const entry={name:S.name||'インコっち',color:S.color??2,age:S.age,diedAt:Date.now()};
+    saveGrave(entry);
+    renderGrave();
+    const nm=S.name||'インコっち';
+    msg(`${nm}はそらへたびだった... 🌈`);
+    document.getElementById('ikScreen').style.boxShadow='0 0 40px rgba(255,255,255,0.5)';
+    setTimeout(()=>{
+      document.getElementById('ikScreen').style.boxShadow='';
+      Object.assign(S,{stage:0,hunger:100,happy:100,energy:100,age:0,
+        sleeping:false,fx:null,color:null,name:null,dead:false});
+      document.getElementById('ikIcoSleep').textContent='💤';
+      document.getElementById('ikLblSleep').textContent='ねかせる';
+      saveState();
+      updateUI();
+      msg('あたらしいたまごがあった！');
+    },4000);
+  }
+
+  function saveGrave(entry){
+    const raw=localStorage.getItem('inkocchi_grave');
+    const list=raw?JSON.parse(raw):[];
+    list.push(entry);
+    localStorage.setItem('inkocchi_grave',JSON.stringify(list));
+  }
+
+  function renderGrave(){
+    const raw=localStorage.getItem('inkocchi_grave');
+    const list=raw?JSON.parse(raw):[];
+    const el=document.getElementById('ikGraveyard');
+    const listEl=document.getElementById('ikGraveList');
+    if(!list.length){ el.style.display='none'; return; }
+    el.style.display='block';
+    const cIcon={0:'💛',1:'💙',2:'💚',3:'🌈'};
+    listEl.innerHTML=list.map(g=>`<div class="ik-grave-item">
+      <div class="ik-grave-icon">🪦</div>
+      <div class="ik-grave-name">${cIcon[g.color??2]||'💚'} ${g.name||'インコっち'}</div>
+      <div class="ik-grave-age">${g.age}日生きた</div>
+    </div>`).join('');
+  }
+
+  window.ikReset=function(){
+    if(!confirm('すべてのデータを初期化しますか？\nインコの記録もすべて消えます。')) return;
+    localStorage.removeItem('inkocchi');
+    localStorage.removeItem('inkocchi_grave');
+    location.reload();
+  };
+
+  window.ikAction = function(type){
+    if(S.sleeping&&type!=='sleep'){ msg('いまねてるよ...そっとしといて...'); return; }
+    if(S.stage===0){ msg('まだたまごだよ。もうすこしまってね...'); return; }
+    if(type==='feed'){
+      if(S.hunger>=100){ msg('もうおなかいっぱいだよ！'); return; }
+      S.hunger=Math.min(100,S.hunger+32); S.fx='feed';
+      setTimeout(()=>S.fx=null,2500); msg('もぐもぐ...おいしい！');
+    } else if(type==='play'){
+      if(S.energy<18){ msg('つかれてあそべないよ...ねかせて...'); return; }
+      S.happy=Math.min(100,S.happy+28); S.energy=Math.max(0,S.energy-18);
+      S.fx='play'; setTimeout(()=>S.fx=null,2500); msg('やったー！たのしいな♪');
+    } else if(type==='sleep'){
+      if(S.sleeping){
+        S.sleeping=false; S.fx=null;
+        document.getElementById('ikIcoSleep').textContent='💤';
+        document.getElementById('ikLblSleep').textContent='ねかせる';
+        msg('おはよう！よくねれたよ！');
+      } else {
+        S.sleeping=true; S.fx='sleep';
+        document.getElementById('ikIcoSleep').textContent='☀️';
+        document.getElementById('ikLblSleep').textContent='おこす';
+        msg('おやすみ...zzz');
+      }
+    }
+    updateUI();
+  };
+
+  function msg(t){ document.getElementById('ikMsg').textContent=t; }
+
+  function updateUI(){
+    const bars=[
+      ['ikHgBar','ikHgVal',S.hunger,'hunger'],
+      ['ikHpBar','ikHpVal',S.happy,'happy'],
+      ['ikEnBar','ikEnVal',S.energy,'energy'],
+    ];
+    bars.forEach(([bid,vid,val,type])=>{
+      const bar=document.getElementById(bid);
+      bar.style.width=val+'%';
+      if(val<30){
+        bar.style.background=type==='hunger'?'#ff4444':type==='happy'?'#cc7700':'#0066aa';
+      } else {
+        bar.style.background=type==='hunger'?'linear-gradient(90deg,#ff7b7b,#ffb07a)':type==='happy'?'linear-gradient(90deg,#ffd700,#fff176)':'linear-gradient(90deg,#00e676,#69ffb4)';
+      }
+      document.getElementById(vid).textContent=Math.round(val);
+    });
+    document.getElementById('ikStageLabel').textContent=`▷ ${getStageName()} ◁`;
+    document.getElementById('ikAge').textContent=S.name
+      ?`生後 ${S.age} 日（${STAGE_NAMES[S.stage]}）/ 寿命${MAX_AGE}日`
+      :`生後 ${S.age} 日`;
+  }
+
+  // ─── SAVE / LOAD ───────────────────────────
+  function saveState(){
+    localStorage.setItem('inkocchi',JSON.stringify({
+      stage:S.stage,hunger:S.hunger,happy:S.happy,energy:S.energy,
+      age:S.age,sleeping:S.sleeping,color:S.color,name:S.name,
+      dead:S.dead,savedAt:Date.now()
+    }));
+  }
+
+  function loadState(){
+    const raw=localStorage.getItem('inkocchi'); if(!raw) return;
+    try {
+      const d=JSON.parse(raw);
+      S.stage=d.stage??0; S.hunger=d.hunger??100; S.happy=d.happy??100;
+      S.energy=d.energy??100; S.age=d.age??0; S.sleeping=d.sleeping??false;
+      S.color=d.color??null;
+      if(S.color===null&&S.stage>0) S.color=Math.floor(Math.random()*3);
+      S.name=d.name??null;
+      S.dead=d.dead??false;
+      if(S.sleeping){
+        document.getElementById('ikIcoSleep').textContent='☀️';
+        document.getElementById('ikLblSleep').textContent='おこす';
+      }
+      if(d.savedAt){
+        const mins=(Date.now()-d.savedAt)/60000;
+        // オフライン中に経過したゲームデイ数をageに加算（1ゲームデイ=3分）
+        const daysElapsed=Math.floor(mins/3);
+        if(daysElapsed>0) S.age+=daysElapsed;
+        if(S.stage>0&&!S.sleeping){
+          S.hunger=Math.max(0,S.hunger-mins*0.5);
+          S.happy=Math.max(0,S.happy-mins*0.4);
+          S.energy=Math.max(0,S.energy-mins*0.6);
+        }
+        msg(`おかえり！${Math.round(mins)}ぷんぶりだね！`);
+      }
+    } catch(e){}
+  }
+})();
+</script>

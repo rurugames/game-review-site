@@ -13,7 +13,7 @@ const fs = require('fs');
 const path = require('path');
 const mongoose = require('mongoose');
 const GalleryImage = require('../models/GalleryImage');
-const { analyzeImage, buildMeta, initCounters, mimeFromExt, sleep } = require('../lib/imageMetaFromAI');
+const { analyzeImage, buildMeta, initCounters, mimeFromExt, sleep, canUseOpenAIAnalysis } = require('../lib/imageMetaFromAI');
 require('dotenv').config();
 
 const UPLOADS_DIR = path.join(__dirname, '../uploads/gallery');
@@ -117,7 +117,7 @@ const processUploads = async () => {
     }
 
     const hasAgentMeta = Object.keys(agentAnalysis).length > 0;
-    const hasAI = !hasAgentMeta && !!process.env.OPENAI_API_KEY;
+    const hasAI = !hasAgentMeta && canUseOpenAIAnalysis();
     console.log(`${targets.length} 件の画像を R2 にアップロードします...`);
     console.log(`解析モード: ${hasAgentMeta ? 'Copilotエージェント' : hasAI ? 'OpenAI Vision' : '連番フォールバック'}`);
 

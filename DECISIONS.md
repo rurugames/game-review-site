@@ -264,3 +264,66 @@
 
 ### メモ
 - 既存の FC2 個別ガードは残しつつ、サーバー全体の前段に共通ガードを追加した。
+
+---
+
+## 2026-05-24: 商品レビュー機能の大幅改修
+
+### 背景
+- 「商品紹介」という名称をより実態に合わせた「商品レビュー」にリネームしたい。
+- ホーム画面に商品レビューのセクションを追加したい。
+- ジャンル表示・アフィリエイトリンク・動画セクション・広告など、ギャラリーと同等の機能に揃えたい。
+
+### 決定事項
+
+1. **「商品紹介」→「商品レビュー」一括リネーム**
+   - ナビ・h1・タイトルなど全テンプレートで統一。
+
+2. **ホーム画面改修**
+   - 「最短で探す」「みんなの評価」セクションを削除。
+   - DLsiteランキングとギャラリーの間に「商品レビュー」セクションを追加。
+
+3. **ジャンルバッジ動的表示**
+   - `server.js` の `res.locals` に `getProductGenre(url)` ヘルパーを追加。
+   - URL パターン（`/maniax/` `/pro/` `/books/` `fanza.com`）でジャンル判定。
+
+4. **商品カード画像のアフィリエイトリンク化・詳細ページ購入ボタン追加**
+   - 一覧・ホームの商品カード画像を `<a href="affiliateLink">` で包む。
+   - 詳細ページ本文上部に「購入・詳細ページへ」ボタンを追加。
+
+5. **DELETE ボタンのmethod-override修正**
+   - `methodOverride('_method')` は文字列指定だとクエリ文字列のみ読む仕様のため、関数形式で `req.body._method` を先読みするように変更。
+   - クエリ文字列フォールバック用に `methodOverride('_method')` も残す。
+
+6. **post_product.js に `--rating` オプション追加**
+   - DLsite アフィリエイトリンク経由ページは aggregateRating JSON-LD がなく自動取得不可。
+   - `--rating 4.29` のように手動指定した値を自動取得より優先する。
+
+7. **post-product.prompt.md 顔文字ルール更新**
+   - 使用数を「1〜2個まで」→「**2〜4個程度**（自然な範囲で積極的に使ってよい）」に変更。
+
+8. **商品レビュー詳細ページに関連/おすすめ動画セクション追加**
+   - `routes/products.js` に `fetchProductVideos(title)` 追加（チャンネル検索→なければプレイリストからランダム1件）。
+   - `views/products/show.ejs` に動画ウィジェット（`rec-video-widget`）追加。
+
+9. **商品レビュー一覧・詳細ページに AdTag 広告追加**
+   - `routes/products.js` に `fetchDefaultAdTag()` ヘルパー追加（`AdTag.keyword:'default'`）。
+   - 一覧ページ: 4件目（index===4）の後に `gallery-ad-banner` と同パターンで広告挿入。
+   - 詳細ページ: 本文（`product-show-body`）の直後に広告ブロック挿入。
+
+10. **インコっちベータ版注意書き追加**
+    - `views/inkocchi.ejs` の説明文直下に、ベータ版であることとデータリセット・消失リスクを黄色ボーダーで警告表示。
+
+### 反映箇所
+- `server.js`
+- `routes/products.js`
+- `views/layout.ejs`
+- `views/index.ejs`
+- `views/products/index.ejs`
+- `views/products/show.ejs`
+- `views/inkocchi.ejs`
+- `scripts/post_product.js`
+- `.github/prompts/post-product.prompt.md`
+
+### メモ
+- AdTag の `keyword: 'default'` に広告タグが登録済みであること（`scripts/register_ad.js` 実行済み）を前提とする。
