@@ -56,10 +56,17 @@ for (let i = 0; i < rawArgs.length; i++) {
   }
 }
 
+// --body-file でファイルからボディを読み込む
+if (args['body-file']) {
+  const fs = require('fs');
+  args.body = fs.readFileSync(args['body-file'], 'utf8');
+}
+
 const { title, body, link, rating: ratingArg } = args;
 
 if (!title || !body || !link) {
   console.error('使い方: node scripts/post_product.js --title "..." --body "..." --link "URL" [--rating 4.29]');
+  console.error('       または --body-file <ファイルパス> でファイルから本文を読み込む');
   process.exit(1);
 }
 
