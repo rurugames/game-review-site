@@ -225,6 +225,25 @@
   font-family:'Courier New',monospace; transition:all 0.2s;
 }
 .ik-reset-btn:hover { border-color:#ff4444; color:#ff6666; }
+/* ── medals ─────────────────────────── */
+.ik-medals { margin-top:16px; width:320px; max-width:96vw; }
+.ik-medal-title { text-align:center; font-size:12px; color:#445566; letter-spacing:2px; margin-bottom:8px; }
+.ik-medal-list { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+.ik-medal-item {
+  background:#0d1d2e; border:1px solid #2a4a6a;
+  border-radius:8px; padding:6px 10px; text-align:center; min-width:54px;
+}
+.ik-medal-icon { font-size:18px; display:block; }
+.ik-medal-name { font-size:9px; color:#7a9ab0; margin-top:2px; display:block; white-space:nowrap; }
+/* ── backup buttons ─────────────────── */
+.ik-backup-wrap { display:flex; gap:8px; justify-content:center; margin-top:8px; }
+.ik-backup-btn {
+  background:transparent; border:1px solid #1a3a5a;
+  border-radius:8px; color:#3a6080; font-size:10px;
+  padding:5px 12px; cursor:pointer;
+  font-family:'Courier New',monospace; transition:all 0.2s;
+}
+.ik-backup-btn:hover { border-color:#4499ff; color:#88ccff; }
 /* ── sound toggle ───────────────────── */
 .ik-titlebar {
   position:relative; display:flex;
@@ -341,12 +360,20 @@
         <button class="ik-release-btn" onclick="ikRelease()">🕊️ 放鳥する</button>
       </div>
     </div>
+    <div class="ik-medals" id="ikMedals" style="display:none">
+      <div class="ik-medal-title">🏅 称号</div>
+      <div class="ik-medal-list" id="ikMedalList"></div>
+    </div>
     <div class="ik-graveyard" id="ikGraveyard" style="display:none">
       <div class="ik-grave-title">📖 歴代インコ</div>
       <div class="ik-grave-list" id="ikGraveList"></div>
     </div>
     <div class="ik-reset-wrap">
       <button class="ik-reset-btn" onclick="ikReset()">全データをリセット</button>
+    </div>
+    <div class="ik-backup-wrap">
+      <button class="ik-backup-btn" onclick="ikExport()">📋 バックアップ</button>
+      <button class="ik-backup-btn" onclick="ikImport()">📥 インポート</button>
     </div>
   </div>
 </div>
@@ -390,7 +417,16 @@
   let awaitingName = false;
   let soundOn = false;
   let masterVol = 0.3;
+  let bubbleText = '', bubbleTick = 0;
   let poopTick = 0, poopInterval = 5;
+  const MEDALS=[
+    {id:'first_hatch', icon:'🐣', name:'はじめての孵化'},
+    {id:'rainbow',     icon:'🌈', name:'レインボー育成'},
+    {id:'longevity',   icon:'👑', name:'長寿（25日以上）'},
+    {id:'release',     icon:'🕊️', name:'そらのたび'},
+    {id:'all_max',     icon:'💪', name:'パーフェクト'},
+    {id:'five_birds',  icon:'🐦', name:'5羽の絆'},
+  ];
 
   // ─── カラーパレット ────────────────────────
   // b1-b5: ひなの体色, bw: ひなの羽色
@@ -586,10 +622,11 @@
   if(S.stage>0&&S.age>=S.lifespan&&!S.dead) triggerDeath();
   else checkEvolve();
   renderGrave();
+  renderMedals();
   requestAnimationFrame(loop);
   setInterval(decayTick, 8000);
   setInterval(()=>{
-    if(S.dead) return;
+    if(S.dead||awaitingName) return;
     S.age++;
     if(S.stage>0&&S.age>=S.lifespan){ triggerDeath(); }
     else { checkRandomEvent(); checkEvolve(); updateUI(); }
@@ -610,7 +647,7 @@
   }, 2500);
 
   // ─── LOOP ──────────────────────────────────
-  function loop() { S.tick++; if(S.eatPhase>0) S.eatPhase--; if(S.drinkPhase>0) S.drinkPhase--; if(S.bathPhase>0) S.bathPhase--; updateMotion(); render(); requestAnimationFrame(loop); }
+  function loop() { S.tick++; if(S.eatPhase>0) S.eatPhase--; if(S.drinkPhase>0) S.drinkPhase--; if(S.bathPhase>0) S.bathPhase--; if(bubbleTick>0) bubbleTick--; updateMotion(); render(); requestAnimationFrame(loop); }
 
   // ─── RENDER ────────────────────────────────
   function render() {
@@ -649,6 +686,7 @@
     else if(S.stage===2) drawYoung();
     else drawAdult();
     drawFX();
+    drawBubble();
   }
 
   function sq(x,y,w,h,c){ ctx.fillStyle=c; ctx.fillRect(x,y,w,h); }
@@ -1025,6 +1063,41 @@
     }
   }
 
+  // ─── SPEECH BUBBLE ──────────────────────────
+  function drawBubble(){
+    if(!bubbleTick||!bubbleText||S.dead) return;
+    const alpha=Math.min(1,bubbleTick/30);
+    // head anchor（冠羽の先端Y）
+    let anchorX=CX, anchorY;
+    if(S.stage===0){ anchorY=CY-87; }
+    else { anchorX=CX+Math.round(S.motionX); anchorY=CY+Math.round(S.motionY)-[0,76,76,92][S.stage]; }
+    const maxLen=18;
+    const text=bubbleText.length>maxLen?bubbleText.slice(0,maxLen-1)+'…':bubbleText;
+    ctx.save(); ctx.globalAlpha=alpha;
+    ctx.font='bold 8px Courier New';
+    const tw=ctx.measureText(text).width;
+    const pad=7, bh=15, tailH=5, r=4;
+    const bw=tw+pad*2;
+    const bx=Math.max(bw/2+4,Math.min(W-bw/2-4,anchorX));
+    const bTop=Math.max(3,anchorY-tailH-bh-2);
+    const bLeft=bx-bw/2;
+    function rrect(x,y,w,h,r){
+      ctx.beginPath();
+      if(ctx.roundRect){ ctx.roundRect(x,y,w,h,r); }
+      else{ ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath(); }
+    }
+    ctx.fillStyle='#f0f9ff'; rrect(bLeft,bTop,bw,bh,r); ctx.fill();
+    const tx=Math.max(bLeft+r+3,Math.min(bLeft+bw-r-3,anchorX));
+    ctx.fillStyle='#f0f9ff';
+    ctx.beginPath(); ctx.moveTo(tx-3,bTop+bh-1); ctx.lineTo(tx+3,bTop+bh-1); ctx.lineTo(tx,bTop+bh+tailH); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle='#5599bb'; ctx.lineWidth=1;
+    rrect(bLeft,bTop,bw,bh,r); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(tx-3,bTop+bh); ctx.lineTo(tx,bTop+bh+tailH); ctx.lineTo(tx+3,bTop+bh); ctx.stroke();
+    ctx.fillStyle='#1a3a55'; ctx.textAlign='center';
+    ctx.fillText(text,bx,bTop+bh-4);
+    ctx.textAlign='left'; ctx.restore();
+  }
+
   // ─── MOTION ─────────────────────────────────
   function updateMotion(){
     if(S.stage===0||S.dead){ S.motionX=0; S.motionY=0; S.motion='idle'; return; }
@@ -1166,6 +1239,7 @@
     else if(S.hunger<15)   msg('おなかすいたよ～！');
     else if(S.happy<15)    msg('つまんないよ...あそんで！');
     else if(S.hunger>80&&S.happy>80&&S.energy>80&&S.clean>80) msg('げんきいっぱいだよ！');
+    checkMedals('status');
   }
 
   function checkEvolve(){
@@ -1264,6 +1338,7 @@
     const sc=document.getElementById('ikScreen');
     sc.style.boxShadow='0 0 30px #ffd700';
     setTimeout(()=>{ sc.style.boxShadow=''; },2500);
+    if(next===1) checkMedals('hatch');
     saveState();
     updateUI();
   }
@@ -1289,6 +1364,7 @@
     S.dead=true; sndDeath();
     const entry={name:S.name||'インコっち',color:S.color??2,age:S.age,diedAt:Date.now()};
     saveGrave(entry);
+    checkMedals('death');
     renderGrave();
     const nm=S.name||'インコっち';
     msg(`${nm}はそらへたびだった... 🌈`);
@@ -1326,6 +1402,55 @@
     </div>`).join('');
   }
 
+  // ─── MEDALS ────────────────────────────────
+  function loadMedals(){ return JSON.parse(localStorage.getItem('inkocchi_medals')||'[]'); }
+  function saveMedal(id){ const ms=loadMedals(); if(ms.includes(id)) return false; ms.push(id); localStorage.setItem('inkocchi_medals',JSON.stringify(ms)); return true; }
+  function awardMedal(id, delay=0){
+    if(!saveMedal(id)) return;
+    renderMedals();
+    const m=MEDALS.find(x=>x.id===id);
+    if(m) setTimeout(()=>{ bubbleText=`🏅 ${m.name}！`; bubbleTick=200; },delay);
+  }
+  function checkMedals(ev){
+    if(ev==='hatch'){ awardMedal('first_hatch',3500); if(S.color===3) awardMedal('rainbow',5000); }
+    else if(ev==='death'||ev==='release'){
+      if(S.age>=25) awardMedal('longevity',3000);
+      if(ev==='release') awardMedal('release',3000);
+      const gl=JSON.parse(localStorage.getItem('inkocchi_grave')||'[]');
+      if(gl.length>=5) awardMedal('five_birds',4500);
+    }
+    else if(ev==='status'){ if(S.hunger>=90&&S.happy>=90&&S.energy>=90&&S.clean>=90) awardMedal('all_max',200); }
+  }
+  function renderMedals(){
+    const ms=loadMedals(), el=document.getElementById('ikMedals');
+    if(!ms.length){ el.style.display='none'; return; }
+    el.style.display='block';
+    document.getElementById('ikMedalList').innerHTML=MEDALS.filter(m=>ms.includes(m.id)).map(m=>`
+      <div class="ik-medal-item"><span class="ik-medal-icon">${m.icon}</span><span class="ik-medal-name">${m.name}</span></div>`).join('');
+  }
+
+  // ─── BACKUP ────────────────────────────────
+  function b64e(s){ return btoa(unescape(encodeURIComponent(s))); }
+  function b64d(s){ return decodeURIComponent(escape(atob(s))); }
+  window.ikExport=function(){
+    const code=b64e(JSON.stringify({g:localStorage.getItem('inkocchi'),gv:localStorage.getItem('inkocchi_grave'),md:localStorage.getItem('inkocchi_medals')}));
+    navigator.clipboard.writeText(code)
+      .then(()=>msg('📋 バックアップコードをコピーしました！'))
+      .catch(()=>{ prompt('このコードをコピーしてください：',code); });
+  };
+  window.ikImport=function(){
+    const code=prompt('バックアップコードを貼り付けてください：');
+    if(!code) return;
+    try{
+      const d=JSON.parse(b64d(code.trim()));
+      if(d.g)  localStorage.setItem('inkocchi',d.g);
+      if(d.gv) localStorage.setItem('inkocchi_grave',d.gv);
+      if(d.md) localStorage.setItem('inkocchi_medals',d.md);
+      msg('✅ インポートしました！リロードします...');
+      setTimeout(()=>location.reload(),1500);
+    }catch(e){ msg('コードが正しくありません...'); }
+  };
+
   window.ikToggleSound=function(){
     soundOn=!soundOn;
     const btn=document.getElementById('ikSndBtn');
@@ -1341,6 +1466,7 @@
     S.dead=true;
     const entry={name:nm,color:S.color??2,age:S.age,diedAt:Date.now(),released:true};
     saveGrave(entry);
+    checkMedals('release');
     renderGrave();
     sndEvolve();
     msg(`${nm}は大空へとびたっていった... 🕊️`);
@@ -1399,7 +1525,10 @@
     updateUI();
   };
 
-  function msg(t){ document.getElementById('ikMsg').textContent=t; }
+  function msg(t){
+    document.getElementById('ikMsg').textContent=t;
+    bubbleText=t; bubbleTick=160;
+  }
 
   function updateUI(){
     const bars=[
