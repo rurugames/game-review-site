@@ -257,7 +257,7 @@ app.use(async (req, res, next) => {
     if (url.includes('/maniax/')) return '同人ゲーム';
     if (url.includes('/pro/'))    return 'PCゲーム';
     if (url.includes('/books/'))  return '成年コミック';
-    if (url.includes('fanza.com') || url.includes('dmm.co.jp')) return 'FANZAブック';
+    if (url.includes('fanza.com') || url.includes('dmm.co.jp')) return 'FANZA同人';
     return 'その他';
   };
 

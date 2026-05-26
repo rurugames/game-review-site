@@ -129,7 +129,7 @@
               <a href="/products/<%= p._id %>"><%= p.title %></a>
             </h2>
             <div class="product-card-meta">
-              <span class="product-genre"><%= getProductGenre(p.affiliateLink) %></span>
+              <span class="product-genre"><%= p.genre || getProductGenre(p.affiliateLink) %></span>
               &nbsp;<%= new Date(p.createdAt).toLocaleDateString('ja-JP') %>
             </div>
             <% if (p.rating) { %>

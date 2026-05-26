@@ -1,0 +1,173 @@
+<style>
+.admin-products-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+.admin-products-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.admin-products-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.admin-products-table th,
+.admin-products-table td {
+  text-align: left;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid #2a2a3e;
+  vertical-align: middle;
+}
+.admin-products-table th {
+  background: #1a1a2e;
+  color: #aaa;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.admin-products-table tr:hover td {
+  background: rgba(255,255,255,0.03);
+}
+.product-thumb-sm {
+  width: 64px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  background: #222;
+  display: block;
+}
+.product-thumb-placeholder {
+  width: 64px;
+  height: 40px;
+  background: #2a2a3e;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  font-size: 1.1rem;
+}
+.product-title-cell {
+  max-width: 320px;
+}
+.product-title-link {
+  color: #e0e0f0;
+  text-decoration: none;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+.product-title-link:hover { color: #ff4e6a; }
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+.status-badge.published { background: #1a3d2b; color: #4caf7d; }
+.status-badge.draft { background: #3d2a1a; color: #f0a040; }
+.rating-cell { white-space: nowrap; color: #f5a623; }
+.date-cell { white-space: nowrap; color: #777; font-size: 0.82rem; }
+.actions-cell { white-space: nowrap; }
+.actions-cell .btn-edit {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #2a3a5c;
+  color: #8ab4f8;
+  border-radius: 4px;
+  text-decoration: none;
+  font-size: 0.82rem;
+  margin-right: 6px;
+  transition: background 0.15s;
+}
+.actions-cell .btn-edit:hover { background: #3a4e7a; }
+.actions-cell .btn-delete {
+  display: inline-block;
+  padding: 4px 10px;
+  background: none;
+  border: 1px solid #5c2a2a;
+  color: #e07070;
+  border-radius: 4px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.actions-cell .btn-delete:hover { background: #3d1a1a; }
+.no-products {
+  text-align: center;
+  padding: 3rem;
+  color: #888;
+}
+</style>
+
+<div class="admin-products-container">
+  <div class="admin-products-header">
+    <h1 class="section-title">商品レビュー管理</h1>
+    <div style="display:flex;gap:0.5rem;">
+      <a href="/products/new" class="btn-primary">＋ 新規追加</a>
+      <a href="/products" class="btn-secondary">公開ページを見る</a>
+    </div>
+  </div>
+
+  <% if (products.length === 0) { %>
+    <div class="no-products">投稿された商品レビューはありません。</div>
+  <% } else { %>
+    <p style="color:#888;font-size:0.85rem;margin-bottom:1rem;">全 <%= products.length %> 件</p>
+    <table class="admin-products-table">
+      <thead>
+        <tr>
+          <th>画像</th>
+          <th>タイトル</th>
+          <th>評価</th>
+          <th>状態</th>
+          <th>投稿日</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% products.forEach(function(p) { %>
+          <tr>
+            <td>
+              <% if (p.imageUrl) { %>
+                <img src="<%= p.imageUrl %>" alt="" class="product-thumb-sm">
+              <% } else { %>
+                <div class="product-thumb-placeholder">🖼</div>
+              <% } %>
+            </td>
+            <td class="product-title-cell">
+              <a href="/products/<%= p._id %>" target="_blank" class="product-title-link">
+                <%= p.title %>
+              </a>
+            </td>
+            <td class="rating-cell">
+              <% if (p.rating != null) { %>★ <%= p.rating.toFixed(2) %><% } else { %><span style="color:#555">—</span><% } %>
+            </td>
+            <td>
+              <span class="status-badge <%= p.status %>">
+                <%= p.status === 'published' ? '公開' : '下書き' %>
+              </span>
+            </td>
+            <td class="date-cell">
+              <%= new Date(p.createdAt).toLocaleDateString('ja-JP') %>
+            </td>
+            <td class="actions-cell">
+              <a href="/products/<%= p._id %>/edit" class="btn-edit">編集</a>
+              <form action="/products/<%= p._id %>?_method=DELETE" method="POST" style="display:inline"
+                    onsubmit="return confirm('「<%= p.title.replace(/'/g, '\\\'') %>」を削除しますか？')">
+                <button type="submit" class="btn-delete">削除</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</div>

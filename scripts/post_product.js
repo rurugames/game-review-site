@@ -62,7 +62,7 @@ if (args['body-file']) {
   args.body = fs.readFileSync(args['body-file'], 'utf8');
 }
 
-const { title, body, link, rating: ratingArg } = args;
+const { title, body, link, rating: ratingArg, thumbnail: thumbnailArg } = args;
 
 if (!title || !body || !link) {
   console.error('使い方: node scripts/post_product.js --title "..." --body "..." --link "URL" [--rating 4.29]');
@@ -88,7 +88,9 @@ try { new URL(link); } catch {
   }
 
   console.log('🔍 ページメタ情報を取得中...');
-  const { imageUrl, rating: fetchedRating } = await fetchPageMeta(link.trim());
+  const { imageUrl: fetchedImageUrl, rating: fetchedRating } = await fetchPageMeta(link.trim());
+  // --thumbnail 指定があれば優先、なければ自動取得値を使用
+  const imageUrl = thumbnailArg ? thumbnailArg.trim() : fetchedImageUrl;
   // --rating 指定があれば優先、なければ自動取得値を使用
   const rating = ratingArg ? (parseFloat(ratingArg) || undefined) : (fetchedRating || undefined);
   if (imageUrl) console.log('  画像URL:', imageUrl);

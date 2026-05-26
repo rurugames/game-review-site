@@ -574,6 +574,17 @@ router.post('/contact', async function(req, res) {
   }
 });
 
+// 管理用: 商品レビュー管理ページ
+router.get('/admin/products', ensureAdmin, async (req, res) => {
+  try {
+    const products = await Product.find().sort({ createdAt: -1 }).lean();
+    res.render('admin/products', { title: '商品レビュー管理', products });
+  } catch (e) {
+    console.error('商品レビュー管理ページ取得エラー:', e);
+    res.status(500).send('取得に失敗しました');
+  }
+});
+
 // 管理用: 設定ページの表示
 router.get('/admin/settings', ensureAdmin, async (req, res) => {
   try {

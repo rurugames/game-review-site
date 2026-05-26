@@ -168,12 +168,69 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// @route   GET /products/:id/edit
+// @desc    編集フォーム（管理者のみ）
+router.get('/:id/edit', ensureAdmin, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id).lean();
+    if (!product) return res.status(404).send('ページが見つかりません');
+    res.render('products/edit', { title: '商品レビューを編集', product });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('サーバーエラーが発生しました');
+  }
+});
+
+// @route   PUT /products/:id
+// @desc    更新（管理者のみ）
+router.put('/:id', ensureAdmin, async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).send('ページが見つかりません');
+
+    const title = String(req.body.title || '').trim();
+    const body = String(req.body.body || '').trim();
+    const affiliateLinkRaw = String(req.body.affiliateLink || '').trim();
+    const imageUrl = String(req.body.imageUrl || '').trim();
+
+    if (!title || !body || !affiliateLinkRaw) {
+      return res.status(400).send('タイトル・本文・アフィリエイトリンクは必須です');
+    }
+    try { new URL(affiliateLinkRaw); } catch {
+      return res.status(400).send('アフィリエイトリンクのURLが不正です');
+    }
+
+    product.title = title;
+    product.body = body;
+    product.affiliateLink = affiliateLinkRaw;
+    if (imageUrl) {
+      try { new URL(imageUrl); product.imageUrl = imageUrl; } catch {}
+    } else {
+      product.imageUrl = undefined;
+    }
+    const manualRating = req.body.rating ? parseFloat(req.body.rating) : null;
+    if (manualRating && manualRating >= 0 && manualRating <= 5) {
+      product.rating = manualRating;
+    } else {
+      product.rating = undefined;
+    }
+    product.genre = req.body.genre ? String(req.body.genre).trim() : undefined;
+    product.status = req.body.status === 'draft' ? 'draft' : 'published';
+
+    await product.save();
+    res.redirect('/admin/products');
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('サーバーエラーが発生しました');
+  }
+});
+
 // @route   DELETE /products/:id
 // @desc    削除（管理者のみ）
 router.delete('/:id', ensureAdmin, async (req, res) => {
   try {
     await Product.findByIdAndDelete(req.params.id);
-    res.redirect('/products');
+    res.redirect('/admin/products');
   } catch (err) {
     console.error(err);
     res.status(500).send('サーバーエラーが発生しました');

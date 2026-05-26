@@ -1,0 +1,111 @@
+<style>
+.product-form-container {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+.product-form-container h1 {
+  margin-bottom: 1.25rem;
+}
+.form-group {
+  margin-bottom: 1.1rem;
+}
+.form-group label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 0.3rem;
+}
+.form-group input[type="text"],
+.form-group input[type="url"],
+.form-group input[type="number"],
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+.form-group textarea {
+  resize: vertical;
+}
+.form-hint {
+  font-size: 0.8rem;
+  color: #888;
+  margin-top: 0.25rem;
+}
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+</style>
+
+<div class="product-form-container">
+  <h1>商品レビューを編集</h1>
+
+  <form action="/products/<%= product._id %>?_method=PUT" method="POST">
+    <div class="form-group">
+      <label for="title">タイトル <span style="color:red">*</span></label>
+      <input type="text" id="title" name="title" required
+             value="<%= product.title %>">
+    </div>
+
+    <div class="form-group">
+      <label for="affiliateLink">アフィリエイトリンク（URL） <span style="color:red">*</span></label>
+      <input type="url" id="affiliateLink" name="affiliateLink" required
+             value="<%= product.affiliateLink %>">
+    </div>
+
+    <div class="form-group">
+      <label for="imageUrl">サムネイル画像URL</label>
+      <input type="url" id="imageUrl" name="imageUrl"
+             value="<%= product.imageUrl || '' %>"
+             placeholder="https://...">
+      <p class="form-hint">空欄にすると画像なしになります。</p>
+    </div>
+
+    <div class="form-group">
+      <label for="body">レビュー・感想本文 <span style="color:red">*</span></label>
+      <p class="form-hint">Markdown 形式で記述できます。</p>
+      <textarea id="body" name="body" rows="20" required><%= product.body %></textarea>
+    </div>
+
+    <div class="form-group">
+      <label for="rating">評価（0.0〜5.0）</label>
+      <input type="number" id="rating" name="rating" min="0" max="5" step="0.01"
+             value="<%= product.rating != null ? product.rating : '' %>"
+             placeholder="例: 4.5">
+    </div>
+
+    <div class="form-group">
+      <label for="genre">ジャンルタグ</label>
+      <select id="genre" name="genre">
+        <option value="" <%= !product.genre ? 'selected' : '' %>>自動判定（URLから）</option>
+        <option value="FANZA同人" <%= product.genre === 'FANZA同人' ? 'selected' : '' %>>FANZA同人</option>
+        <option value="同人ゲーム" <%= product.genre === '同人ゲーム' ? 'selected' : '' %>>同人ゲーム</option>
+        <option value="PCゲーム" <%= product.genre === 'PCゲーム' ? 'selected' : '' %>>PCゲーム</option>
+        <option value="成年コミック" <%= product.genre === '成年コミック' ? 'selected' : '' %>>成年コミック</option>
+        <option value="DLsite" <%= product.genre === 'DLsite' ? 'selected' : '' %>>DLsite</option>
+        <option value="その他" <%= product.genre === 'その他' ? 'selected' : '' %>>その他</option>
+      </select>
+      <p class="form-hint">空欄のままにするとアフィリエイトリンクのURLから自動判定します。</p>
+    </div>
+
+    <div class="form-group">
+      <label for="status">公開ステータス</label>
+      <select id="status" name="status">
+        <option value="published" <%= product.status === 'published' ? 'selected' : '' %>>公開</option>
+        <option value="draft" <%= product.status === 'draft' ? 'selected' : '' %>>下書き</option>
+      </select>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" class="btn-primary">保存する</button>
+      <a href="/admin/products" class="btn-secondary">キャンセル</a>
+      <a href="/products/<%= product._id %>" class="btn-secondary" target="_blank">プレビュー</a>
+    </div>
+  </form>
+</div>

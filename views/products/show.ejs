@@ -151,7 +151,7 @@
   <div class="product-show-header">
     <h1 class="product-show-title"><%= product.title %></h1>
     <div class="product-show-meta">
-      <span class="product-genre"><%= getProductGenre(product.affiliateLink) %></span>
+      <span class="product-genre"><%= product.genre || getProductGenre(product.affiliateLink) %></span>
       &nbsp;<%= new Date(product.createdAt).toLocaleDateString('ja-JP') %>
     </div>
     <% if (product.rating) { %>

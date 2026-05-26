@@ -30,6 +30,10 @@ const ProductSchema = new mongoose.Schema(
       ref: 'User',
       required: true,
     },
+    genre: {
+      type: String,
+      trim: true,
+    },
     status: {
       type: String,
       enum: ['draft', 'published'],
