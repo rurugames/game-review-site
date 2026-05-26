@@ -112,6 +112,10 @@
         <% if (isAdultConfirmed && fanzaBannerUrl && fanzaBannerImgUrl) { %>
           <a rel="noopener sponsored" href="/out?u=<%= encodeURIComponent(fanzaBannerUrl) %>&k=affiliate&s=left-rail&pos=10" target="_blank"><img src="<%= fanzaBannerImgUrl %>" alt="<%= fanzaBannerAlt %>" width="120" height="60" border="0" /></a>
         <% } %>
+        <% if (isAdultConfirmed) { %>
+          <ins class="widget-banner"></ins>
+          <script class="widget-banner-script" src="https://widget-view.dmm.co.jp/js/banner_placement.js?affiliate_id=rurugamesJP-003&banner_id=136_120_240"></script>
+        <% } %>
       </div>
     </aside>
 
