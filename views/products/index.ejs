@@ -99,6 +99,13 @@
 </style>
 
 <div class="products-container">
+  <% if (isAdultConfirmed) { %>
+  <div style="text-align:center; margin-bottom: 20px;">
+    <ins class="dmm-widget-placement" data-id="b8b1260321bb60a9e25f448289f145bb" style="background:transparent"></ins>
+    <script src="https://widget-view.dmm.co.jp/js/placement.js" class="dmm-widget-scripts" data-id="b8b1260321bb60a9e25f448289f145bb"></script>
+  </div>
+  <% } %>
+
   <div class="products-header">
     <h1>商品レビュー</h1>
     <% if (isAdmin) { %>
