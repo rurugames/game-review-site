@@ -1,0 +1,177 @@
+<style>
+.fv-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+.fv-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.fv-header h1 { margin: 0; font-size: 1.4rem; }
+.fv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 20px;
+}
+.fv-card {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  overflow: hidden;
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+.fv-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+}
+.fv-card-thumb {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  display: block;
+  background: #eee;
+}
+.fv-card-thumb-placeholder {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, #1a1a2e, #22223b);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 2rem;
+}
+.fv-card-body {
+  padding: 0.75rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.fv-card-genre {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: bold;
+  color: #fff;
+  background: #e83c5a;
+  border-radius: 3px;
+  padding: 1px 6px;
+  margin-bottom: 5px;
+}
+.fv-card-title {
+  font-size: 0.88rem;
+  font-weight: bold;
+  line-height: 1.4;
+  margin-bottom: 0.4rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.fv-card-title a {
+  color: #1a3a6e;
+  text-decoration: none;
+}
+.fv-card-title a:hover { text-decoration: underline; }
+.fv-card-meta {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: auto;
+}
+.fv-card-views {
+  font-size: 0.75rem;
+  color: #e83c5a;
+  font-weight: bold;
+  margin-top: 3px;
+}
+.fv-card-tags {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.fv-tag {
+  font-size: 0.65rem;
+  background: #f0f0f0;
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: #555;
+}
+.fv-card-actions {
+  margin-top: 0.6rem;
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+</style>
+
+<div class="fv-container">
+  <% if (isAdultConfirmed) { %>
+  <div style="text-align:center; margin-bottom: 20px;">
+    <ins class="dmm-widget-placement" data-id="6be04b5308be1670b9c8ecca0badf643" style="background:transparent"></ins>
+    <script src="https://widget-view.dmm.co.jp/js/placement.js" class="dmm-widget-scripts" data-id="6be04b5308be1670b9c8ecca0badf643"></script>
+  </div>
+  <% } %>
+
+  <div class="fv-header">
+    <h1>&#9654; FANZA無料動画</h1>
+    <% if (isAdmin) { %>
+      <a href="/free-videos/new" class="btn-primary" style="display:none">＋ 追加</a>
+    <% } %>
+  </div>
+
+  <% if (videos.length === 0) { %>
+    <p>まだ動画がありません。</p>
+  <% } else { %>
+    <div class="fv-grid">
+      <% videos.forEach(function(v) { %>
+        <div class="fv-card">
+          <a href="/free-videos/<%= v._id %>" style="display:block;">
+            <% const _thumb = v.imageUrl || getFreeVideoThumbnail(v.affiliateLink); %>
+            <% if (_thumb) { %>
+              <img class="fv-card-thumb" src="<%= _thumb %>" alt="<%= v.title %>" loading="lazy">
+            <% } else { %>
+              <div class="fv-card-thumb-placeholder">▶</div>
+            <% } %>
+          </a>
+          <div class="fv-card-body">
+            <span class="fv-card-genre">FANZA無料動画</span>
+            <div class="fv-card-title">
+              <a href="/free-videos/<%= v._id %>"><%= v.title %></a>
+            </div>
+            <% if (v.actress && v.actress.length > 0) { %>
+              <div class="fv-card-meta">&#127775; <%= v.actress.join(' / ') %></div>
+            <% } %>
+            <% if (v.viewCount) { %>
+              <div class="fv-card-views">&#9654; 再生回数 <%= v.viewCount.toLocaleString() %>回</div>
+            <% } %>
+            <% if (v.tags && v.tags.length > 0) { %>
+              <div class="fv-card-tags">
+                <% v.tags.slice(0, 4).forEach(function(t) { %><span class="fv-tag"><%= t %></span><% }) %>
+              </div>
+            <% } %>
+            <% if (isAdmin) { %>
+              <div class="fv-card-actions">
+                <a href="/free-videos/<%= v._id %>/edit" class="btn-secondary" style="font-size:0.75rem;padding:3px 8px;">編集</a>
+                <form action="/free-videos/<%= v._id %>?_method=DELETE" method="POST"
+                      onsubmit="return confirm('削除しますか？')">
+                  <button type="submit" class="btn-delete" style="font-size:0.75rem;padding:3px 8px;cursor:pointer;">削除</button>
+                </form>
+              </div>
+            <% } %>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <% if (typeof adTag !== 'undefined' && adTag) { %>
+  <div style="text-align:center; margin-bottom:1.5rem;"><%- adTag %></div>
+  <% } %>
+</div>

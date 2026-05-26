@@ -327,3 +327,69 @@
 
 ### メモ
 - AdTag の `keyword: 'default'` に広告タグが登録済みであること（`scripts/register_ad.js` 実行済み）を前提とする。
+
+---
+
+## 2026-05-26: 商品レビュー編集・管理機能、FANZA対応、無料動画機能の追加
+
+### 背景
+- 商品レビューのジャンルタグ（FANZAブック表記）を手動で編集したい。
+- FANZA専用の投稿フローを整備したい。
+- FANZA無料動画ページを投稿・管理できる新セクションが必要になった。
+
+### 決定事項
+
+1. **商品レビュー 編集・管理機能**
+   - `GET /products/:id/edit` → 編集フォーム（管理者のみ）
+   - `PUT /products/:id` → 更新処理
+   - `GET /admin/products` → 管理一覧ページ新設
+   - 管理メニューに「商品レビュー管理」追加。「CSV管理」「記事自動生成」は削除。
+   - Article 全件（18,016件）削除。
+
+2. **Product.genre フィールド追加・ジャンルタグ手動設定**
+   - `models/Product.js` に `genre: String`（任意）追加。
+   - `views/products/edit.ejs` にジャンル選択 `<select>` 追加（空欄はURLから自動判定にフォールバック）。
+   - `server.js` の `getProductGenre()` で `FANZAブック` → `FANZA同人` に変更。
+   - 選択肢: FANZA同人 / 同人ゲーム / PCゲーム / 成年コミック / DLsite / その他 / 自動判定
+
+3. **FANZA専用投稿スキル**
+   - `.github/prompts/post-fanza.prompt.md` 追加（FANZAアフィリエイトHTMLと商品ページ全文から投稿）。
+   - `scripts/post_product.js` に `--thumbnail` オプション追加（FANZAはOGP自動取得が失敗するため手動指定）。
+
+4. **FANZAバナー・ウィジェット追加**
+   - 左サイドバー（`views/layout.ejs`）に `banner_id=136_120_240` バナーウィジェット追加（`isAdultConfirmed` 時のみ表示）。
+   - ギャラリーページトップ（`views/gallery.ejs`）に `dmm-widget-placement` ウィジェット追加（`isAdultConfirmed` 時のみ表示）。
+
+5. **FANZA無料動画機能の新設**
+   - モデル `FreeVideo`（フィールド: title, description, affiliateLink, imageUrl, actress[], maker, series, tags[], viewCount, status）。
+   - ルート: `GET /free-videos`（一覧）、`GET /free-videos/:id`（詳細）、`PUT/DELETE /free-videos/:id`（管理者のみ）。
+   - `GET /admin/free-videos` 管理一覧ページ追加。
+   - 左サイドバーに「無料動画」リンク追加（「商品レビュー」の直下）。
+   - 管理メニューに「無料動画管理」追加。
+   - CLI投稿スクリプト `scripts/post_free_video.js`（--title / --desc / --link / --thumbnail / --actress / --maker / --series / --tags / --views）。
+   - 投稿スキル `.github/prompts/post-free-video.prompt.md` 追加。
+
+### 反映箇所
+- `models/Product.js`（genre フィールド追加）
+- `models/FreeVideo.js`（新規作成）
+- `routes/products.js`（edit/PUT/DELETE 追加）
+- `routes/free-videos.js`（新規作成）
+- `routes/index.js`（admin/products・admin/free-videos 追加）
+- `server.js`（getProductGenre FANZAブック→FANZA同人・/free-videos ルート登録）
+- `views/products/edit.ejs`（新規作成）
+- `views/admin/products.ejs`（新規作成）
+- `views/free-videos/index.ejs`（新規作成）
+- `views/free-videos/show.ejs`（新規作成）
+- `views/free-videos/edit.ejs`（新規作成）
+- `views/admin/free-videos.ejs`（新規作成）
+- `views/layout.ejs`（無料動画リンク・バナーウィジェット・管理メニュー更新）
+- `views/gallery.ejs`（FANZAウィジェット追加）
+- `scripts/post_product.js`（--thumbnail オプション追加）
+- `scripts/post_free_video.js`（新規作成）
+- `.github/prompts/post-fanza.prompt.md`（新規作成）
+- `.github/prompts/post-free-video.prompt.md`（新規作成）
+
+### メモ
+- FreeVideo は Product とは独立したコレクション（`freevideos`）。
+- サムネイルは `--thumbnail` で手動指定。FANZAの CID が分かる場合は `https://pics.dmm.co.jp/digital/video/{cid}/{cid}pl.jpg` も試せる。
+

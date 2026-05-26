@@ -585,6 +585,18 @@ router.get('/admin/products', ensureAdmin, async (req, res) => {
   }
 });
 
+// 管理用: 無料動画管理ページ
+router.get('/admin/free-videos', ensureAdmin, async (req, res) => {
+  try {
+    const FreeVideo = require('../models/FreeVideo');
+    const videos = await FreeVideo.find().sort({ createdAt: -1 }).lean();
+    res.render('admin/free-videos', { title: '無料動画管理', videos });
+  } catch (e) {
+    console.error('無料動画管理ページ取得エラー:', e);
+    res.status(500).send('取得に失敗しました');
+  }
+});
+
 // 管理用: 設定ページの表示
 router.get('/admin/settings', ensureAdmin, async (req, res) => {
   try {

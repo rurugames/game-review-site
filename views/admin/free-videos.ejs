@@ -1,0 +1,77 @@
+<style>
+.admin-fv-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+.admin-fv-table th,
+.admin-fv-table td {
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+.admin-fv-table th { background: #f5f5f5; text-align: left; }
+.admin-fv-thumb {
+  width: 80px;
+  height: 45px;
+  object-fit: cover;
+  border-radius: 4px;
+  display: block;
+}
+.admin-fv-title a { color: #1a3a6e; text-decoration: none; }
+.admin-fv-title a:hover { text-decoration: underline; }
+.admin-actions { display: flex; gap: 0.4rem; align-items: center; }
+</style>
+
+<div style="max-width:1100px;margin:0 auto;padding:1.5rem 1rem;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+    <h1 style="margin:0;">無料動画管理 (<%= videos.length %>件)</h1>
+  </div>
+
+  <% if (videos.length === 0) { %>
+    <p>まだ登録がありません。</p>
+  <% } else { %>
+    <table class="admin-fv-table">
+      <thead>
+        <tr>
+          <th>サムネイル</th>
+          <th>タイトル</th>
+          <th>出演者</th>
+          <th>再生回数</th>
+          <th>状態</th>
+          <th>投稿日</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% videos.forEach(function(v) { %>
+          <tr>
+            <td>
+              <% if (v.imageUrl) { %>
+                <img class="admin-fv-thumb" src="<%= v.imageUrl %>" alt="<%= v.title %>">
+              <% } else { %>
+                <div style="width:80px;height:45px;background:#eee;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:1.2rem;">▶</div>
+              <% } %>
+            </td>
+            <td class="admin-fv-title">
+              <a href="/free-videos/<%= v._id %>"><%= v.title %></a>
+            </td>
+            <td><%= (v.actress || []).join(' / ') || '—' %></td>
+            <td><%= v.viewCount ? v.viewCount.toLocaleString() + '回' : '—' %></td>
+            <td><%= v.status === 'published' ? '公開' : '下書き' %></td>
+            <td><%= new Date(v.createdAt).toLocaleDateString('ja-JP') %></td>
+            <td>
+              <div class="admin-actions">
+                <a href="/free-videos/<%= v._id %>/edit" class="btn-secondary" style="font-size:0.78rem;padding:3px 10px;">編集</a>
+                <form action="/free-videos/<%= v._id %>?_method=DELETE" method="POST"
+                      onsubmit="return confirm('削除しますか？')">
+                  <button type="submit" class="btn-delete" style="font-size:0.78rem;padding:3px 10px;cursor:pointer;">削除</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>

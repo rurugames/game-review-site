@@ -261,6 +261,22 @@ app.use(async (req, res, next) => {
     return 'その他';
   };
 
+  // FANZA無料動画サムネイル自動生成ヘルパー（テンプレートから呼び出し可能）
+  res.locals.getFreeVideoThumbnail = function(affiliateLink) {
+    if (!affiliateLink) return null;
+    try {
+      const urlObj = new URL(affiliateLink);
+      const lurl = urlObj.searchParams.get('lurl');
+      const target = lurl ? decodeURIComponent(lurl) : affiliateLink;
+      const m = target.match(/\/cid=([^\/&?]+)/);
+      if (m && m[1]) {
+        const cid = m[1];
+        return `https://pics.dmm.co.jp/digital/video/${cid}/${cid}pl.jpg`;
+      }
+    } catch (_) {}
+    return null;
+  };
+
   // Affiliate banner config (optional)
   res.locals.fanzaBannerUrl = String(process.env.FANZA_BANNER_URL || '').trim();
   res.locals.fanzaBannerImgUrl = String(process.env.FANZA_BANNER_IMG_URL || '').trim();
@@ -438,6 +454,7 @@ app.use('/out', require('./routes/out'));
 app.use('/gallery', require('./routes/gallery'));
 app.use('/inkocchi', require('./routes/inkocchi'));
 app.use('/products', require('./routes/products'));
+app.use('/free-videos', require('./routes/free-videos'));
 
 // サーバー起動
 server.listen(PORT, () => {
