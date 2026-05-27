@@ -73,7 +73,6 @@ const http = require('http');
 const server = http.createServer(app);
 const { ADMIN_DISPLAY_NAMES, getAdminDisplayNameByEmail, isAdminEmail } = require('./lib/admin');
 const Setting = require('./models/Setting');
-const dlsiteService = require('./services/dlsiteService');
 const trafficMonitor = ENABLE_TRAFFIC_MONITOR
   ? createTrafficMonitor({ intervalMs: Number(process.env.TRAFFIC_MONITOR_INTERVAL_MS || 60 * 1000) || 60 * 1000 })
   : null;
@@ -97,51 +96,8 @@ if (ENABLE_TRAFFIC_MONITOR) {
 
 // データベース接続
 mongoose.connect(process.env.MONGODB_URI)
-  .then(async () => {
+  .then(() => {
     console.log('MongoDB接続成功');
-    try {
-      // load persisted settings and apply to service
-      const pConcurrency = await Setting.get('concurrency', dlsiteService.getSettings ? dlsiteService.getSettings().concurrency : dlsiteService.concurrentFetchLimit);
-      const pTTL = await Setting.get('detailsCacheTTL', dlsiteService.getSettings ? dlsiteService.getSettings().detailsCacheTTL : dlsiteService.detailsCacheTTL);
-      try { dlsiteService.setConcurrency(Number(pConcurrency) || dlsiteService.concurrentFetchLimit); } catch (e) {}
-      try { dlsiteService.setDetailsCacheTTL(Number(pTTL) || dlsiteService.detailsCacheTTL); } catch (e) {}
-      // start cache GC using current TTL
-      try { dlsiteService.startCacheGC(); } catch (e) {}
-      // ensure MongoDB TTL index matches configured TTL
-      try {
-        const seconds = Math.max(60, Math.floor((Number(pTTL) || dlsiteService.detailsCacheTTL) / 1000));
-        const coll = mongoose.connection.collection('gamedetailcaches');
-        const indexes = await coll.indexes();
-        const existing = indexes.find(i => i.key && i.key.ts === 1);
-        if (existing && typeof existing.expireAfterSeconds !== 'undefined' && existing.expireAfterSeconds !== seconds) {
-          try {
-            await coll.dropIndex(existing.name);
-            console.log('Dropped existing TTL index', existing.name);
-          } catch (e) {
-            try {
-              await coll.dropIndex({ ts: 1 });
-              console.log('Dropped existing TTL index by key {ts:1}');
-            } catch (e2) {
-              console.warn('Failed to drop existing TTL index by name and key:', e && e.message ? e.message : e);
-            }
-          }
-        } else if (existing && typeof existing.expireAfterSeconds === 'undefined') {
-          // Existing index found but no expireAfterSeconds option — do not attempt to recreate automatically
-          console.warn('Existing index on GameDetailCache.ts exists without expireAfterSeconds. Please drop index "' + existing.name + '" manually or via DB admin to enable TTL indexing. Skipping automatic TTL index creation.');
-        } else {
-          try {
-            await coll.createIndex({ ts: 1 }, { expireAfterSeconds: seconds, background: true });
-            console.log('Created/updated TTL index on GameDetailCache.ts expireAfterSeconds=', seconds);
-          } catch (e) {
-            console.warn('Failed to create TTL index:', e && e.message ? e.message : e);
-          }
-        }
-      } catch (e) {
-        console.warn('TTL index ensure failed at startup:', e && e.message ? e.message : e);
-      }
-    } catch (e) {
-      console.warn('設定の読み込み/適用に失敗しました', e && e.message ? e.message : e);
-    }
   })
   .catch(err => console.error('MongoDB接続エラー:', err));
 
@@ -315,9 +271,7 @@ app.use(async (req, res, next) => {
   const p = req.path || '';
   const isNoindex =
     p.startsWith('/admin') ||
-    p.startsWith('/dashboard') ||
     p.startsWith('/csv') ||
-    p.startsWith('/generator') ||
     p.startsWith('/auth') ||
     p.startsWith('/adult') ||
     p.startsWith('/out') ||
@@ -451,7 +405,6 @@ app.use('/comments', require('./routes/comments'));
 app.use('/reviews', require('./routes/reviews'));
 app.use('/users', require('./routes/users'));
 app.use('/events', require('./routes/events'));
-app.use('/generator', require('./routes/generator'));
 app.use('/csv', require('./routes/csv'));
 app.use('/out', require('./routes/out'));
 app.use('/gallery', require('./routes/gallery'));

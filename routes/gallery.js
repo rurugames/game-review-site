@@ -172,6 +172,24 @@ function escapeRegex(str) {
   return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+// --- ギャラリー管理ページ（管理者のみ）---
+router.get('/admin', ensureAdmin, async (req, res) => {
+  try {
+    const images = await GalleryImage.find({})
+      .sort({ uploadDate: -1, _id: -1 })
+      .limit(200)
+      .select('title r2Url r2Key tags uploadDate status views')
+      .lean();
+    const recentCommentsCount = await GalleryComment.countDocuments({
+      createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+    });
+    res.render('admin/gallery', { title: 'ギャラリー管理', images, recentCommentsCount });
+  } catch (err) {
+    console.error('gallery admin error:', err);
+    res.status(500).send('サーバーエラーが発生しました');
+  }
+});
+
 // --- R2 → MongoDB 同期（管理者のみ）---
 router.post('/admin/sync-r2', ensureAdmin, async (req, res) => {
   try {

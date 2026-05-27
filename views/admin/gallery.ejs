@@ -1,0 +1,158 @@
+<section class="admin-section page-section">
+  <div class="page-header" style="display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap;">
+    <div>
+      <h1 class="section-title">ギャラリー管理</h1>
+      <p class="section-lead">直近30日のコメント: <strong><%= recentCommentsCount %></strong>件 &nbsp;|&nbsp; 全 <strong><%= images.length %></strong> 件表示（最大200件）</p>
+    </div>
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+      <button id="syncR2Btn" class="btn-primary">R2同期</button>
+      <span id="syncResult" style="align-self:center; font-size:0.9rem; color:var(--text-secondary);"></span>
+    </div>
+  </div>
+
+  <% if (images && images.length > 0) { %>
+    <div class="bulk-actions" style="margin-bottom:1rem;">
+      <button id="selectAllBtn" class="btn-secondary">全選択</button>
+      <button id="deselectAllBtn" class="btn-secondary">全解除</button>
+      <button id="deleteSelectedBtn" class="btn-delete" style="display:none;">選択した画像を削除</button>
+    </div>
+
+    <table class="articles-table">
+      <thead>
+        <tr>
+          <th><input type="checkbox" id="selectAllCheck"></th>
+          <th>画像</th>
+          <th>タイトル / キー</th>
+          <th>シリーズ</th>
+          <th>タグ</th>
+          <th>公開日</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% images.forEach(function(image) { %>
+          <% const folder = (image.r2Key && image.r2Key.includes('/')) ? image.r2Key.split('/')[0] : 'その他'; %>
+          <tr>
+            <td><input type="checkbox" class="gallery-checkbox" value="<%= image._id %>"></td>
+            <td>
+              <a href="/gallery/<%= image._id %>" target="_blank" rel="noopener noreferrer">
+                <img src="<%= image.r2Url %>" alt="<%= image.title %>"
+                  style="width:64px; height:64px; object-fit:cover; border-radius:6px; border:1px solid var(--border-color);">
+              </a>
+            </td>
+            <td>
+              <a href="/gallery/<%= image._id %>" target="_blank" rel="noopener noreferrer"><%= image.title %></a>
+              <div style="font-size:0.78rem; color:var(--text-muted); word-break:break-all; margin-top:0.2rem;"><%= image.r2Key %></div>
+            </td>
+            <td><%= folder %></td>
+            <td><%= image.tags && image.tags.length ? image.tags.join(', ') : 'なし' %></td>
+            <td><%= image.uploadDate ? new Date(image.uploadDate).toLocaleDateString('ja-JP') : '' %></td>
+            <td class="actions">
+              <a href="/gallery/<%= image._id %>" class="btn-edit" target="_blank" rel="noopener noreferrer">表示</a>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } else { %>
+    <div class="no-articles">
+      <p>ギャラリー画像がありません。R2同期を実行してください。</p>
+    </div>
+  <% } %>
+</section>
+
+<script>
+(function () {
+  // 全選択チェックボックス
+  const selectAllCheck = document.getElementById('selectAllCheck');
+  const selectAllBtn = document.getElementById('selectAllBtn');
+  const deselectAllBtn = document.getElementById('deselectAllBtn');
+  const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+
+  function getChecked() {
+    return Array.from(document.querySelectorAll('.gallery-checkbox:checked'));
+  }
+
+  function updateDeleteBtn() {
+    deleteSelectedBtn.style.display = getChecked().length > 0 ? '' : 'none';
+  }
+
+  if (selectAllCheck) {
+    selectAllCheck.addEventListener('change', function () {
+      document.querySelectorAll('.gallery-checkbox').forEach(c => { c.checked = selectAllCheck.checked; });
+      updateDeleteBtn();
+    });
+  }
+
+  if (selectAllBtn) {
+    selectAllBtn.addEventListener('click', function () {
+      document.querySelectorAll('.gallery-checkbox').forEach(c => { c.checked = true; });
+      if (selectAllCheck) selectAllCheck.checked = true;
+      updateDeleteBtn();
+    });
+  }
+
+  if (deselectAllBtn) {
+    deselectAllBtn.addEventListener('click', function () {
+      document.querySelectorAll('.gallery-checkbox').forEach(c => { c.checked = false; });
+      if (selectAllCheck) selectAllCheck.checked = false;
+      updateDeleteBtn();
+    });
+  }
+
+  document.querySelectorAll('.gallery-checkbox').forEach(c => {
+    c.addEventListener('change', updateDeleteBtn);
+  });
+
+  // 削除
+  if (deleteSelectedBtn) {
+    deleteSelectedBtn.addEventListener('click', async function () {
+      const ids = getChecked().map(c => c.value);
+      if (ids.length === 0) { alert('削除する画像を選択してください。'); return; }
+      if (!confirm(ids.length + '件の画像を削除しますか？この操作は取り消せません。')) return;
+      try {
+        const res = await fetch('/gallery/admin/bulk-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageIds: ids }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          alert(data.failedCount > 0
+            ? data.deletedCount + '件削除しました。' + data.failedCount + '件はR2削除に失敗し残っています。'
+            : data.deletedCount + '件削除しました。');
+          location.reload();
+        } else {
+          alert('削除失敗: ' + (data.error || '不明なエラー'));
+        }
+      } catch (e) {
+        alert('削除に失敗しました。');
+      }
+    });
+  }
+
+  // R2同期
+  const syncBtn = document.getElementById('syncR2Btn');
+  const syncResult = document.getElementById('syncResult');
+  if (syncBtn) {
+    syncBtn.addEventListener('click', async function () {
+      syncBtn.disabled = true;
+      syncResult.textContent = '同期中...';
+      try {
+        const res = await fetch('/gallery/admin/sync-r2', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          syncResult.textContent = '完了: ' + data.added + '件追加 / 合計' + data.total + '件';
+          if (data.added > 0) location.reload();
+        } else {
+          syncResult.textContent = 'エラー: ' + (data.error || '不明');
+        }
+      } catch (e) {
+        syncResult.textContent = '同期に失敗しました。';
+      } finally {
+        syncBtn.disabled = false;
+      }
+    });
+  }
+})();
+</script>
