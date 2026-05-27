@@ -117,7 +117,7 @@
     <p>まだ投稿がありません。</p>
   <% } else { %>
     <%
-      const GENRE_ORDER = ['FANZA同人', 'DLsite同人ゲーム', 'PCゲーム', '成年コミック', 'FANZAブックス', 'DLsite', 'その他'];
+      const GENRE_ORDER = ['FANZA同人', 'DLsite同人ゲーム', 'PCゲーム', '成年コミック', 'FANZAブックス', 'その他'];
       const grouped = {};
       products.forEach(p => {
         const g = p.genre || getProductGenre(p.affiliateLink);
