@@ -42,6 +42,34 @@ FANZAはOGP自動取得が失敗するため `--thumbnail` オプションを使
 
 ---
 
+### `/post-fanzabooks` — FANZAブックス（電子書籍・アダルトマンガ）投稿
+
+**ファイル:** `post-fanzabooks.prompt.md`  
+**用途:** FANZAブックスのアフィリエイトリンクURL（`al.fanza.co.jp/?lurl=...`）と商品ページ全文を渡すと、マンガ読書感想スタイルで本文を生成して投稿する。  
+ジャンルは自動的に「FANZAブックス」で投稿される。
+
+**呼び出し例:**
+```
+/post-fanzabooks
+【アフィリエイトリンク】
+https://al.fanza.co.jp/?lurl=https%3A%2F%2Fbook.dmm.co.jp%2Fproduct%2F...&af_id=rurugamesJP-003&ch=reward_ranking&ch_id=link
+
+【ページ全文】
+（ブラウザでCtrl+A → Ctrl+C でコピーした内容をここに貼り付け）
+```
+
+**主なオプション（スクリプト直接実行時）:**
+| オプション | 説明 |
+|-----------|------|
+| `--title` | タイトル（必須） |
+| `--body-file` | 本文ファイルパス（必須） |
+| `--link` | アフィリエイトURL（必須） |
+| `--rating` | 評価値（省略時は自動取得） |
+| `--genre` | `"FANZAブックス"` 固定 |
+| `--thumbnail` | サムネイルURL（省略時は OGP 自動取得） |
+
+---
+
 ### `/post-free-video` — FANZA無料動画投稿
 
 **ファイル:** `post-free-video.prompt.md`  
