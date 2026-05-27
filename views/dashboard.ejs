@@ -1,0 +1,389 @@
+<%
+// ---- ヘルパー ----
+function fmtNum(n) { return Number(n || 0).toLocaleString('ja-JP'); }
+function fmtDate(d) { return d ? new Date(d).toLocaleDateString('ja-JP', { year:'numeric', month:'2-digit', day:'2-digit' }) : '-'; }
+function truncate(s, n) { const t = String(s||''); return t.length > n ? t.slice(0, n) + '…' : t; }
+
+// スパークライン SVG 生成
+const SW = 260, SH = 56, P = 4;
+const sparkMax = Math.max(...clickTrend.map(d => d.total), 1);
+const ptsStr = clickTrend.map((d, i) => {
+  const x = +(P + (i / Math.max(clickTrend.length - 1, 1)) * (SW - P*2)).toFixed(1);
+  const y = +(SH - P - (d.total / sparkMax) * (SH - P*2)).toFixed(1);
+  return x + ',' + y;
+}).join(' ');
+const areaStr = 'M' + clickTrend.map((d, i) => {
+  const x = +(P + (i / Math.max(clickTrend.length - 1, 1)) * (SW - P*2)).toFixed(1);
+  const y = +(SH - P - (d.total / sparkMax) * (SH - P*2)).toFixed(1);
+  return x + ',' + y;
+}).join(' L') + ' L' + (SW - P) + ',' + (SH - P) + ' L' + P + ',' + (SH - P) + ' Z';
+%>
+
+<style>
+.db-grid      { display:grid; grid-template-columns:1fr 1fr; gap:1.25rem; margin-bottom:1.25rem; }
+.db-card      { background:var(--card-background); border:1px solid var(--border-color); border-radius:12px; padding:1.25rem 1.5rem; }
+.db-card h2   { font-size:1rem; font-weight:600; color:var(--text-secondary); margin:0 0 .75rem; text-transform:uppercase; letter-spacing:.04em; }
+.kpi-val      { font-size:2.4rem; font-weight:700; color:var(--text-primary); line-height:1.1; }
+.kpi-sub      { font-size:.85rem; margin-top:.3rem; }
+.kpi-up       { color:#34d399; }
+.kpi-down     { color:#f87171; }
+.kpi-flat     { color:var(--text-muted); }
+.inbox-grid   { display:grid; grid-template-columns:repeat(4, 1fr); gap:.75rem; margin-bottom:1rem; }
+.inbox-badge  { background:var(--card-background); border:1px solid var(--border-color); border-radius:10px; padding:.75rem 1rem; display:flex; flex-direction:column; gap:.25rem; }
+.inbox-badge .badge-num { font-size:1.6rem; font-weight:700; }
+.inbox-badge .badge-lbl { font-size:.8rem; color:var(--text-muted); }
+.badge-warn   { border-color:#f59e0b55; }
+.badge-warn .badge-num { color:#f59e0b; }
+.badge-ok     { opacity:.6; }
+.action-list  { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.5rem; }
+.action-item  { display:flex; align-items:center; gap:.75rem; font-size:.9rem; padding:.5rem .75rem; background:rgba(99,102,241,.07); border-radius:8px; border-left:3px solid var(--primary-color); }
+.action-item a { color:var(--primary-color); text-decoration:none; font-weight:500; }
+.action-item a:hover { text-decoration:underline; }
+.section-row  { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem; }
+.perf-table   { width:100%; border-collapse:collapse; font-size:.88rem; }
+.perf-table th { text-align:left; padding:.5rem .75rem; color:var(--text-muted); font-weight:500; border-bottom:1px solid var(--border-color); white-space:nowrap; }
+.perf-table td { padding:.55rem .75rem; border-bottom:1px solid rgba(255,255,255,.04); vertical-align:middle; }
+.perf-table tr:hover td { background:rgba(99,102,241,.05); }
+.perf-table tr.stale td { background:rgba(245,158,11,.04); }
+.badge-status { display:inline-block; font-size:.72rem; font-weight:600; padding:.15rem .5rem; border-radius:4px; text-transform:uppercase; letter-spacing:.03em; }
+.badge-pub    { background:rgba(52,211,153,.15); color:#34d399; }
+.badge-draft  { background:rgba(156,163,175,.15); color:#9ca3af; }
+.badge-stale  { background:rgba(245,158,11,.15); color:#f59e0b; font-size:.7rem; padding:.1rem .4rem; margin-left:.25rem; }
+.pv-bar-wrap  { display:flex; align-items:center; gap:.5rem; }
+.pv-bar       { height:6px; border-radius:3px; background:var(--primary-color); opacity:.7; min-width:2px; }
+.spark-wrap   { display:flex; flex-direction:column; gap:.5rem; }
+.section-table { width:100%; font-size:.85rem; border-collapse:collapse; margin-top:.5rem; }
+.section-table td { padding:.35rem .5rem; border-bottom:1px solid rgba(255,255,255,.04); }
+.section-table td:last-child { text-align:right; font-weight:600; }
+.tag-kind { display:inline-block; font-size:.72rem; padding:.1rem .4rem; border-radius:4px; background:rgba(99,102,241,.15); color:var(--primary-color); margin-right:.3rem; }
+@media(max-width:768px) {
+  .db-grid    { grid-template-columns:1fr; }
+  .inbox-grid { grid-template-columns:repeat(2,1fr); }
+}
+</style>
+
+<div class="page-header">
+  <h1 class="section-title">ダッシュボード</h1>
+  <p class="section-lead">過去 <%= period %> 日間のパフォーマンス概要</p>
+</div>
+
+<!-- ===== Panel 3: 今日のアクション ===== -->
+<section class="db-card" style="margin-bottom:1.25rem;">
+  <h2>今日のアクション</h2>
+
+  <div class="inbox-grid">
+    <div class="inbox-badge <%= unreadCount > 0 ? 'badge-warn' : 'badge-ok' %>">
+      <span class="badge-num"><%= fmtNum(unreadCount) %></span>
+      <span class="badge-lbl">💬 未読返信コメント</span>
+    </div>
+    <div class="inbox-badge <%= galleryCommentCount > 0 ? 'badge-warn' : 'badge-ok' %>">
+      <span class="badge-num"><%= fmtNum(galleryCommentCount) %></span>
+      <span class="badge-lbl">🖼️ ギャラリーコメント（7日）</span>
+    </div>
+    <div class="inbox-badge <%= draftCount > 0 ? 'badge-warn' : 'badge-ok' %>">
+      <span class="badge-num"><%= fmtNum(draftCount) %></span>
+      <span class="badge-lbl">📝 下書き記事</span>
+    </div>
+    <div class="inbox-badge <%= needsRefreshArticles.length > 0 ? 'badge-warn' : 'badge-ok' %>">
+      <span class="badge-num"><%= needsRefreshArticles.length %></span>
+      <span class="badge-lbl">♻️ 要リライト（PV↑&60日未更新）</span>
+    </div>
+  </div>
+
+  <% const hasActions = unreadCount > 0 || galleryCommentCount > 0 || needsRefreshArticles.length > 0 || recentComments.length > 0; %>
+  <% if (hasActions) { %>
+    <ul class="action-list">
+      <% if (unreadCount > 0) { %>
+        <li class="action-item">
+          💬 <span>未読の返信が <strong><%= fmtNum(unreadCount) %> 件</strong> あります</span>
+        </li>
+      <% } %>
+      <% if (galleryCommentCount > 0) { %>
+        <li class="action-item">
+          🖼️ <span>ギャラリーに過去7日で <strong><%= fmtNum(galleryCommentCount) %> 件</strong> のコメントがつきました &nbsp;<a href="/gallery/admin">ギャラリー管理へ</a></span>
+        </li>
+      <% } %>
+      <% needsRefreshArticles.forEach(function(a) { %>
+        <li class="action-item">
+          ♻️ <span>
+            <a href="/articles/<%= a._id %>/edit"><%= truncate(a.title, 40) %></a>
+            &nbsp;— PV <%= fmtNum(a.pv30) %> / 最終更新 <%= fmtDate(a.updatedAt) %>
+          </span>
+        </li>
+      <% }); %>
+      <% if (recentComments.length > 0) { %>
+        <% recentComments.slice(0,3).forEach(function(c) { %>
+          <li class="action-item">
+            💬 <span>
+              <% if (c.article) { %><a href="/articles/<%= c.article._id %>"><%= truncate((c.article.title || ''), 30) %></a><% } else { %>（記事不明）<% } %>
+              に <strong><%= c.author && c.author.displayName ? c.author.displayName : '匿名' %></strong> がコメント &nbsp;
+              <span style="color:var(--text-muted); font-size:.8rem;"><%= fmtDate(c.createdAt) %></span>
+            </span>
+          </li>
+        <% }); %>
+      <% } %>
+    </ul>
+  <% } else { %>
+    <p style="color:var(--text-muted); font-size:.9rem; margin:0;">対応が必要なアクションはありません 🎉</p>
+  <% } %>
+</section>
+
+<!-- ===== Panel 1 + Panel 2 二段組 ===== -->
+<div class="db-grid">
+
+  <!-- Panel 1: アウトバウンドクリック -->
+  <div class="db-card">
+    <h2>アウトバウンドクリック <span style="font-size:.8rem; font-weight:400;">FC2 / FANZA（過去<%= period %>日）</span></h2>
+
+    <div style="display:flex; align-items:flex-end; gap:2rem; flex-wrap:wrap; margin-bottom:1rem;">
+      <div>
+        <div class="kpi-val"><%= fmtNum(clicksThis) %></div>
+        <div class="kpi-sub">
+          <% if (clickChangePct !== null) { %>
+            <% const sign = clickChangePct >= 0 ? '+' : ''; %>
+            <span class="<%= clickChangePct >= 0 ? 'kpi-up' : 'kpi-down' %>">
+              <%= sign %><%= clickChangePct.toFixed(1) %>%
+            </span>
+            <span class="kpi-flat"> 先月比（<%= fmtNum(clicksLast) %> 回）</span>
+          <% } else { %>
+            <span class="kpi-flat">先月データなし</span>
+          <% } %>
+        </div>
+      </div>
+      <div class="spark-wrap">
+        <div style="font-size:.75rem; color:var(--text-muted);">日別推移</div>
+        <svg width="<%= SW %>" height="<%= SH %>" viewBox="0 0 <%= SW %> <%= SH %>" aria-hidden="true" style="display:block;">
+          <defs>
+            <linearGradient id="spark-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#6366f1" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#6366f1" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="<%= areaStr %>" fill="url(#spark-grad)"/>
+          <polyline points="<%= ptsStr %>" fill="none" stroke="#6366f1" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <% if (topSections.length > 0) { %>
+      <div style="font-size:.8rem; color:var(--text-muted); margin-bottom:.4rem;">クリック元 TOP10</div>
+      <table class="section-table">
+        <% topSections.forEach(function(s) { %>
+          <tr>
+            <td>
+              <span class="tag-kind"><%= s.kind || '-' %></span>
+              <span style="color:var(--text-secondary);"><%= s.section || '-' %></span>
+            </td>
+            <td><%= fmtNum(s.total) %> 回</td>
+          </tr>
+        <% }); %>
+      </table>
+    <% } else { %>
+      <p style="color:var(--text-muted); font-size:.88rem; margin:.5rem 0 0;">クリックデータがありません。</p>
+    <% } %>
+  </div>
+
+  <!-- Panel 2 サマリーカード -->
+  <div class="db-card">
+    <h2>記事サマリー（過去<%= period %>日）</h2>
+
+    <%
+      const published = enrichedArticles.filter(a => a.status === 'published');
+      const drafts    = enrichedArticles.filter(a => a.status === 'draft');
+      const totalPv   = enrichedArticles.reduce((s, a) => s + a.pv30, 0);
+      const top5      = enrichedArticles.filter(a => a.pv30 > 0).slice(0, 5);
+    %>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:.75rem; margin-bottom:1.25rem;">
+      <div style="text-align:center;">
+        <div class="kpi-val" style="font-size:1.8rem;"><%= fmtNum(published.length) %></div>
+        <div style="font-size:.8rem; color:var(--text-muted);">公開記事</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="kpi-val" style="font-size:1.8rem; color:#9ca3af;"><%= fmtNum(drafts.length) %></div>
+        <div style="font-size:.8rem; color:var(--text-muted);">下書き</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="kpi-val" style="font-size:1.8rem;"><%= fmtNum(totalPv) %></div>
+        <div style="font-size:.8rem; color:var(--text-muted);">合計PV</div>
+      </div>
+    </div>
+
+    <% if (top5.length > 0) { %>
+      <div style="font-size:.8rem; color:var(--text-muted); margin-bottom:.4rem;">PV TOP5</div>
+      <% const maxPv = top5[0].pv30; %>
+      <table class="section-table">
+        <% top5.forEach(function(a) { %>
+          <tr>
+            <td style="max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+              <a href="/articles/<%= a._id %>" target="_blank" rel="noopener noreferrer"
+                style="color:var(--text-primary); text-decoration:none; font-size:.85rem;">
+                <%= truncate(a.title || a.gameTitle || '(タイトルなし)', 28) %>
+              </a>
+            </td>
+            <td>
+              <div class="pv-bar-wrap">
+                <div class="pv-bar" style="width:<%= Math.max(4, Math.round(a.pv30 / maxPv * 80)) %>px;"></div>
+                <span style="font-size:.82rem;"><%= fmtNum(a.pv30) %></span>
+              </div>
+            </td>
+          </tr>
+        <% }); %>
+      </table>
+    <% } else { %>
+      <p style="color:var(--text-muted); font-size:.88rem; margin:.5rem 0 0;">PVデータがありません。</p>
+    <% } %>
+  </div>
+
+</div><!-- /.db-grid -->
+
+<!-- ===== 記事パフォーマンス全件テーブル ===== -->
+<section class="db-card">
+  <div class="section-row">
+    <h2 style="margin:0;">記事パフォーマンス（過去<%= period %>日・PV順）</h2>
+    <div style="display:flex; gap:.5rem; flex-wrap:wrap; align-items:center;">
+      <select id="statusFilter" class="per-button" style="padding:.35rem .6rem; cursor:pointer; background:var(--card-background); border:1px solid var(--border-color); color:var(--text-primary); border-radius:6px;">
+        <option value="all">すべて</option>
+        <option value="published">公開のみ</option>
+        <option value="draft">下書きのみ</option>
+      </select>
+      <button id="publishAllDraftBtn" class="btn-primary" style="font-size:.85rem; padding:.35rem .8rem;">下書きをすべて公開</button>
+      <button id="deleteSelectedBtn" class="btn-delete" style="display:none; font-size:.85rem; padding:.35rem .8rem;">選択削除</button>
+    </div>
+  </div>
+
+  <% if (enrichedArticles.length === 0) { %>
+    <p style="color:var(--text-muted);">記事がありません。</p>
+  <% } else { %>
+    <div style="overflow-x:auto;">
+      <table class="perf-table" id="articleTable">
+        <thead>
+          <tr>
+            <th><input type="checkbox" id="selectAllCheck" title="全選択"></th>
+            <th>タイトル</th>
+            <th>ステータス</th>
+            <th style="text-align:right;">PV（30日）</th>
+            <th>最終更新</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% enrichedArticles.forEach(function(a) { %>
+            <tr class="article-row <%= a.needsRefresh ? 'stale' : '' %>" data-status="<%= a.status %>">
+              <td><input type="checkbox" class="article-check" value="<%= a._id %>"></td>
+              <td style="max-width:320px;">
+                <a href="/articles/<%= a._id %>" target="_blank" rel="noopener noreferrer"
+                  style="color:var(--text-primary); text-decoration:none; font-weight:500;">
+                  <%= truncate(a.title || a.gameTitle || '(タイトルなし)', 48) %>
+                </a>
+                <% if (a.needsRefresh) { %>
+                  <span class="badge-stale">♻️ 要リライト</span>
+                <% } %>
+              </td>
+              <td>
+                <span class="badge-status <%= a.status === 'published' ? 'badge-pub' : 'badge-draft' %>">
+                  <%= a.status === 'published' ? '公開' : '下書き' %>
+                </span>
+              </td>
+              <td style="text-align:right; font-weight:<%= a.pv30 > 0 ? '600' : '400' %>; color:<%= a.pv30 >= 100 ? 'var(--primary-color)' : 'var(--text-primary)' %>;">
+                <%= a.pv30 > 0 ? fmtNum(a.pv30) : '-' %>
+              </td>
+              <td style="white-space:nowrap; color:var(--text-muted); font-size:.82rem;">
+                <%= fmtDate(a.updatedAt || a.createdAt) %>
+              </td>
+              <td class="actions" style="white-space:nowrap;">
+                <a href="/articles/<%= a._id %>/edit" class="btn-edit">編集</a>
+              </td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</section>
+
+<script>
+(function () {
+  // ステータスフィルター
+  const filter = document.getElementById('statusFilter');
+  if (filter) {
+    filter.addEventListener('change', function () {
+      const val = filter.value;
+      document.querySelectorAll('.article-row').forEach(function (tr) {
+        const st = tr.dataset.status || '';
+        tr.style.display = (val === 'all' || st === val) ? '' : 'none';
+      });
+    });
+  }
+
+  // 全選択
+  const selectAll  = document.getElementById('selectAllCheck');
+  const deleteBtn  = document.getElementById('deleteSelectedBtn');
+
+  function updateDeleteBtn() {
+    const checked = document.querySelectorAll('.article-check:checked').length;
+    if (deleteBtn) deleteBtn.style.display = checked > 0 ? '' : 'none';
+  }
+
+  if (selectAll) {
+    selectAll.addEventListener('change', function () {
+      document.querySelectorAll('.article-check').forEach(function (c) { c.checked = selectAll.checked; });
+      updateDeleteBtn();
+    });
+  }
+  document.querySelectorAll('.article-check').forEach(function (c) {
+    c.addEventListener('change', updateDeleteBtn);
+  });
+
+  // 選択削除
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', async function () {
+      const ids = Array.from(document.querySelectorAll('.article-check:checked')).map(c => c.value);
+      if (!ids.length) return;
+      if (!confirm(ids.length + ' 件の記事を削除しますか？この操作は取り消せません。')) return;
+      try {
+        const res = await fetch('/articles/bulk-delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids }),
+        });
+        const data = await res.json();
+        if (data.success || data.deletedCount) {
+          alert((data.deletedCount || ids.length) + ' 件削除しました。');
+          location.reload();
+        } else {
+          alert('削除失敗: ' + (data.error || '不明なエラー'));
+        }
+      } catch (e) {
+        alert('削除に失敗しました。');
+      }
+    });
+  }
+
+  // 下書きをすべて公開
+  const publishAllBtn = document.getElementById('publishAllDraftBtn');
+  if (publishAllBtn) {
+    publishAllBtn.addEventListener('click', async function () {
+      if (!confirm('下書きの記事をすべて公開しますか？')) return;
+      publishAllBtn.disabled = true;
+      try {
+        const res = await fetch('/articles/publish-all-drafts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok) {
+          alert((data.count || data.modifiedCount || '？') + ' 件を公開しました。');
+          location.reload();
+        } else {
+          alert('公開失敗: ' + (data.error || '不明なエラー'));
+        }
+      } catch (e) {
+        alert('公開処理に失敗しました。');
+      } finally {
+        publishAllBtn.disabled = false;
+      }
+    });
+  }
+})();
+</script>

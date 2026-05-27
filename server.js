@@ -271,6 +271,7 @@ app.use(async (req, res, next) => {
   const p = req.path || '';
   const isNoindex =
     p.startsWith('/admin') ||
+    p.startsWith('/dashboard') ||
     p.startsWith('/csv') ||
     p.startsWith('/auth') ||
     p.startsWith('/adult') ||
@@ -407,6 +408,7 @@ app.use('/users', require('./routes/users'));
 app.use('/events', require('./routes/events'));
 app.use('/csv', require('./routes/csv'));
 app.use('/out', require('./routes/out'));
+app.use('/dashboard', require('./routes/dashboard'));
 app.use('/gallery', require('./routes/gallery'));
 app.use('/inkocchi', require('./routes/inkocchi'));
 app.use('/products', require('./routes/products'));
