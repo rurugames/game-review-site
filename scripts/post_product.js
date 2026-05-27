@@ -18,12 +18,33 @@ const User = require('../models/User');
 
 async function fetchPageMeta(url) {
   try {
-    const { data } = await axios.get(url, {
+    // al.fanza.co.jp のアフィリエイトリンクから lurl を抽出して直接フェッチ
+    let fetchUrl = url;
+    try {
+      const u = new URL(url);
+      const lurl = u.searchParams.get('lurl');
+      if (lurl) fetchUrl = decodeURIComponent(lurl);
+    } catch {}
+
+    const { data } = await axios.get(fetchUrl, {
       timeout: 8000,
+      maxRedirects: 5,
       headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
     });
     const $ = cheerio.load(data);
-    const imageUrl = $('meta[property="og:image"]').attr('content') || null;
+    let imageUrl = $('meta[property="og:image"]').attr('content') || null;
+
+    // book.dmm.co.jp の場合、CID からサムネイルURLを生成（フォールバック）
+    if (!imageUrl) {
+      try {
+        const bu = new URL(fetchUrl);
+        if (bu.hostname.includes('book.dmm.co.jp')) {
+          const parts = bu.pathname.replace(/\/$/, '').split('/');
+          const cid = parts[parts.length - 1];
+          if (cid) imageUrl = `https://book.dmm.co.jp/img/goods/${cid}/${cid}fl.jpg`;
+        }
+      } catch {}
+    }
 
     let rating = null;
     $('script[type="application/ld+json"]').each((_, el) => {
