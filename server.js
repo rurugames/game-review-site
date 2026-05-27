@@ -254,10 +254,13 @@ app.use(async (req, res, next) => {
   // 商品ジャンル判定ヘルパー（テンプレートから呼び出し可能）
   res.locals.getProductGenre = function(url) {
     if (!url) return 'その他';
-    if (url.includes('/maniax/')) return '同人ゲーム';
-    if (url.includes('/pro/'))    return 'PCゲーム';
-    if (url.includes('/books/'))  return '成年コミック';
-    if (url.includes('fanza.com') || url.includes('dmm.co.jp')) return 'FANZA同人';
+    let s = url;
+    try { s = decodeURIComponent(url); } catch(_) {}
+    if (s.includes('/maniax/')) return '同人ゲーム';
+    if (s.includes('/pro/'))    return 'PCゲーム';
+    if (s.includes('/dc/books/')) return 'FANZAブックス';
+    if (s.includes('/books/'))  return '成年コミック';
+    if (s.includes('fanza.com') || s.includes('dmm.co.jp')) return 'FANZA同人';
     return 'その他';
   };
 

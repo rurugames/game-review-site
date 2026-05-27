@@ -62,11 +62,12 @@ if (args['body-file']) {
   args.body = fs.readFileSync(args['body-file'], 'utf8');
 }
 
-const { title, body, link, rating: ratingArg, thumbnail: thumbnailArg } = args;
+const { title, body, link, rating: ratingArg, thumbnail: thumbnailArg, genre: genreArg } = args;
 
 if (!title || !body || !link) {
-  console.error('使い方: node scripts/post_product.js --title "..." --body "..." --link "URL" [--rating 4.29]');
+  console.error('使い方: node scripts/post_product.js --title "..." --body "..." --link "URL" [--rating 4.29] [--genre "FANZAブックス"]');
   console.error('       または --body-file <ファイルパス> でファイルから本文を読み込む');
+  console.error('       ジャンル: FANZA同人 / 同人ゲーム / PCゲーム / 成年コミック / FANZAブックス / DLsite / その他');
   process.exit(1);
 }
 
@@ -102,6 +103,7 @@ try { new URL(link); } catch {
     affiliateLink: link.trim(),
     imageUrl: imageUrl || undefined,
     rating: rating || undefined,
+    genre: genreArg ? genreArg.trim() : undefined,
     author: admin._id,
     status: 'published',
   });

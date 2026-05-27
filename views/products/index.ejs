@@ -116,50 +116,69 @@
   <% if (products.length === 0) { %>
     <p>まだ投稿がありません。</p>
   <% } else { %>
-    <div class="products-grid">
-      <% products.forEach((p, index) => { %>
-        <% if (index === 4 && typeof adTag !== 'undefined' && adTag) { %>
-          <div class="product-ad-banner" style="grid-column: 1 / -1; text-align: center; margin: 0.5rem 0;">
-            <%- adTag %>
-          </div>
-        <% } %>
-        <div class="product-card">
-          <% if (p.imageUrl) { %>
-            <a href="<%= p.affiliateLink %>" target="_blank" rel="noopener sponsored" style="display:block;">
-              <img class="product-card-thumb" src="<%= p.imageUrl %>" alt="<%= p.title %>" loading="lazy">
-            </a>
-          <% } else { %>
-            <div class="product-card-thumb-placeholder">Ἲe</div>
-          <% } %>
-          <div class="product-card-body">
-            <h2 class="product-card-title">
-              <a href="/products/<%= p._id %>"><%= p.title %></a>
-            </h2>
-            <div class="product-card-meta">
-              <span class="product-genre"><%= p.genre || getProductGenre(p.affiliateLink) %></span>
-              &nbsp;<%= new Date(p.createdAt).toLocaleDateString('ja-JP') %>
-            </div>
-            <% if (p.rating) { %>
-            <% const _n = Math.min(5, Math.max(0, Math.round(p.rating))); %>
-            <div class="product-card-rating">
-              <span><%= '★'.repeat(_n) + '☆'.repeat(5 - _n) %></span>
-              <span class="rating-val"><%= p.rating.toFixed(1) %></span>
-            </div>
-            <% } %>
-            <div class="product-card-actions">
-              <a href="/products/<%= p._id %>" class="btn-secondary">詳細を見る</a>
-              <a href="<%= p.affiliateLink %>" class="btn-primary" target="_blank" rel="noopener sponsored">購入・詳細</a>
-              <% if (isAdmin) { %>
-                <form action="/products/<%= p._id %>" method="POST"
-                      onsubmit="return confirm('削除しますか？')" style="margin:0">
-                  <input type="hidden" name="_method" value="DELETE">
-                  <button type="submit" class="btn-delete" style="cursor:pointer;">削除</button>
-                </form>
-              <% } %>
-            </div>
-          </div>
+    <%
+      const GENRE_ORDER = ['FANZA同人', '同人ゲーム', 'PCゲーム', '成年コミック', 'FANZAブックス', 'DLsite', 'その他'];
+      const grouped = {};
+      products.forEach(p => {
+        const g = p.genre || getProductGenre(p.affiliateLink);
+        if (!grouped[g]) grouped[g] = [];
+        grouped[g].push(p);
+      });
+      const displayGenres = GENRE_ORDER.filter(g => grouped[g] && grouped[g].length > 0);
+      Object.keys(grouped).forEach(g => { if (!GENRE_ORDER.includes(g) && grouped[g].length > 0) displayGenres.push(g); });
+    %>
+
+    <% displayGenres.forEach(genre => { %>
+      <section style="margin-bottom: 2.5rem;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 1rem; border-bottom: 2px solid #7b5ea7; padding-bottom: 0.4rem;">
+          <h2 style="margin:0; font-size:1.15rem; color:#7b5ea7;">&#127775; <%= genre %> <span style="font-size:0.85rem; color:#999; font-weight:normal;">（<%= grouped[genre].length %>件）</span></h2>
         </div>
-      <% }) %>
-    </div>
+        <div class="products-grid">
+          <% grouped[genre].forEach((p, index) => { %>
+            <% if (index === 4 && typeof adTag !== 'undefined' && adTag) { %>
+              <div class="product-ad-banner" style="grid-column: 1 / -1; text-align: center; margin: 0.5rem 0;">
+                <%- adTag %>
+              </div>
+            <% } %>
+            <div class="product-card">
+              <% if (p.imageUrl) { %>
+                <a href="<%= p.affiliateLink %>" target="_blank" rel="noopener sponsored" style="display:block;">
+                  <img class="product-card-thumb" src="<%= p.imageUrl %>" alt="<%= p.title %>" loading="lazy">
+                </a>
+              <% } else { %>
+                <div class="product-card-thumb-placeholder">&#127775;</div>
+              <% } %>
+              <div class="product-card-body">
+                <h2 class="product-card-title">
+                  <a href="/products/<%= p._id %>"><%= p.title %></a>
+                </h2>
+                <div class="product-card-meta">
+                  <span class="product-genre"><%= p.genre || getProductGenre(p.affiliateLink) %></span>
+                  &nbsp;<%= new Date(p.createdAt).toLocaleDateString('ja-JP') %>
+                </div>
+                <% if (p.rating) { %>
+                <% const _n = Math.min(5, Math.max(0, Math.round(p.rating))); %>
+                <div class="product-card-rating">
+                  <span><%= '★'.repeat(_n) + '☆'.repeat(5 - _n) %></span>
+                  <span class="rating-val"><%= p.rating.toFixed(1) %></span>
+                </div>
+                <% } %>
+                <div class="product-card-actions">
+                  <a href="/products/<%= p._id %>" class="btn-secondary">詳細を見る</a>
+                  <a href="<%= p.affiliateLink %>" class="btn-primary" target="_blank" rel="noopener sponsored">購入・詳細</a>
+                  <% if (isAdmin) { %>
+                    <form action="/products/<%= p._id %>" method="POST"
+                          onsubmit="return confirm('削除しますか？')" style="margin:0">
+                      <input type="hidden" name="_method" value="DELETE">
+                      <button type="submit" class="btn-delete" style="cursor:pointer;">削除</button>
+                    </form>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </section>
+    <% }) %>
   <% } %>
 </div>
