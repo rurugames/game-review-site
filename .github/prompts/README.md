@@ -6,14 +6,14 @@
 
 ## 投稿系スキル
 
-### `/post-product` — DLsite商品レビュー投稿
+### `/post-dlsite` — DLsite同人ゲームレビュー投稿
 
-**ファイル:** `post-product.prompt.md`  
-**用途:** DLsite の商品URL を渡すと、ページをフェッチして感想本文を生成し `scripts/post_product.js` で投稿する。
+**ファイル:** `post-dlsite.prompt.md`  
+**用途:** DLsite の商品URL を渡すと、ページをフェッチして感想本文を生成し `scripts/post_product.js` で投稿する。ジャンルタグは自動的に「DLsite同人ゲーム」になる。
 
 **呼び出し例:**
 ```
-/post-product https://www.dlsite.com/maniax/work/=/product_id/RJ000000.html
+/post-dlsite https://www.dlsite.com/maniax/work/=/product_id/RJ000000.html
 ```
 
 **主なオプション（スクリプト直接実行時）:**

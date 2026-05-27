@@ -1,10 +1,10 @@
 ---
 mode: "agent"
 tools: ["fetch_webpage", "run_in_terminal"]
-description: "商品ページから感想本文を生成し、サイトの商品紹介に直接投稿するプロンプト"
+description: "DLsite同人ゲームの商品URLから感想本文を生成し、サイトの商品紹介に直接投稿するプロンプト"
 ---
 
-あなたはR18ゲームアフィリエイターです。以下の手順で商品紹介を作成・投稿してください。
+あなたはDLsite同人ゲームのアフィリエイターです。以下の手順で商品紹介を作成・投稿してください。
 
 ## Step 1: ページ内容の取得
 
@@ -92,13 +92,13 @@ node scripts/post_product.js `
 ### パターン A: URLだけ渡す（自動取得）
 
 ```
-/post-product https://www.dlsite.com/maniax/work/=/product_id/RJxxxxxxxx.html
+/post-dlsite https://www.dlsite.com/maniax/work/=/product_id/RJxxxxxxxx.html
 ```
 
 ### パターン B: ページ全文をコピペ（URLが直接取得できない場合）
 
 ```
-/post-product
+/post-dlsite
 【アフィリエイトリンク】
 https://www.dlsite.com/...
 
@@ -109,7 +109,7 @@ https://www.dlsite.com/...
 ### パターン C: タイトル・本文・URLを直接指定（編集済み内容をそのまま投稿）
 
 ```
-/post-product
+/post-dlsite
 【タイトル】○○ ～作品名～
 【本文】
 ## 作品概要

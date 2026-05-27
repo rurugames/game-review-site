@@ -85,7 +85,7 @@
       <select id="genre" name="genre">
         <option value="" <%= !product.genre ? 'selected' : '' %>>自動判定（URLから）</option>
         <option value="FANZA同人" <%= product.genre === 'FANZA同人' ? 'selected' : '' %>>FANZA同人</option>
-        <option value="同人ゲーム" <%= product.genre === '同人ゲーム' ? 'selected' : '' %>>同人ゲーム</option>
+        <option value="DLsite同人ゲーム" <%= product.genre === 'DLsite同人ゲーム' ? 'selected' : '' %>>DLsite同人ゲーム</option>
         <option value="PCゲーム" <%= product.genre === 'PCゲーム' ? 'selected' : '' %>>PCゲーム</option>
         <option value="成年コミック" <%= product.genre === '成年コミック' ? 'selected' : '' %>>成年コミック</option>
         <option value="FANZAブックス" <%= product.genre === 'FANZAブックス' ? 'selected' : '' %>>FANZAブックス</option>

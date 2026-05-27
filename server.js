@@ -256,7 +256,7 @@ app.use(async (req, res, next) => {
     if (!url) return 'その他';
     let s = url;
     try { s = decodeURIComponent(url); } catch(_) {}
-    if (s.includes('/maniax/')) return '同人ゲーム';
+    if (s.includes('/maniax/')) return 'DLsite同人ゲーム';
     if (s.includes('/pro/'))    return 'PCゲーム';
     if (s.includes('/dc/books/')) return 'FANZAブックス';
     if (s.includes('/books/'))  return '成年コミック';
