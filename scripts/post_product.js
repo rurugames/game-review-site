@@ -41,7 +41,7 @@ async function fetchPageMeta(url) {
         if (bu.hostname.includes('book.dmm.co.jp')) {
           const parts = bu.pathname.replace(/\/$/, '').split('/');
           const cid = parts[parts.length - 1];
-          if (cid) imageUrl = `https://pics.dmm.co.jp/digital/book/${cid}/${cid}fl.jpg`;
+          if (cid) imageUrl = `https://ebook-assets.dmm.co.jp/digital/e-book/${cid}/${cid}pl.jpg`;
         }
       } catch {}
     }
