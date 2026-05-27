@@ -380,6 +380,15 @@ router.get('/', async (req, res) => {
         .lean();
     } catch (e) { latestProducts = []; }
 
+    let latestFreeVideos = [];
+    try {
+      const FreeVideo = require('../models/FreeVideo');
+      latestFreeVideos = await FreeVideo.find({ status: 'published' })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean();
+    } catch (e) { latestFreeVideos = []; }
+
     res.render('index', {
       title: 'トップ',
       metaDescription: '成人向け同人PCゲームの最新記事・人気ランキング・おすすめ動画をまとめてチェックできます。',
@@ -388,6 +397,7 @@ router.get('/', async (req, res) => {
       heroHtml,
       reviewMonthlyBest,
       latestProducts,
+      latestFreeVideos,
       latestVideos,
       recommendedVideos,
       youtubeChannelId,

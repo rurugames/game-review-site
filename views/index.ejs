@@ -52,6 +52,46 @@
 </section>
 <% } %>
 
+<% if (typeof latestFreeVideos !== 'undefined' && latestFreeVideos && latestFreeVideos.length > 0) { %>
+<section class="articles-section page-section">
+  <div class="page-header" style="justify-content:space-between;display:flex;align-items:center;">
+    <h2 class="section-title">&#9654; FANZA無料動画</h2>
+    <a href="/free-videos" class="btn-more">一覧へ</a>
+  </div>
+  <div class="panel">
+    <div class="panel-body">
+      <div class="articles-grid">
+        <% latestFreeVideos.forEach(v => { %>
+          <% const _fvThumb = v.imageUrl || getFreeVideoThumbnail(v.affiliateLink); %>
+          <article class="article-card">
+            <% if (_fvThumb) { %>
+              <div class="article-image">
+                <a href="/free-videos/<%= v._id %>" style="display:block;">
+                  <img src="<%= _fvThumb %>" alt="<%= v.title %>" loading="lazy">
+                </a>
+              </div>
+            <% } %>
+            <div class="article-content">
+              <div class="article-meta">
+                <span class="genre" style="background:#e53935;color:#fff;">FANZA無料動画</span>
+                <% if (v.viewCount) { %>
+                  <span style="font-size:0.75rem;color:#888;">&#9654; <%= v.viewCount.toLocaleString() %>回</span>
+                <% } %>
+              </div>
+              <h2><a href="/free-videos/<%= v._id %>"><%= v.title %></a></h2>
+              <% if (v.actress && v.actress.length > 0) { %>
+                <div style="font-size:0.8rem;color:#aaa;margin-bottom:0.25rem;"><%= v.actress.join(' / ') %></div>
+              <% } %>
+              <a href="<%= v.affiliateLink %>" target="_blank" rel="noopener sponsored" class="btn-read-more" style="background:#e53935;">無料で視聴する</a>
+            </div>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  </div>
+</section>
+<% } %>
+
 <% if (typeof latestGalleryImages !== 'undefined' && latestGalleryImages && latestGalleryImages.length > 0) { %>
 <section class="gallery-section page-section">
   <div class="page-header" style="justify-content: space-between; display: flex; align-items: center;">
