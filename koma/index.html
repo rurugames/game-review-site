@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koma（コマ）- Androidマンガビューワアプリ</title>
+  <meta name="description" content="KomaはZIP・CBZ・RAR・CBR・EPUBに対応した無料のAndroidマンガビューワアプリです。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    /* ===== リセット & ベース ===== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-primary:    #1a1a2e;
+      --bg-secondary:  #16213e;
+      --bg-card:       #0f3460;
+      --accent:        #6c63ff;
+      --accent-light:  #8b85ff;
+      --accent-glow:   rgba(108, 99, 255, 0.3);
+      --text-primary:  #e8e8f0;
+      --text-secondary:#a0a0b8;
+      --text-muted:    #6e6e8a;
+      --border:        rgba(108, 99, 255, 0.2);
+      --radius-sm:     8px;
+      --radius-md:     16px;
+      --radius-lg:     24px;
+      --shadow:        0 8px 32px rgba(0, 0, 0, 0.4);
+      --shadow-accent:  0 0 32px rgba(108, 99, 255, 0.25);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== ナビゲーション ===== */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(26, 26, 46, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      font-size: 1.25rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 0.05em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--accent-light);
+    }
+
+    .nav-cta {
+      background: var(--accent);
+      color: #fff !important;
+      padding: 7px 18px;
+      border-radius: 100px;
+      font-size: 0.8rem !important;
+      font-weight: 700 !important;
+      transition: background 0.2s, transform 0.2s !important;
+    }
+
+    .nav-cta:hover {
+      background: var(--accent-light) !important;
+      color: #fff !important;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 600px) {
+      .nav-links {
+        display: none;
+      }
+    }
+
+    /* ===== セクション共通 ===== */
+    section {
+      padding: 96px 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      font-size: clamp(1.75rem, 4vw, 2.5rem);
+      font-weight: 900;
+      line-height: 1.25;
+      margin-bottom: 16px;
+      color: var(--text-primary);
+    }
+
+    .section-desc {
+      font-size: 1rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin-bottom: 56px;
+    }
+
+    /* ===== ヒーローセクション ===== */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding-top: 120px;
+      padding-bottom: 80px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .hero-content {
+      flex: 1;
+      max-width: 600px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(108, 99, 255, 0.15);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent-light);
+      margin-bottom: 28px;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
+    }
+
+    .hero-app-name {
+      font-size: clamp(3.5rem, 10vw, 6rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 0%, var(--accent-light) 60%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .hero-kana {
+      font-size: 1rem;
+      color: var(--text-muted);
+      font-weight: 400;
+      margin-bottom: 24px;
+      letter-spacing: 0.1em;
+    }
+
+    .hero-tagline {
+      font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    .hero-sub {
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      margin-bottom: 40px;
+      line-height: 1.8;
+    }
+
+    .hero-formats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 40px;
+    }
+
+    .format-chip {
+      background: rgba(108, 99, 255, 0.12);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 12px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--accent-light);
+      font-family: 'Courier New', monospace;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .btn-play {
+      display: inline-block;
+      transition: transform 0.2s, filter 0.2s;
+    }
+
+    .btn-play img {
+      height: 64px;
+      display: block;
+    }
+
+    .btn-play:hover {
+      transform: translateY(-3px);
+      filter: brightness(1.1);
+    }
+
+    .hero-note {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* ===== 特徴セクション ===== */
+    #features {
+      background: var(--bg-secondary);
+      max-width: 100%;
+      padding: 96px 24px;
+    }
+
+    .features-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 28px;
+      transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-accent);
+      border-color: var(--accent);
+    }
+
+    .feature-icon {
+      font-size: 2rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .feature-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .feature-desc {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    /* ===== スクリーンショットセクション ===== */
+    #screenshots {
+      padding: 96px 0;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .screenshots-header {
+      padding: 0 24px;
+      max-width: 1100px;
+      margin: 0 auto 48px;
+    }
+
+    .scroll-gallery {
+      display: flex;
+      gap: 24px;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      padding: 16px 24px 32px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--accent) transparent;
+    }
+
+    .scroll-gallery::-webkit-scrollbar {
+      height: 4px;
+    }
+
+    .scroll-gallery::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .scroll-gallery::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 4px;
+    }
+
+    .screenshot-item {
+      flex: 0 0 auto;
+      scroll-snap-align: start;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .screenshot-frame {
+      width: 220px;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow:
+        0 0 0 1px rgba(108, 99, 255, 0.3),
+        0 8px 24px rgba(0, 0, 0, 0.5),
+        0 24px 64px rgba(0, 0, 0, 0.3);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .screenshot-frame:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow:
+        0 0 0 2px var(--accent),
+        0 16px 48px rgba(0, 0, 0, 0.6),
+        0 0 64px var(--accent-glow);
+    }
+
+    .screenshot-frame img {
+      width: 100%;
+      display: block;
+    }
+
+    .screenshot-caption {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      text-align: center;
+      max-width: 220px;
+      line-height: 1.5;
+    }
+
+    /* ===== アプリ情報セクション ===== */
+    #info {
+      background: var(--bg-secondary);
+      max-width: 100%;
+      padding: 96px 24px;
+    }
+
+    .info-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .info-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: start;
+    }
+
+    @media (max-width: 700px) {
+      .info-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .info-table tr {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .info-table tr:last-child {
+      border-bottom: none;
+    }
+
+    .info-table th {
+      text-align: left;
+      padding: 14px 0;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      width: 100px;
+      vertical-align: top;
+    }
+
+    .info-table td {
+      padding: 14px 0;
+      font-size: 0.9rem;
+      color: var(--text-primary);
+    }
+
+    .info-cta {
+      background: rgba(108, 99, 255, 0.1);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .info-cta-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .info-cta-desc {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    .info-free-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(108, 99, 255, 0.2);
+      border: 1px solid var(--accent);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 0.875rem;
+      font-weight: 700;
+      color: var(--accent-light);
+    }
+
+    /* ===== フッター ===== */
+    footer {
+      background: #0d0d1a;
+      border-top: 1px solid var(--border);
+      padding: 48px 24px 32px;
+      text-align: center;
+    }
+
+    .footer-logo {
+      font-size: 1.5rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--accent), var(--accent-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+    }
+
+    .footer-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .footer-btn-play {
+      display: inline-block;
+      margin-bottom: 32px;
+      transition: transform 0.2s, filter 0.2s;
+    }
+
+    .footer-btn-play img {
+      height: 56px;
+      display: block;
+    }
+
+    .footer-btn-play:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.1);
+    }
+
+    .footer-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .footer-copy {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    /* ===== ユーティリティ ===== */
+    .divider-line {
+      display: inline-block;
+      width: 40px;
+      height: 3px;
+      background: var(--accent);
+      border-radius: 2px;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ナビゲーション -->
+  <nav>
+    <span class="nav-logo">Koma</span>
+    <ul class="nav-links">
+      <li><a href="#features">特徴</a></li>
+      <li><a href="#screenshots">スクリーンショット</a></li>
+      <li><a href="#info">アプリ情報</a></li>
+      <li>
+        <a class="nav-cta"
+           href="https://play.google.com/store/apps/details?id=com.personal.manga_viewer&pcampaignid=web_share"
+           target="_blank" rel="noopener noreferrer">
+          ダウンロード
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <!-- ===== ヒーロー ===== -->
+  <section id="hero">
+    <div class="hero-content">
+      <div class="hero-badge">無料 Android アプリ</div>
+
+      <h1 class="hero-app-name">Koma</h1>
+      <p class="hero-kana">コマ</p>
+
+      <p class="hero-tagline">ZIP・CBZ・EPUB なんでも読める<br>シンプルなマンガビューワ</p>
+      <p class="hero-sub">
+        主要な圧縮・電子書籍形式をすべてサポート。<br>
+        読んでいる最中は広告ゼロ。快適な読書体験をお届けします。
+      </p>
+
+      <div class="hero-formats">
+        <span class="format-chip">ZIP</span>
+        <span class="format-chip">CBZ</span>
+        <span class="format-chip">RAR</span>
+        <span class="format-chip">CBR</span>
+        <span class="format-chip">EPUB</span>
+      </div>
+
+      <div class="hero-actions">
+        <a class="btn-play"
+           href="https://play.google.com/store/apps/details?id=com.personal.manga_viewer&pcampaignid=web_share"
+           target="_blank" rel="noopener noreferrer">
+          <img src="https://play.google.com/intl/ja/badges/static/images/badges/ja_badge_web_generic.png"
+               alt="Google Play で手に入れよう">
+        </a>
+        <span class="hero-note">Android 5.0 以上 ・ 無料</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 特徴 ===== -->
+  <div id="features">
+    <div class="features-inner">
+      <p class="section-label">Features</p>
+      <span class="divider-line"></span>
+      <h2 class="section-title">読書に集中できる<br>6つの特徴</h2>
+      <p class="section-desc">
+        ライブラリ管理から快適なリーダーまで、マンガを読むために必要な機能を一通り搭載しています。
+      </p>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">📁</span>
+          <p class="feature-title">幅広いフォーマットに対応</p>
+          <p class="feature-desc">ZIP / CBZ / RAR / CBR / EPUB。主要な圧縮・電子書籍形式をすべてサポート。2重圧縮ファイルも対応。</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📚</span>
+          <p class="feature-title">使いやすいライブラリ管理</p>
+          <p class="feature-desc">フォルダブラウジングで端末内のファイルをそのまま整理。読了・未読の管理、サムネイル表示、ソート機能を搭載。</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <p class="feature-title">高速表示</p>
+          <p class="feature-desc">大きなファイルでも最初の数ページをすぐに表示。バックグラウンドで残りを読み込むので待ち時間を最小化。</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📖</span>
+          <p class="feature-title">快適なリーダー</p>
+          <p class="feature-desc">縦スクロール・横スワイプ対応。ピンチズーム・ページスライダー搭載。画面回転の固定もワンタップで切り替え可能。</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">✅</span>
+          <p class="feature-title">一括操作</p>
+          <p class="feature-desc">長押しで複数ファイルを選択。読了マーク・未読に戻す・削除をまとめて実行。</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">🔒</span>
+          <p class="feature-title">広告は読書後のみ</p>
+          <p class="feature-desc">読んでいる最中は広告ゼロ。リーダーを閉じたあと、数回に1回だけ表示されます。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== スクリーンショット ===== -->
+  <section id="screenshots" style="padding: 96px 0; max-width: 100%; overflow: hidden;">
+    <div class="screenshots-header">
+      <p class="section-label">Screenshots</p>
+      <span class="divider-line"></span>
+      <h2 class="section-title">スクリーンショット</h2>
+      <p class="section-desc">横にスクロールしてアプリの画面を確認できます。</p>
+    </div>
+
+    <div class="scroll-gallery">
+      <div class="screenshot-item">
+        <div class="screenshot-frame">
+          <img src="images/ss_playstore.jpg" alt="Google Playで公開中">
+        </div>
+        <p class="screenshot-caption">Google Playで公開中</p>
+      </div>
+      <div class="screenshot-item">
+        <div class="screenshot-frame">
+          <img src="images/ss_home.jpg" alt="ホーム画面">
+        </div>
+        <p class="screenshot-caption">ホーム画面 - 読書統計・お気に入りフォルダ</p>
+      </div>
+      <div class="screenshot-item">
+        <div class="screenshot-frame">
+          <img src="images/ss_grid.jpg" alt="グリッド表示">
+        </div>
+        <p class="screenshot-caption">グリッド表示 - サムネイルで一覧確認</p>
+      </div>
+      <div class="screenshot-item">
+        <div class="screenshot-frame">
+          <img src="images/ss_list.jpg" alt="リスト表示">
+        </div>
+        <p class="screenshot-caption">リスト表示 - 読書進捗をひと目で確認</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== アプリ情報 ===== -->
+  <div id="info">
+    <div class="info-inner">
+      <p class="section-label">App Info</p>
+      <span class="divider-line"></span>
+      <h2 class="section-title">アプリ情報</h2>
+
+      <div class="info-content">
+        <table class="info-table">
+          <tr>
+            <th>名称</th>
+            <td>Koma（コマ）</td>
+          </tr>
+          <tr>
+            <th>対応OS</th>
+            <td>Android 5.0以上</td>
+          </tr>
+          <tr>
+            <th>対応形式</th>
+            <td>ZIP / CBZ / RAR / CBR / EPUB</td>
+          </tr>
+          <tr>
+            <th>価格</th>
+            <td>無料（広告あり）</td>
+          </tr>
+          <tr>
+            <th>開発</th>
+            <td>個人開発</td>
+          </tr>
+          <tr>
+            <th>配信</th>
+            <td>Google Play</td>
+          </tr>
+        </table>
+
+        <div class="info-cta">
+          <p class="info-cta-title">今すぐ無料でダウンロード</p>
+          <p class="info-cta-desc">
+            Google Play からインストールするだけ。<br>
+            アカウント不要ですぐに使い始められます。
+          </p>
+          <span class="info-free-badge">🎉 無料アプリ</span>
+          <a class="btn-play"
+             href="https://play.google.com/store/apps/details?id=com.personal.manga_viewer&pcampaignid=web_share"
+             target="_blank" rel="noopener noreferrer">
+            <img src="https://play.google.com/intl/ja/badges/static/images/badges/ja_badge_web_generic.png"
+                 alt="Google Play で手に入れよう">
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== フッター ===== -->
+  <footer>
+    <p class="footer-logo">Koma</p>
+    <p class="footer-desc">ZIP / CBZ / RAR / CBR / EPUB 対応の無料マンガビューワ</p>
+
+    <a class="footer-btn-play"
+       href="https://play.google.com/store/apps/details?id=com.personal.manga_viewer&pcampaignid=web_share"
+       target="_blank" rel="noopener noreferrer">
+      <img src="https://play.google.com/intl/ja/badges/static/images/badges/ja_badge_web_generic.png"
+           alt="Google Play で手に入れよう">
+    </a>
+
+    <hr class="footer-divider">
+    <p class="footer-copy">&copy; 2024 Koma. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>

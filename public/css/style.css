@@ -2402,3 +2402,29 @@ body {
   margin: 15px auto;
   min-width: 320px;
 }
+
+/* ===== Koma Google Play サイドバーバッジ ===== */
+.koma-sidebar-badge {
+  margin-top: 16px;
+  padding: 10px 8px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 10px;
+  text-align: center;
+}
+.koma-sidebar-badge a:hover img {
+  filter: brightness(1.1);
+}
+
+/* ===== Koma Google Play サイドバーバッジ ===== */
+.koma-sidebar-badge {
+  margin-top: 16px;
+  padding: 10px 8px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 10px;
+  text-align: center;
+}
+.koma-sidebar-badge a:hover img {
+  filter: brightness(1.1);
+}

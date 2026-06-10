@@ -1,0 +1,437 @@
+<style>
+/* ===== Koma ページ専用スタイル ===== */
+.koma-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding-bottom: 48px;
+}
+
+/* ヒーロー */
+.koma-hero {
+  background: linear-gradient(135deg, #0f1a3a 0%, #1a1040 60%, #0a0a1a 100%);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 16px;
+  padding: 48px 36px;
+  margin-bottom: 32px;
+  position: relative;
+  overflow: hidden;
+}
+.koma-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px; right: -60px;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.koma-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 100px;
+  padding: 4px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #818cf8;
+  margin-bottom: 20px;
+  letter-spacing: 0.05em;
+}
+.koma-badge::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #6366f1;
+  animation: koma-pulse 2s infinite;
+}
+@keyframes koma-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(1.3); }
+}
+.koma-app-name {
+  font-size: clamp(3rem, 8vw, 5rem);
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #fff 0%, #818cf8 60%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 4px;
+}
+.koma-kana {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.1em;
+  margin-bottom: 20px;
+}
+.koma-tagline {
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+.koma-sub {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+  margin-bottom: 28px;
+}
+.koma-formats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+.koma-chip {
+  background: rgba(99, 102, 241, 0.1);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #818cf8;
+  font-family: 'Courier New', monospace;
+}
+.koma-play-btn {
+  display: inline-block;
+  transition: transform 0.2s, filter 0.2s;
+}
+.koma-play-btn img {
+  height: 60px;
+  display: block;
+}
+.koma-play-btn:hover {
+  transform: translateY(-3px);
+  filter: brightness(1.1);
+}
+
+/* 特徴グリッド */
+.koma-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.koma-feature-card {
+  background: var(--card-bg, #0f1a3a);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 12px;
+  padding: 24px;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+.koma-feature-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 24px rgba(99, 102, 241, 0.2);
+}
+.koma-feature-icon { font-size: 1.75rem; margin-bottom: 12px; display: block; }
+.koma-feature-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.koma-feature-desc {
+  font-size: 0.825rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+
+/* スクリーンショット */
+.koma-scroll-gallery {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 4px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) transparent;
+}
+.koma-scroll-gallery::-webkit-scrollbar { height: 4px; }
+.koma-scroll-gallery::-webkit-scrollbar-track { background: transparent; }
+.koma-scroll-gallery::-webkit-scrollbar-thumb { background: var(--primary-color); border-radius: 4px; }
+.koma-ss-item {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.koma-ss-frame {
+  width: 190px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px rgba(99, 102, 241, 0.3),
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    0 20px 48px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.koma-ss-frame:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow:
+    0 0 0 2px var(--primary-color),
+    0 16px 40px rgba(0, 0, 0, 0.6),
+    0 0 48px rgba(99, 102, 241, 0.25);
+}
+.koma-ss-frame img { width: 100%; display: block; }
+.koma-ss-caption {
+  font-size: 0.775rem;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 190px;
+  line-height: 1.5;
+}
+
+/* アプリ情報テーブル */
+.koma-info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.koma-info-table tr {
+  border-bottom: 1px solid rgba(99, 102, 241, 0.15);
+}
+.koma-info-table tr:last-child { border-bottom: none; }
+.koma-info-table th {
+  text-align: left;
+  padding: 12px 0;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  width: 110px;
+  vertical-align: top;
+}
+.koma-info-table td {
+  padding: 12px 0;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+}
+
+/* CTA ボックス */
+.koma-cta-box {
+  background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(79,70,229,0.05));
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  border-radius: 12px;
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 24px;
+}
+.koma-cta-box h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.koma-cta-box p {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.8;
+}
+.koma-free-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(99,102,241,0.2);
+  border: 1px solid rgba(99,102,241,0.5);
+  border-radius: 100px;
+  padding: 5px 14px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #818cf8;
+  width: fit-content;
+}
+
+.koma-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--primary-color, #6366f1);
+  margin-bottom: 6px;
+}
+.koma-divider {
+  display: inline-block;
+  width: 32px; height: 3px;
+  background: var(--primary-color, #6366f1);
+  border-radius: 2px;
+  margin-bottom: 16px;
+}
+.koma-section-title {
+  font-size: clamp(1.3rem, 3vw, 1.8rem);
+  font-weight: 900;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.koma-section-desc {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+  line-height: 1.8;
+}
+</style>
+
+<div class="koma-page">
+
+  <!-- ===== ヒーロー ===== -->
+  <div class="koma-hero">
+    <div class="koma-badge">無料 Android アプリ</div>
+    <h1 class="koma-app-name">Koma</h1>
+    <p class="koma-kana">コマ — マンガビューワ</p>
+    <p class="koma-tagline">ZIP・CBZ・EPUB なんでも読める<br>シンプルなマンガビューワ</p>
+    <p class="koma-sub">
+      主要な圧縮・電子書籍形式をすべてサポート。<br>
+      読んでいる最中は広告ゼロ。快適な読書体験をお届けします。
+    </p>
+    <div class="koma-formats">
+      <span class="koma-chip">ZIP</span>
+      <span class="koma-chip">CBZ</span>
+      <span class="koma-chip">RAR</span>
+      <span class="koma-chip">CBR</span>
+      <span class="koma-chip">EPUB</span>
+    </div>
+    <a class="koma-play-btn"
+       href="https://play.google.com/store/apps/details?id=com.personal.manga_viewer&pcampaignid=web_share"
+       target="_blank" rel="noopener noreferrer">
+      <img src="https://play.google.com/intl/ja/badges/static/images/badges/ja_badge_web_generic.png"
+           alt="Google Play で手に入れよう">
+    </a>
+  </div>
+
+  <!-- ===== 特徴 ===== -->
+  <section class="page-section">
+    <div class="page-header">
+      <p class="koma-section-label">Features</p>
+    </div>
+    <span class="koma-divider"></span>
+    <h2 class="koma-section-title">読書に集中できる6つの特徴</h2>
+    <p class="koma-section-desc">ライブラリ管理から快適なリーダーまで、マンガを読むために必要な機能を一通り搭載しています。</p>
+
+    <div class="koma-features-grid">
+      <div class="koma-feature-card">
+        <span class="koma-feature-icon">📁</span>
+        <p class="koma-feature-title">幅広いフォーマットに対応</p>
+        <p class="koma-feature-desc">ZIP / CBZ / RAR / CBR / EPUB。主要な圧縮・電子書籍形式をすべてサポート。2重圧縮ファイルも対応。</p>
+      </div>
+      <div class="koma-feature-card">
+        <span class="koma-feature-icon">📚</span>
+        <p class="koma-feature-title">使いやすいライブラリ管理</p>
+        <p class="koma-feature-desc">フォルダブラウジングで端末内のファイルをそのまま整理。読了・未読の管理、サムネイル表示、ソート機能を搭載。</p>
+      </div>
+      <div class="koma-feature-card">
+        <span class="koma-feature-icon">⚡</span>
+        <p class="koma-feature-title">高速表示</p>
+        <p class="koma-feature-desc">大きなファイルでも最初の数ページをすぐに表示。バックグラウンドで残りを読み込むので待ち時間を最小化。</p>
+      </div>
+      <div class="koma-feature-card">
+        <span class="koma-feature-icon">📖</span>
+        <p class="koma-feature-title">快適なリーダー</p>
+        <p class="koma-feature-desc">縦スクロール・横スワイプ対応。ピンチズーム・ページスライダー搭載。画面回転の固定もワンタップで切り替え可能。</p>
+      </div>
+      <div class="koma-feature-card">
+        <span class="koma-feature-icon">✅</span>
+        <p class="koma-feature-title">一括操作</p>
+        <p class="koma-feature-desc">長押しで複数ファイルを選択。読了マーク・未読に戻す・削除をまとめて実行。</p>
+      </div>
+      <div class="koma-feature-card">
+        <span class="koma-feature-icon">🔒</span>
+        <p class="koma-feature-title">広告は読書後のみ</p>
+        <p class="koma-feature-desc">読んでいる最中は広告ゼロ。リーダーを閉じたあと、数回に1回だけ表示されます。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== スクリーンショット ===== -->
+  <section class="page-section">
+    <p class="koma-section-label">Screenshots</p>
+    <span class="koma-divider"></span>
+    <h2 class="koma-section-title">スクリーンショット</h2>
+    <p class="koma-section-desc">横にスクロールしてアプリの画面を確認できます。</p>
+
+    <div class="koma-scroll-gallery">
+      <div class="koma-ss-item">
+        <div class="koma-ss-frame">
+          <img src="/koma/images/ss_playstore.jpg" alt="Google Playで公開中">
+        </div>
+        <p class="koma-ss-caption">Google Playで公開中</p>
+      </div>
+      <div class="koma-ss-item">
+        <div class="koma-ss-frame">
+          <img src="/koma/images/ss_home.jpg" alt="ホーム画面">
+        </div>
+        <p class="koma-ss-caption">ホーム画面 - 読書統計・お気に入りフォルダ</p>
+      </div>
+      <div class="koma-ss-item">
+        <div class="koma-ss-frame">
+          <img src="/koma/images/ss_grid.jpg" alt="グリッド表示">
+        </div>
+        <p class="koma-ss-caption">グリッド表示 - サムネイルで一覧確認</p>
+      </div>
+      <div class="koma-ss-item">
+        <div class="koma-ss-frame">
+          <img src="/koma/images/ss_list.jpg" alt="リスト表示">
+        </div>
+        <p class="koma-ss-caption">リスト表示 - 読書進捗をひと目で確認</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== アプリ情報 ===== -->
+  <section class="page-section">
+    <p class="koma-section-label">App Info</p>
+    <span class="koma-divider"></span>
+    <h2 class="koma-section-title">アプリ情報</h2>
+
+    <div class="panel">
+      <div class="panel-body">
+        <table class="koma-info-table">
+          <tr>
+            <th>名称</th>
+            <td>Koma（コマ）</td>
+          </tr>
+          <tr>
+            <th>対応OS</th>
+            <td>Android 5.0以上</td>
+          </tr>
+          <tr>
+            <th>対応形式</th>
+            <td>ZIP / CBZ / RAR / CBR / EPUB</td>
+          </tr>
+          <tr>
+            <th>価格</th>
+            <td>無料（広告あり）</td>
+          </tr>
+          <tr>
+            <th>開発</th>
+            <td>個人開発</td>
+          </tr>
+          <tr>
+            <th>配信</th>
+            <td>Google Play</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="koma-cta-box">
+      <h3>今すぐ無料でダウンロード</h3>
+      <p>Google Play からインストールするだけ。アカウント不要ですぐに使い始められます。</p>
+      <span class="koma-free-badge">🎉 無料アプリ</span>
+      <a class="koma-play-btn"
+         href="https://play.google.com/store/apps/details?id=com.personal.manga_viewer&pcampaignid=web_share"
+         target="_blank" rel="noopener noreferrer">
+        <img src="https://play.google.com/intl/ja/badges/static/images/badges/ja_badge_web_generic.png"
+             alt="Google Play で手に入れよう">
+      </a>
+    </div>
+  </section>
+
+</div>

@@ -88,6 +88,7 @@
             <li><a href="/articles">記事一覧</a></li>
           <% } %>
           <li><a href="/inkocchi">インコっち🐦</a></li>
+          <li><a href="/koma">Komaアプリ📱</a></li>
           <li><a href="/updates">お知らせ</a></li>
           <% if (isAdmin) { %>
             <li><a href="/dashboard">ダッシュボード</a></li>
@@ -118,6 +119,14 @@
           <ins class="widget-banner"></ins>
           <script class="widget-banner-script" src="https://widget-view.dmm.co.jp/js/banner_placement.js?affiliate_id=rurugamesJP-003&banner_id=136_120_240"></script>
         <% } %>
+        <div class="koma-sidebar-badge" aria-label="Komaアプリ">
+          <p style="font-size:0.7rem; color:var(--text-secondary); text-align:center; margin-bottom:4px;">📱 作者の無料アプリ</p>
+          <a href="https://play.google.com/store/apps/details?id=com.personal.manga_viewer&pcampaignid=web_share" target="_blank" rel="noopener noreferrer" title="Koma - Google Play" style="display:block; text-align:center;">
+            <img src="https://play.google.com/intl/ja/badges/static/images/badges/ja_badge_web_generic.png"
+                 alt="Google Play で手に入れよう"
+                 style="width:120px; height:auto; display:inline-block;">
+          </a>
+        </div>
       </div>
     </aside>
 
@@ -187,7 +196,15 @@
 
   <footer class="footer">
     <div class="container">
-      <p>&copy; 2026 R18Hub / ruruGamesJP. All rights reserved.</p>
+      <div style="margin-bottom:16px; display:flex; flex-direction:column; align-items:center; gap:4px;">
+        <p style="font-size:0.75rem; color:var(--text-secondary);">📱 作者の無料Androidアプリ「<a href="/koma" style="color:var(--primary-light,#818cf8); text-decoration:none;">Koma（マンガビューワ）</a>」も公開中</p>
+        <a href="https://play.google.com/store/apps/details?id=com.personal.manga_viewer&pcampaignid=web_share" target="_blank" rel="noopener noreferrer" title="Koma - Google Play">
+          <img src="https://play.google.com/intl/ja/badges/static/images/badges/ja_badge_web_generic.png"
+               alt="Google Play で手に入れよう"
+               style="height:48px; width:auto; display:block; transition:filter 0.2s;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='none'">
+        </a>
+      </div>
+      <p>&copy; 2026 R18Hub / ruruGamesJP / H.Sumisu. All rights reserved.</p>
       <div class="site-analytics" style="margin-top: 10px; display: inline-block;">
         <!--shinobi1--><script type="text/javascript" src="//xa.shinobi.jp/ufo/192252600"></script><noscript><a href="//xa.shinobi.jp/bin/gg?192252600" target="_blank"><img src="//xa.shinobi.jp/bin/ll?192252600" border="0"></a><br><span style="font-size:9px"><img style="margin:0;vertical-align:text-bottom;" src="//img.shinobi.jp/tadaima/fj.gif" width="19" height="11"> </span></noscript><!--shinobi2-->
       </div>

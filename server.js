@@ -411,6 +411,7 @@ app.use('/out', require('./routes/out'));
 app.use('/dashboard', require('./routes/dashboard'));
 app.use('/gallery', require('./routes/gallery'));
 app.use('/inkocchi', require('./routes/inkocchi'));
+app.use('/koma', require('./routes/koma'));
 app.use('/products', require('./routes/products'));
 app.use('/free-videos', require('./routes/free-videos'));
 
