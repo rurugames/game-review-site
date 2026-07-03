@@ -402,3 +402,20 @@ MIT
 ## サポート
 
 問題が発生した場合は、GitHubのissueで報告してください。
+
+## ClaudeCode ギャラリー運用コマンド
+
+ClaudeCode でも、ギャラリー運用をコマンドで実行できます。
+作業ディレクトリは、このワークスペースのルート（mytool）を前提とします。
+
+| コマンド | 用途 |
+|---|---|
+| `/upload-gallery` | `uploads/gallery/` の未処理画像を R2 + MongoDB に反映し、`uploads/gallery_archive/YYYY-MM-DD/` へ退避 |
+| `/sync-r2-gallery` | R2 上の gallery 画像と MongoDB の差分を同期 |
+| `/download-r2-gallery` | R2 上の gallery 画像をローカルへダウンロード |
+
+コマンド定義ファイル:
+
+- `.claude/commands/upload-gallery.md`
+- `.claude/commands/sync-r2-gallery.md`
+- `.claude/commands/download-r2-gallery.md`

@@ -219,6 +219,28 @@
 - 1分ごとに上位の受信パスと外向き通信先を Render ログへ集計出力する。
 - 受信については User-Agent と IP の上位も同時に出し、Bot 由来かを判別しやすくする。
 
+## 2026-06-29: ClaudeCode でギャラリー運用コマンドを標準化
+
+### 背景
+- VS Code Copilot 側にあるギャラリー運用スキルと同等の手順を、ClaudeCode でも同じ粒度で実行したい要望があった。
+
+### 決定
+- mytool のワークスペースルートを作業ディレクトリ前提として、ClaudeCode コマンドを追加する。
+- コマンドは以下の3つとする。
+   - `/upload-gallery`
+   - `/sync-r2-gallery`
+   - `/download-r2-gallery`
+
+### 反映箇所
+- `.claude/commands/upload-gallery.md`
+- `.claude/commands/sync-r2-gallery.md`
+- `.claude/commands/download-r2-gallery.md`
+- `README.md`
+
+### メモ
+- `upload-gallery` は R18 判定時のみ `uploads/gallery/.metadata.json` を作成する運用。
+- アップロード成功時はローカルサイト確認が失敗しても退避まで進める。
+
 ### 反映箇所
 - `server.js`
 - `lib/trafficMonitor.js`
