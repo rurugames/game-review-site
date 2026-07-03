@@ -1,0 +1,376 @@
+/* ============================================================
+   ✦ NEON NIGHT — Design Refresh 2026
+   style.css の後に読み込み、既存クラス名を維持したまま上書きする層。
+   ============================================================ */
+
+/* ---------- Foundation ---------- */
+::selection {
+  background: rgba(139, 92, 246, 0.45);
+  color: #fff;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2d2d4a transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #2d2d4a, #232338);
+  border-radius: 6px;
+  border: 2px solid #07070f;
+}
+::-webkit-scrollbar-thumb:hover { background: #4c4c7a; }
+
+a { transition: color 0.2s var(--ease-out); }
+
+h1, h2, h3 { letter-spacing: -0.02em; }
+
+:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---------- Left rail — glass panel ---------- */
+.left-rail {
+  background: linear-gradient(180deg, rgba(13, 13, 24, 0.92), rgba(9, 9, 18, 0.96));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-right: 1px solid var(--glass-border);
+  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.35);
+}
+
+.left-rail .site-title .site-icon {
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.25), 0 4px 16px rgba(139, 92, 246, 0.35);
+  transition: transform 0.35s var(--ease-out), box-shadow 0.35s var(--ease-out);
+}
+.left-rail .site-title a:hover .site-icon {
+  transform: translateY(-2px) scale(1.05) rotate(-3deg);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.5), 0 8px 28px rgba(236, 72, 153, 0.45);
+}
+.left-rail .site-title .title-text {
+  background: linear-gradient(115deg, #c4b5fd 0%, #f472b6 50%, #22d3ee 100%);
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: title-sheen 7s ease-in-out infinite;
+  font-weight: 800;
+}
+@keyframes title-sheen {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+.left-nav li { margin: 0.2rem 0.5rem; width: auto; }
+.left-nav a {
+  position: relative;
+  border-radius: 10px;
+  padding: 0.55rem 0.4rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: color 0.25s var(--ease-out), background 0.25s var(--ease-out), transform 0.25s var(--ease-out);
+}
+.left-nav a::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 22%;
+  bottom: 22%;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--gradient-1);
+  opacity: 0;
+  transform: scaleY(0.3);
+  transition: opacity 0.25s var(--ease-out), transform 0.25s var(--ease-out);
+}
+.left-nav a:hover {
+  color: #fff;
+  background: linear-gradient(90deg, rgba(139, 92, 246, 0.16), rgba(139, 92, 246, 0.03));
+  transform: translateX(2px);
+}
+.left-nav a:hover::before { opacity: 1; transform: scaleY(1); }
+
+/* ---------- Topbar — floating glass ---------- */
+.topbar {
+  background: rgba(9, 9, 18, 0.65);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.search-form input[type="search"] {
+  border: 1px solid rgba(167, 139, 250, 0.16);
+  background: rgba(255, 255, 255, 0.04);
+  transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out), background 0.3s var(--ease-out);
+}
+.search-form input[type="search"]:focus {
+  outline: none;
+  border-color: rgba(167, 139, 250, 0.55);
+  background: rgba(139, 92, 246, 0.07);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18), var(--shadow-glow);
+}
+.search-form button {
+  background: var(--gradient-1);
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out), filter 0.25s var(--ease-out);
+}
+.search-form button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4);
+  filter: brightness(1.1);
+}
+
+/* ---------- Cards — glass + lift + glow ---------- */
+.ranking-card,
+.article-card,
+.panel {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition:
+    transform 0.35s var(--ease-out),
+    box-shadow 0.35s var(--ease-out),
+    border-color 0.35s var(--ease-out);
+}
+.ranking-card:hover,
+.article-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(167, 139, 250, 0.45);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(167, 139, 250, 0.2),
+    0 0 32px rgba(139, 92, 246, 0.22);
+}
+
+/* カバー画像 — ホバーでズーム + トーンアップ */
+.ranking-card .cover img,
+.article-image img {
+  transition: transform 0.6s var(--ease-out), filter 0.6s var(--ease-out);
+  filter: saturate(0.96) brightness(0.94);
+}
+.ranking-card:hover .cover img,
+.article-card:hover .article-image img {
+  transform: scale(1.06);
+  filter: saturate(1.12) brightness(1.05);
+}
+
+/* カバー下部のグラデーションで文字の視認性UP */
+.ranking-card .cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 55%, rgba(7, 7, 15, 0.55) 100%);
+  pointer-events: none;
+  opacity: 0.8;
+  transition: opacity 0.4s var(--ease-out);
+}
+.ranking-card:hover .cover::after { opacity: 0.4; }
+
+/* ---------- Rank badges — neon medal ---------- */
+.rank-badge {
+  background: rgba(7, 7, 15, 0.72);
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  letter-spacing: 0.02em;
+}
+.rank-badge.rank-1 {
+  background: linear-gradient(135deg, #fde68a 0%, #f59e0b 100%);
+  border-color: rgba(253, 230, 138, 0.6);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.55), 0 4px 12px rgba(0, 0, 0, 0.4);
+  animation: gold-pulse 2.6s ease-in-out infinite;
+}
+@keyframes gold-pulse {
+  0%, 100% { box-shadow: 0 0 14px rgba(245, 158, 11, 0.45), 0 4px 12px rgba(0, 0, 0, 0.4); }
+  50% { box-shadow: 0 0 26px rgba(245, 158, 11, 0.75), 0 4px 12px rgba(0, 0, 0, 0.4); }
+}
+.rank-badge.rank-2 {
+  background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+  border-color: rgba(241, 245, 249, 0.5);
+  box-shadow: 0 0 14px rgba(148, 163, 184, 0.45), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.rank-badge.rank-3 {
+  background: linear-gradient(135deg, #fdba74 0%, #c2712b 100%);
+  border-color: rgba(253, 186, 116, 0.5);
+  box-shadow: 0 0 14px rgba(194, 113, 43, 0.45), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* ---------- Buttons — gradient + sheen ---------- */
+.btn-primary {
+  background: var(--gradient-1);
+  border: none;
+  font-weight: 600;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out), filter 0.25s var(--ease-out);
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -80%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.5s var(--ease-out);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(236, 72, 153, 0.45);
+  filter: brightness(1.08);
+}
+.btn-primary:hover::after { left: 120%; }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary,
+.btn-edit {
+  border: 1px solid rgba(167, 139, 250, 0.3);
+  background: rgba(139, 92, 246, 0.08);
+  color: var(--primary-light);
+  transition: background 0.25s var(--ease-out), border-color 0.25s var(--ease-out), transform 0.25s var(--ease-out);
+}
+.btn-secondary:hover,
+.btn-edit:hover {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: rgba(167, 139, 250, 0.55);
+  transform: translateY(-1px);
+}
+
+.btn-delete {
+  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+}
+.btn-delete:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(251, 113, 133, 0.4);
+}
+
+.btn-affiliate {
+  background: var(--gradient-2);
+  border: none;
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s var(--ease-out), box-shadow 0.25s var(--ease-out);
+  box-shadow: 0 4px 16px rgba(236, 72, 153, 0.3);
+}
+.btn-affiliate:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 10px 32px rgba(244, 63, 94, 0.5);
+}
+
+/* ---------- Tags — neon chips ---------- */
+.tag, .tag-small {
+  background: rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  color: var(--primary-light);
+  transition: background 0.25s var(--ease-out), border-color 0.25s var(--ease-out), transform 0.25s var(--ease-out), color 0.25s var(--ease-out);
+}
+.tag:hover, .tag-small:hover {
+  background: rgba(139, 92, 246, 0.28);
+  border-color: rgba(196, 181, 253, 0.6);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+/* ---------- Section titles — gradient accent ---------- */
+.section-title {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 0.35rem;
+}
+.section-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 48px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--gradient-1);
+  box-shadow: 0 0 12px rgba(139, 92, 246, 0.6);
+}
+
+/* ---------- Tables ---------- */
+.articles-table {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+}
+.articles-table thead th {
+  background: rgba(139, 92, 246, 0.07);
+  border-bottom: 1px solid rgba(167, 139, 250, 0.2);
+}
+.articles-table tbody tr {
+  transition: background 0.2s var(--ease-out);
+}
+.articles-table tbody tr:hover {
+  background: rgba(139, 92, 246, 0.06);
+}
+
+/* ---------- Forms ---------- */
+.form-group input,
+.form-group textarea,
+.form-group select,
+.comment-form textarea {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(167, 139, 250, 0.16);
+  transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out);
+}
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus,
+.comment-form textarea:focus {
+  outline: none;
+  border-color: rgba(167, 139, 250, 0.55);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.16);
+}
+
+/* ---------- Comments ---------- */
+.comment-item {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 12px;
+  transition: border-color 0.3s var(--ease-out);
+}
+.comment-item:hover { border-color: rgba(167, 139, 250, 0.35); }
+
+/* ---------- Pagination ---------- */
+.pagination .page-btn {
+  border-radius: 10px;
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  transition: background 0.25s var(--ease-out), border-color 0.25s var(--ease-out), transform 0.25s var(--ease-out);
+}
+.pagination .page-btn:hover:not(.disabled) {
+  background: rgba(139, 92, 246, 0.15);
+  border-color: rgba(167, 139, 250, 0.5);
+  transform: translateY(-1px);
+}
+.pagination .page-btn.active {
+  background: var(--gradient-1);
+  border-color: transparent;
+  box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4);
+}
+
+/* ---------- Entry animation ---------- */
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.content-area {
+  animation: card-in 0.45s var(--ease-out) both;
+}
+
+/* ---------- Reduced motion ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
