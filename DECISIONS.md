@@ -415,3 +415,31 @@
 - FreeVideo は Product とは独立したコレクション（`freevideos`）。
 - サムネイルは `--thumbnail` で手動指定。FANZAの CID が分かる場合は `https://pics.dmm.co.jp/digital/video/{cid}/{cid}pl.jpg` も試せる。
 
+
+---
+
+## 2026-07-04: セキュリティレビュー結果（Claude Fable 5）
+
+### 背景
+唯一の外部公開サービス（Render.com）であるため、認証・認可・インジェクション・XSS・SSRF・オープンリダイレクトを全routes/middleware通しで監査した。
+
+### 総評
+**認可・入力検証・出力エスケープは全体的に堅牢**。特に以下は良好：
+- 全書き込みルートに `ensureAuth` / `ensureAdmin` ガードあり（記事・商品・CSV・dashboard・gallery管理は管理者限定）
+- コメントは所有者/管理者チェック・ObjectId検証・返信段数制限あり
+- 検索ハイライトは escapeHtml してから `<mark>` 挿入（XSS防御済み）
+- ギャラリーコメントは `<%= %>` エスケープ表示＋長さ制限、`escapeRegex` でReDoS/インジェクション対策
+- `/out` リダイレクトはドメイン許可リストで固定（オープンリダイレクト不可）
+- 外部fetch（FC2/YouTube/DMM）は固定エンドポイントのみでSSRF不可
+- `users/:id` は本人/管理者のみ（`canViewUserPage`）
+
+### 改善推奨（優先度順）
+1. **[中] セッションcookieのセキュリティ属性が未設定**（server.js session設定）。`cookie: { secure: true, httpOnly: true, sameSite: 'lax' }` を本番で有効化すべき。加えて Render はHTTPSリバースプロキシ配下なので `app.set('trust proxy', 1)` が必要（これが無いと secure cookie が送出されない）。
+2. **[中] CSRF対策が無い**。ログアウト（GET /auth/logout）・コメント投稿・admin操作がフォーム/リンクベースで、CSRFトークン検証が無い。`csurf` 等の導入を検討。特に破壊的なadmin系POST（bulk-delete等）は要対策。
+3. **[中→低] Stored XSS（記事本文・商品説明）**: `marked` でMarkdown→HTML変換後、サニタイズ（DOMPurify/sanitize-html）せず `<%- contentHtml %>` で生出力。ただし投稿は `ensureAdmin` 限定のため、実害は「管理者アカウント奪取時に限る」＝現状リスクは低いが、設計上は sanitize-html を通すのが望ましい。
+4. **[低] セキュリティヘッダ未設定**: `helmet` 未使用。CSP・X-Content-Type-Options 等を付与すると多層防御になる。
+5. **[低] レート制限なし**: ログイン/コメント/いいねAPIにレート制限が無い。`express-rate-limit` で軽く入れると濫用対策になる。
+
+### メモ
+- SESSION_SECRET は本番で環境変数必須（未設定時のdevデフォルトはNODE_ENV=production では発動しない実装になっており適切）。
+- 最優先は 1（trust proxy + secure cookie）と 2（CSRF）。いずれも数十行で対応可能。
