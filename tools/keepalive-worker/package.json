@@ -1,0 +1,16 @@
+{
+  "name": "game-review-site-keepalive",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Render Free のスリープ対策: Cloudflare Workers の Cron で /healthz を5分おきに叩く",
+  "scripts": {
+    "test": "node --test test/ping.test.mjs",
+    "dev": "wrangler dev --test-scheduled",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}

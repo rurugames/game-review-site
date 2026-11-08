@@ -1,0 +1,13 @@
+name = "game-review-site-keepalive"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+
+# 公開の URL（*.workers.dev）は作らない。定期実行だけ動かす
+workers_dev = false
+
+[triggers]
+# 5分おき（Render Free は15分アクセスがないとスリープ）。Cloudflare の Cron は1分単位で正確
+crons = ["*/5 * * * *"]
+
+[vars]
+KEEPALIVE_URL = "https://game-review-site.onrender.com/healthz"

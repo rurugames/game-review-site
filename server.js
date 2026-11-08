@@ -107,6 +107,8 @@ require('./config/passport')(passport);
 // ミドルウェア設定
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
+// Health check（keep-alive が5分おきに叩く）。セッション・Passport・アクセス集計より手前に置く（lib/healthz.js）
+app.get('/healthz', require('./lib/healthz'));
 app.use(expressLayouts);
 app.set('layout', 'layout');
 if (trafficMonitor) {
@@ -384,11 +386,6 @@ app.get('/sitemap.xml', async (req, res) => {
     console.error('sitemap generation failed:', e);
     res.status(500).type('text/plain').send('sitemap generation failed');
   }
-});
-
-// Health check (for keep-alive pings)
-app.get('/healthz', (req, res) => {
-  res.status(200).type('text/plain').send('ok');
 });
 
 app.use(requireSiteAdultConfirmation({
