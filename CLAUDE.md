@@ -52,7 +52,7 @@ npm run status:detached
 ## 設計判断（変更時に壊しやすいポイント）
 
 - **成人確認ゲート**: `middleware/adultGate.js` がセッション (`req.session.adultConfirmed`) で状態を保持。FANZA/DMMウィジェット等の表示条件は必ずこのフラグを見て分岐させる。
-- **Render Free のスリープ対策**: GitHub Actions で `/healthz` に5分おきの keep-alive を仕掛けている（README参照）。無効化・削除する場合はワークフローファイルごと確認すること。
+- **Render Free のスリープ対策**: **Cloudflare Workers の Cron**（`tools/keepalive-worker/`。手順は同フォルダの README）が `/healthz` を5分おきに叩く。GitHub Actions の `render-keepalive.yml` は実際は20〜35分おきにしか動かず15分のスリープに間に合わなかったので、GitHub 側で Disable したまま使わない（2026-11-08 に置き換え）。`/healthz`（`lib/healthz.js`）は `server.js` の一番手前に置く（セッション・アクセス集計より前。いつも 200）。Worker を止める・変えるときは `tools/keepalive-worker` で `npx wrangler delete`／`npm run deploy`。Render Free は月750時間（ワークスペース共有）なので、常時起動は1サービスだけ（744時間）
 - **商品投稿はCLIスクリプト経由**: `scripts/post_product.js` / `post_free_video.js` に `--thumbnail` 等のオプションを持たせ、`.github/prompts/post-*.prompt.md` から呼び出す運用（GUIの管理画面と併用）。FANZAはOGP自動取得が失敗するため `--thumbnail` 手動指定が前提。
 - **FreeVideo と Product は独立コレクション**: `freevideos` コレクションは Product と分離管理。混同しないこと。
 - **koma/ フォルダは別アプリ（Koma）の紹介ページ**: このリポジトリ自体のコードではなく、静的な販促ランディングページ。Koma アプリ本体は `F:\myApp\Koma` / `C:\Users\hider\Koma` にある別プロジェクト。

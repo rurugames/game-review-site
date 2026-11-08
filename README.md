@@ -155,15 +155,17 @@ npm run start:detached:debug
 
 ## Render Free のスリープ対策（任意）
 
-Render の Free プランは、一定時間アクセスがないとスリープ（停止）して、次のアクセス時にコールドスタートが発生することがあります。
+Render の Free プランは、15分アクセスがないとスリープ（停止）して、次のアクセス時にコールドスタート（約30秒〜1分）が発生します。
 
-このリポジトリには、外部から定期的に `/healthz` を叩いてスリープしにくくするための GitHub Actions が入っています。
+このリポジトリには、**Cloudflare Workers の Cron** から `/healthz` を5分おきに叩いてスリープさせないための Worker が入っています（`tools/keepalive-worker/`）。
 
-1. Render の公開URLを確認（例: `https://xxxx.onrender.com`）
-2. GitHub リポジトリの Settings → Secrets and variables → Actions → New repository secret
-   - Name: `KEEPALIVE_URL`
-   - Value: `https://xxxx.onrender.com/healthz`
-3. Actions で "Render keep-alive" が 5分おきに動きます（無効化したい場合はワークフローをDisable、または schedule を削除）
+1. `tools/keepalive-worker/wrangler.toml` の `KEEPALIVE_URL` を、Render の公開URLの `/healthz` にする（例: `https://xxxx.onrender.com/healthz`）
+2. `cd tools/keepalive-worker` → `npm install` → `npx wrangler login` → `npm run deploy`
+3. `npm run tail` で、5分おきに `{"ok":true,"status":200,...}` の行が出れば動いています
+
+詳しい手順・止め方は `tools/keepalive-worker/README.md` を見てください。
+
+> GitHub Actions の定期実行（`.github/workflows/render-keepalive.yml`）は、設定は5分おきでも実際は20〜35分おきにしか動かず、15分のスリープに間に合いませんでした。そのため Cloudflare に置き換えています（ワークフローは Disable のまま）。
 
 ## FC2動画キャッシュの定期更新（GitHub Actions）
 

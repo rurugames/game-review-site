@@ -443,3 +443,24 @@
 ### メモ
 - SESSION_SECRET は本番で環境変数必須（未設定時のdevデフォルトはNODE_ENV=production では発動しない実装になっており適切）。
 - 最優先は 1（trust proxy + secure cookie）と 2（CSRF）。いずれも数十行で対応可能。
+
+---
+
+## 2026-11-08: Render Free のスリープ対策を GitHub Actions から Cloudflare Workers の Cron に置き換える
+
+### 背景
+- サイトが10分ほどアクセスされないとスリープし、次のアクセスで起動に時間がかかる（実測 `/healthz` が 32 秒）。Render 公式: 無料の Web サービスは15分アクセスがないとスリープ・起動に約1分
+- GitHub Actions の keep-alive（`render-keepalive.yml`・5分おき）は GitHub 側で Disable されていた。動いていた間も、実行履歴（2026-03-24）の実際の間隔は **20〜35 分**で、15分に間に合わなかった（GitHub の定期実行は混雑すると大きく遅れる）
+
+### 決定
+- **Cloudflare Workers の Cron Trigger**（無料・1分単位で正確・R2 で使っている Cloudflare のアカウント）で `/healthz` を**5分おき**に叩く（`tools/keepalive-worker/`）
+  - 失敗したら5秒後に1回やり直し、2回とも失敗なら例外（Cloudflare の画面に失敗として残る）。公開 URL・fetch の入口は作らない（`workers_dev = false`）
+- `/healthz` は `lib/healthz.js` に出し、`server.js` の一番手前（セッション・Passport・アクセス集計・成人確認より前）へ。いつも 200（DB が落ちていても。Render のヘルスチェックに使われていても起動中に落とさないため）・本文に `db=` の状態・no-store
+- 古い `render-keepalive.yml` は Disable のまま（消してもよい）
+
+### 結果
+- 初回の実行（デプロイの約10分後）が、スリープ中のサイトを 22 秒で起こし、以降は 5 分おきに 300ms 台で応答
+
+### 気を付けること
+- Render Free は月750時間（ワークスペース共有）。常時起動は 24×31=744 時間で、無料の Web サービスは1つだけにすること（ほかにあると月末に枠を使い切り全部止まる）
+- Render は無料のサービスをいつでも再起動することがある（スリープが「ゼロ」になるわけではない）
